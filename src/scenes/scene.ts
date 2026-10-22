@@ -62,12 +62,13 @@ export interface Scene {
   readonly caption: string;
 }
 
+// Types are written like signatures and parsed: "Either<E, List<B>>".
 export interface RibbonSpec {
-  readonly before: readonly string[];
-  readonly after: readonly string[];
+  readonly before: string;
+  readonly after: string;
   readonly fn?: string;
   readonly fnIn?: string;
-  readonly fnOut?: readonly string[];
+  readonly fnOut?: string;
 }
 
 export type Toggles = Readonly<Record<string, boolean>>; // true = the failing case is selected

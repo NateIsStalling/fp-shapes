@@ -1,3 +1,5 @@
+import { errorsOf, parseType, spine } from "./types";
+
 // Shape Ribbon scene: compare the layer stacks before and after an operation.
 // Layers are listed outermost first; the last entry is the payload.
 
@@ -59,4 +61,19 @@ export function diffLayers(before: readonly string[], after: readonly string[]):
   parts.push(payloadChanged ? `The payload changes from ${product(pb)} to ${product(pa)}.` : `The payload stays ${product(pb)}.`);
 
   return { unchanged, moved, introduced: restA, removed: restB, payloadChanged, caption: parts.join(" ") };
+}
+
+// Describe a ribbon from type expressions: layers that move, appear or
+// disappear along the payload's spine, the payload, and the error side.
+export function describeTypes(before: string, after: string): RibbonDiff {
+  const b = parseType(before);
+  const a = parseType(after);
+  const d = diffLayers(spine(b), spine(a));
+  const eb = errorsOf(b);
+  const ea = errorsOf(a);
+  const errorChanged = eb.length > 0 && ea.length > 0 && eb.join() !== ea.join();
+  if (!errorChanged) return d;
+  // When only the error side changed, "the payload stays" leads; say what changed first.
+  const caption = d.caption.replace(/(The payload [^.]*\.)$/, `The error changes from ${eb[0]} to ${ea[ea.length - 1]}. $1`);
+  return { ...d, caption };
 }

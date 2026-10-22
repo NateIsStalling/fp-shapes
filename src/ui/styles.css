@@ -245,6 +245,12 @@ a { color: var(--purple-dark); }
 .ribbon-type { align-self: end; font: 500 14px var(--mono); color: var(--soft-ink); white-space: nowrap; min-height: 1.2em; }
 .ribbon-fn { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; border: 1.5px dashed var(--effect-bd); background: var(--fn-bg); font-size: 20px; }
 .ribbon-arrow { width: 56px; height: 14px; fill: none; stroke: var(--faint-2); stroke-width: 1.5; }
+/* A sum type in the ribbon: its cases side by side, like a slot with every hole shown. */
+.sum { display: grid; justify-items: start; row-gap: 8px; padding: 10px 12px 12px; border-radius: 18px; border: 1.5px solid var(--effect-bd); background: var(--effect-bg); }
+.sum > .layer-label { color: var(--effect-fg); }
+.cases { display: flex; gap: 8px; align-items: stretch; }
+.case { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1.5px var(--effect-bd); min-width: 64px; }
+.case-name { font: 600 12px var(--sans); color: var(--effect-fg); }
 .ribbon-caption { margin: 0; font-size: 14px; color: var(--soft-ink); text-align: center; max-width: 62ch; }
 .ribbon-compact .ribbon-caption { text-align: left; font-size: 13px; }
 

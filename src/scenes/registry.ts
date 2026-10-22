@@ -146,21 +146,21 @@ const VALIDATION_NOTE = "Validation looks at every element so it can keep every 
 export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   // --- Mapping ---------------------------------------------------------------
   map: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "B"], fn: "A → B", fnOut: ["B"] }, defaults: { input: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, B>", fn: "A → B", fnOut: "B" }, defaults: { input: false },
       build: (t) => {
         const r = mapEither(eitherIn(t, "input"), () => "b");
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, called ? plain("b") : undefined)] }], output: eitherOut(r.result),
           caption: called ? "f ran on a. The Either stays; its payload changes from a to b." : "The input is a Left, so f never runs. The Left passes through unchanged." };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: ["Option", "A"], after: ["Option", "B"], fn: "A → B", fnOut: ["B"] }, defaults: { input: false },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<B>", fn: "A → B", fnOut: "B" }, defaults: { input: false },
       build: (t) => {
         const r = mapOption(optionIn(t, "input"), () => "b");
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, called ? plain("b") : undefined)] }], output: optionOut(r.result),
           caption: called ? "f ran on a. The Option stays; its payload changes from a to b." : "The input is None, so f never runs." };
       } },
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: ["List", "A"], after: ["List", "B"], fn: "A → B", fnOut: ["B"] }, defaults: {},
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<B>", fn: "A → B", fnOut: "B" }, defaults: {},
       build: () => {
         const r = mapList(elems(3, "a"), (a) => a.replace("a", "b"));
         return { inputs: [{ node: listOf(elems(3, "a"), "in"), steps: r.trace.calls.map((c) => step(true, plain(c.output))) }], output: listOf(r.result, "out"),
@@ -169,7 +169,7 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   bimap: { receivers: [
-    { id: "either", label: "Either", binds: {P: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "B"], fn: "E → E₂ | A → B" }, defaults: { input: false },
+    { id: "either", label: "Either", binds: {P: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E₂, B>", fn: "E → E₂ | A → B" }, defaults: { input: false },
       build: (t) => {
         const r = bimapEither(eitherIn(t, "input"), () => "e₂", () => "b");
         const isLeft = r.trace.calls[0]?.fn === "left";
@@ -177,7 +177,7 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
           output: eitherOut(r.result as Either<string, string>),
           caption: `Only the ${isLeft ? "left" : "right"} function ran: an Either holds one case at a time.` };
       } },
-    { id: "tuple", label: "Tuple", binds: {P: "Tuple"}, ribbon: { before: ["Tuple", "A, X"], after: ["Tuple", "B, Y"], fn: "A → B | X → Y" }, defaults: {},
+    { id: "tuple", label: "Tuple", binds: {P: "Tuple"}, ribbon: { before: "Tuple<A, X>", after: "Tuple<B, Y>", fn: "A → B | X → Y" }, defaults: {},
       build: () => {
         const r = bimapTuple(["a", "x"], () => "b", () => "y");
         return { inputs: [{ node: container("tuple", "Tuple", [ball("a", "in"), ball("x", "in")]), steps: [step(true, plain("b"), "f"), step(true, plain("y"), "g")] }],
@@ -188,21 +188,21 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
 
   // --- Sequencing ------------------------------------------------------------
   flatMap: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "B"], fn: "A → Either<B>", fnOut: ["Either", "B"] }, defaults: { input: false, f: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, B>", fn: "A → Either<B>", fnOut: "Either<E, B>" }, defaults: { input: false, f: false },
       build: (t) => {
         const r = flatMapEither(eitherIn(t, "input", "a", "e₁"), () => eitherIn(t, "f", "b", "e₂"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, eitherSlot(t, "f", "b", "e₂", "out", "f returns"))] }], output: eitherOut(r.result),
           caption: !called ? "The input is a Left, so f never runs." : t.f ? "f returned a Left, and that Left is the result. No nested Either is left behind." : "f returned Right b, and its Either merges with the outer one." };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: ["Option", "A"], after: ["Option", "B"], fn: "A → Option<B>", fnOut: ["Option", "B"] }, defaults: { input: false, f: false },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<B>", fn: "A → Option<B>", fnOut: "Option<B>" }, defaults: { input: false, f: false },
       build: (t) => {
         const r = flatMapOption(optionIn(t, "input"), () => optionIn(t, "f", "b"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, optionSlot(t, "f", "b", "out", "f returns"))] }], output: optionOut(r.result),
           caption: !called ? "The input is None, so f never runs." : t.f ? "f returned None, so the result is None." : "f returned Some b, and the layers merge into one." };
       } },
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: ["List", "A"], after: ["List", "B"], fn: "A → List<B>", fnOut: ["List", "B"] }, defaults: {},
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<B>", fn: "A → List<B>", fnOut: "List<B>" }, defaults: {},
       build: () => {
         const as = ["1", "2", "3"];
         const r = flatMapList(as, (n) => Array.from({ length: Number(n) }, () => `b${n}`));
@@ -212,20 +212,20 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   flatten: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "Either", "A"], after: ["Either", "A"] }, defaults: { outer: false, inner: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, Either<E, A>>", after: "Either<E, A>" }, defaults: { outer: false, inner: false },
       build: (t) => {
         const innerE = eitherIn(t, "inner", "a", "e₂");
         const r = flattenEither(t.outer ? left("e₁") : right(innerE));
         return { inputs: [{ node: nestedSlot(t, "outer", "outer Either", "Right", eitherSlot(t, "inner", "a", "e₂", "in", "inner Either"), "Left", ball("e₁", "error")) }], output: eitherOut(r.result),
           caption: t.outer ? "The outer Left becomes the result." : "One Either layer is removed; the inner value comes out as it is." };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: ["Option", "Option", "A"], after: ["Option", "A"] }, defaults: { outer: false, inner: false },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<Option<A>>", after: "Option<A>" }, defaults: { outer: false, inner: false },
       build: (t) => {
         const r = flattenOption(t.outer ? none : some(optionIn(t, "inner")));
         return { inputs: [{ node: nestedSlot(t, "outer", "outer Option", "Some", optionSlot(t, "inner", "a", "in", "inner Option"), "None", ball("None", "empty")) }], output: optionOut(r.result),
           caption: "One Option layer is removed." };
       } },
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: ["List", "List", "A"], after: ["List", "A"] }, defaults: {},
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<List<A>>", after: "List<A>" }, defaults: {},
       build: () => {
         const r = flattenList([["a₁", "a₂"], ["a₃"]]);
         return { inputs: [{ node: list([listOf(["a₁", "a₂"], "in"), listOf(["a₃"], "in")]) }], output: listOf(r.result, "out"), caption: "The inner lists are joined, in order. One List layer is removed." };
@@ -233,14 +233,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   tap: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "A"], fn: "A → Either<_>" }, defaults: { input: false, step: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, A>", fn: "A → Either<_>" }, defaults: { input: false, step: false },
       build: (t) => {
         const r = tapEither(eitherIn(t, "input", "a", "e₁"), () => eitherIn(t, "step", "_", "e₂"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, eitherSlot(t, "step", "_", "e₂", "out", "the step returns"))] }], output: eitherOut(r.result, "in"),
           caption: !called ? "The input is a Left, so the step never runs." : t.step ? "The step failed, and its Left replaces the result. A tap can fail." : "The step succeeded. Its own value (_) is discarded, and the original value a is kept." };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: ["Option", "A"], after: ["Option", "A"], fn: "A → Option<_>" }, defaults: { input: false, step: false },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<A>", fn: "A → Option<_>" }, defaults: { input: false, step: false },
       build: (t) => {
         const r = tapOption(optionIn(t, "input"), () => optionIn(t, "step", "_"));
         const called = r.trace.calls.length > 0;
@@ -250,14 +250,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   peek: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "A"], fn: "A → void" }, defaults: { input: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, A>", fn: "A → void" }, defaults: { input: false },
       build: (t) => {
         const r = peek(eitherIn(t, "input"), () => undefined);
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [{ called, label: "returns void", ...(called ? { effect: "saw a" } : {}) }] }], output: eitherOut(r.result, "in"),
           caption: called ? "f saw a and returned nothing. Its side effect (logging, metrics) stays outside the result, so the same Right a comes out: peek cannot fail or replace anything." : "The input is a Left, so f never runs and nothing is observed. The Left passes through." };
       } },
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: ["List", "A"], after: ["List", "A"], fn: "A → void" }, defaults: {},
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<A>", fn: "A → void" }, defaults: {},
       build: () => {
         const as = elems(3, "a");
         const r = peekList(as, () => undefined);
@@ -267,13 +267,13 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
 
   // --- Zipping ---------------------------------------------------------------
   zip: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "C"], fn: "Either<B> × ((A, B) → C)" }, defaults: { a: false, b: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, C>", fn: "Either<B> × ((A, B) → C)" }, defaults: { a: false, b: false },
       build: (t) => {
         const r = zipWithEither(eitherIn(t, "a", "a", "e₁"), eitherIn(t, "b", "b", "e₂"), () => "c");
         return { inputs: [{ node: eitherSlot(t, "a", "a", "e₁", "in", "first Either") }, { node: eitherSlot(t, "b", "b", "e₂", "in", "second Either") }], output: eitherOut(r.result),
           caption: t.a && t.b ? "Both failed. Either keeps only the first Left, e₁." : t.a || t.b ? "One side failed, so its Left is the result." : "Both succeeded, and f combined a and b into c." };
       } },
-    { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation"}, ribbon: { before: ["Validation", "A"], after: ["Validation", "C"], fn: "Validation<B> × ((A, B) → C)" }, defaults: { a: true, b: true },
+    { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E, C>", fn: "Validation<B> × ((A, B) → C)" }, defaults: { a: true, b: true },
       build: (t) => {
         const a: Validation<string, string> = t.a ? failure(["e₁"]) : success("a");
         const b: Validation<string, string> = t.b ? failure(["e₂"]) : success("b");
@@ -281,13 +281,13 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         return { inputs: [{ node: validationSlot(t, "a", "a", ["e₁"], "in", "first Validation") }, { node: validationSlot(t, "b", "b", ["e₂"], "in", "second Validation") }], output: validationOut(r.result),
           caption: t.a && t.b ? "Both failed, and Validation keeps both errors: e₁ then e₂." : t.a || t.b ? "One side failed, so its error is the result." : "Both succeeded, and f combined a and b into c." };
       } },
-    { id: "list", label: "List (cartesian)", binds: {F: "List"}, ribbon: { before: ["List", "A"], after: ["List", "C"], fn: "List<B> × ((A, B) → C)" }, defaults: {},
+    { id: "list", label: "List (cartesian)", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<C>", fn: "List<B> × ((A, B) → C)" }, defaults: {},
       build: () => {
         const r = zipWithListCartesian(["1", "2", "3"], ["a", "b"], (x, y) => x + y);
         return { inputs: [{ node: listOf(["1", "2", "3"], "in") }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
           caption: "Every element meets every element: 3 × 2 = 6 results. This is List's applicative (liftA2, query syntax, sequenceT)." };
       } },
-    { id: "ziplist", label: "List (positional)", binds: {F: "ZipList"}, ribbon: { before: ["List", "A"], after: ["List", "C"], fn: "List<B> × ((A, B) → C)" }, defaults: {},
+    { id: "ziplist", label: "List (positional)", binds: {F: "ZipList"}, ribbon: { before: "List<A>", after: "List<C>", fn: "List<B> × ((A, B) → C)" }, defaults: {},
       build: () => {
         const r = zipWithListPositional(["1", "2", "3"], ["a", "b"], (x, y) => x + y);
         return { inputs: [{ node: listOf(["1", "2", "3"], "in"), steps: [0, 1, 2].map((i) => step(!r.trace.skipped.includes(i))) }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
@@ -297,33 +297,33 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
 
   // --- Traversing ------------------------------------------------------------
   traverse: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either",T: "List"}, ribbon: { before: ["List", "A"], after: ["Either", "List", "B"], fn: "A → Either<B>", fnOut: ["Either", "B"] }, defaults: four, strategies: evaluationStrategies.either,
+    { id: "either", label: "Either", binds: {F: "Either",T: "List"}, ribbon: { before: "List<A>", after: "Either<E, List<B>>", fn: "A → Either<B>", fnOut: "Either<E, B>" }, defaults: four, strategies: evaluationStrategies.either,
       build: (t, s) => traverseScene("either", t, s, false) },
-    { id: "option", label: "Option", binds: {F: "Option",T: "List"}, ribbon: { before: ["List", "A"], after: ["Option", "List", "B"], fn: "A → Option<B>", fnOut: ["Option", "B"] }, defaults: four, strategies: evaluationStrategies.option,
+    { id: "option", label: "Option", binds: {F: "Option",T: "List"}, ribbon: { before: "List<A>", after: "Option<List<B>>", fn: "A → Option<B>", fnOut: "Option<B>" }, defaults: four, strategies: evaluationStrategies.option,
       build: (t, s) => traverseScene("option", t, s, false) },
-    { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation",T: "List"}, ribbon: { before: ["List", "A"], after: ["Validation", "List", "B"], fn: "A → Validation<B>", fnOut: ["Validation", "B"] }, defaults: four, strategies: evaluationStrategies.validation,
+    { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation",T: "List"}, ribbon: { before: "List<A>", after: "Validation<E, List<B>>", fn: "A → Validation<B>", fnOut: "Validation<E, B>" }, defaults: four, strategies: evaluationStrategies.validation,
       build: (t, s) => traverseScene("validation", t, s, false) },
   ] },
 
   sequence: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either",T: "List"}, ribbon: { before: ["List", "Either", "A"], after: ["Either", "List", "A"] }, defaults: four, strategies: evaluationStrategies.either,
+    { id: "either", label: "Either", binds: {F: "Either",T: "List"}, ribbon: { before: "List<Either<E, A>>", after: "Either<E, List<A>>" }, defaults: four, strategies: evaluationStrategies.either,
       build: (t, s) => traverseScene("either", t, s, true) },
-    { id: "option", label: "Option", binds: {F: "Option",T: "List"}, ribbon: { before: ["List", "Option", "A"], after: ["Option", "List", "A"] }, defaults: four, strategies: evaluationStrategies.option,
+    { id: "option", label: "Option", binds: {F: "Option",T: "List"}, ribbon: { before: "List<Option<A>>", after: "Option<List<A>>" }, defaults: four, strategies: evaluationStrategies.option,
       build: (t, s) => traverseScene("option", t, s, true) },
-    { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation",T: "List"}, ribbon: { before: ["List", "Validation", "A"], after: ["Validation", "List", "A"] }, defaults: four, strategies: evaluationStrategies.validation,
+    { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation",T: "List"}, ribbon: { before: "List<Validation<E, A>>", after: "Validation<E, List<A>>" }, defaults: four, strategies: evaluationStrategies.validation,
       build: (t, s) => traverseScene("validation", t, s, true) },
   ] },
 
   // --- Error handling --------------------------------------------------------
   mapError: { receivers: [
-    { id: "either", label: "Either", binds: {P: "Either"}, ribbon: { before: ["Either", "E"], after: ["Either", "E₂"], fn: "E → E₂", fnIn: "E", fnOut: ["E₂"] }, defaults: { input: true },
+    { id: "either", label: "Either", binds: {P: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E₂, A>", fn: "E → E₂", fnIn: "E", fnOut: "E₂" }, defaults: { input: true },
       build: (t) => {
         const r = mapErrorEither(eitherIn(t, "input"), () => "e₂");
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, called ? ball("e₂", "error") : undefined)] }], output: eitherOut(r.result),
           caption: called ? "f ran on the error. The Either stays; the error changes, and its type can change too." : "The input is a Right, so f never runs." };
       } },
-    { id: "validation", label: "Validation", binds: {P: "Validation"}, ribbon: { before: ["Validation", "E"], after: ["Validation", "E₂"], fn: "E → E₂", fnIn: "E", fnOut: ["E₂"] }, defaults: { input: true },
+    { id: "validation", label: "Validation", binds: {P: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E₂, A>", fn: "E → E₂", fnIn: "E", fnOut: "E₂" }, defaults: { input: true },
       build: (t) => {
         const r = mapErrorValidation(t.input ? failure(["e₁", "e₂"]) : success("a"), (e) => e.toUpperCase());
         const n = r.trace.calls.length;
@@ -334,7 +334,7 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   recover: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "A"], fn: "E → Either<A>", fnIn: "E", fnOut: ["Either", "A"] }, defaults: { input: true, handler: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E₂, A>", fn: "E → Either<E₂, A>", fnIn: "E", fnOut: "Either<E₂, A>" }, defaults: { input: true, handler: false },
       build: (t) => {
         const r = recoverEither(eitherIn(t, "input", "a", "e"), () => eitherIn(t, "handler", "a′", "n"));
         const called = r.trace.calls.length > 0;
@@ -344,28 +344,28 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   alt: { receivers: [
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: ["Option", "A"], after: ["Option", "A"], fn: "() → Option<A>" }, defaults: { primary: true, fallback: false },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<A>", fn: "() → Option<A>" }, defaults: { primary: true, fallback: false },
       build: (t) => {
         const r = altOption(optionIn(t, "primary"), () => optionIn(t, "fallback", "b"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "primary", "a", "in", "first") }, { node: optionSlot(t, "fallback", "b", "in", "fallback"), steps: [step(called)] }], output: optionOut(r.result),
           caption: called ? "The first was None, so the fallback was evaluated." : "The first was Some, so the fallback was never evaluated." };
       } },
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: ["Either", "A"], after: ["Either", "A"], fn: "() → Either<A>" }, defaults: { primary: true, fallback: true },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, A>", fn: "() → Either<A>" }, defaults: { primary: true, fallback: true },
       build: (t) => {
         const r = altEither(eitherIn(t, "primary", "a", "e₁"), () => eitherIn(t, "fallback", "b", "e₂"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "primary", "a", "e₁", "in", "first") }, { node: eitherSlot(t, "fallback", "b", "e₂", "in", "fallback"), steps: [step(called)] }], output: eitherOut(r.result),
           caption: !called ? "The first was a Right, so the fallback was never evaluated." : t.fallback ? "Both failed. Either keeps only the fallback's error, e₂." : "The fallback succeeded." };
       } },
-    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: ["Validation", "A"], after: ["Validation", "A"], fn: "() → Validation<A>" }, defaults: { primary: true, fallback: true },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E, A>", fn: "() → Validation<A>" }, defaults: { primary: true, fallback: true },
       build: (t) => {
         const r = altValidation(t.primary ? failure(["e₁"]) : success("a"), () => (t.fallback ? failure(["e₂"]) : success("b")));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: validationSlot(t, "primary", "a", ["e₁"], "in", "first") }, { node: validationSlot(t, "fallback", "b", ["e₂"], "in", "fallback"), steps: [step(called)] }], output: validationOut(r.result),
           caption: !called ? "The first succeeded, so the fallback was never evaluated." : t.fallback ? "Both failed, and Validation keeps both errors." : "The fallback succeeded." };
       } },
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: ["List", "A"], after: ["List", "A"], fn: "() → List<A>" }, defaults: {},
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<A>", fn: "() → List<A>" }, defaults: {},
       build: () => {
         const r = altList(["a₁", "a₂"], () => ["b₁"]);
         return { inputs: [{ node: listOf(["a₁", "a₂"], "in") }, { caption: "fallback", node: listOf(["b₁"], "in"), steps: [step(true)] }], output: listOf(r.result, "out"),
@@ -374,14 +374,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   getOrElse: { receivers: [
-    { id: "either", label: "Either · computed", binds: {F: "Either"}, signature: "(E → A) → Either<E, A> → A", ribbon: { before: ["Either", "A"], after: ["A"], fn: "E → A", fnIn: "E", fnOut: ["A"] }, defaults: { input: true },
+    { id: "either", label: "Either · computed", binds: {F: "Either"}, signature: "(E → A) → Either<E, A> → A", ribbon: { before: "Either<E, A>", after: "A", fn: "E → A", fnIn: "E", fnOut: "A" }, defaults: { input: true },
       build: (t) => {
         const r = getOrElseEitherWith(eitherIn(t, "input", "a", "e"), () => "d");
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, called ? plain("d") : undefined)] }], output: plain(r.result),
           caption: called ? "The fallback was computed from the error. The Either is gone; a plain value remains." : "The input is a Right, so the fallback never runs. Its value comes out." };
       } },
-    { id: "option", label: "Option · constant", binds: {F: "Option"}, signature: "A → Option<A> → A", ribbon: { before: ["Option", "A"], after: ["A"] }, defaults: { input: true },
+    { id: "option", label: "Option · constant", binds: {F: "Option"}, signature: "A → Option<A> → A", ribbon: { before: "Option<A>", after: "A" }, defaults: { input: true },
       build: (t) => {
         const r = getOrElseOption(optionIn(t, "input"), "d");
         return { inputs: [{ node: optionSlot(t, "input", "a") }], output: plain(r.result),
@@ -391,20 +391,20 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
 
   // --- Pattern matching ------------------------------------------------------
   match: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(E → R) × (A → R) → Either<E, A> → R", ribbon: { before: ["Either", "A"], after: ["R"], fn: "E → R | A → R" }, defaults: { input: false },
+    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(E → R) × (A → R) → Either<E, A> → R", ribbon: { before: "Either<E, A>", after: "R", fn: "E → R | A → R" }, defaults: { input: false },
       build: (t) => {
         const r = matchEither(eitherIn(t, "input"), () => "r", () => "r");
         const which = r.trace.calls[0]?.fn === "left" ? "onLeft" : "onRight";
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(true, plain("r"), which)] }], output: plain(r.result),
           caption: `Exactly one handler ran (${which}). Both return the same type, so the Either disappears.` };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, signature: "(() → R) × (A → R) → Option<A> → R", ribbon: { before: ["Option", "A"], after: ["R"], fn: "() → R | A → R" }, defaults: { input: false },
+    { id: "option", label: "Option", binds: {F: "Option"}, signature: "(() → R) × (A → R) → Option<A> → R", ribbon: { before: "Option<A>", after: "R", fn: "() → R | A → R" }, defaults: { input: false },
       build: (t) => {
         const r = matchOption(optionIn(t, "input"), () => "r", () => "r");
         const which = r.trace.calls[0]?.fn === "none" ? "onNone" : "onSome";
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(true, plain("r"), which)] }], output: plain(r.result), caption: `Exactly one handler ran (${which}).` };
       } },
-    { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "(Errors → R) × (A → R) → Validation<E, A> → R", ribbon: { before: ["Validation", "A"], after: ["R"], fn: "Errors → R | A → R" }, defaults: { input: true },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "(Errors → R) × (A → R) → Validation<E, A> → R", ribbon: { before: "Validation<E, A>", after: "R", fn: "Errors → R | A → R" }, defaults: { input: true },
       build: (t) => {
         const r = matchValidation(t.input ? failure(["e₁", "e₂"]) : success("a"), () => "r", () => "r");
         const which = r.trace.calls[0]?.fn === "failure" ? "onFailure" : "onSuccess";
@@ -415,14 +415,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
 
   // --- Filtering -------------------------------------------------------------
   filterOrElse: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(A → bool) × (A → E) → Either<E, A> → Either<E, A>", ribbon: { before: ["Either", "A"], after: ["Either", "A"], fn: "A → bool" }, defaults: { input: false, predicate: true },
+    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(A → bool) × (A → E) → Either<E, A> → Either<E, A>", ribbon: { before: "Either<E, A>", after: "Either<E, A>", fn: "A → bool" }, defaults: { input: false, predicate: true },
       build: (t) => {
         const r = filterOrElseEither(eitherIn(t, "input", "a", "e₁"), () => !t.predicate, () => "e₂");
         const called = r.trace.calls.some((c) => c.fn === "predicate");
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, boolSlot(t, "predicate", "the predicate returns"))] }], output: eitherOut(r.result as Either<string, string>),
           caption: !called ? "The input is a Left, so the predicate never runs." : t.predicate ? "The predicate failed, so the success becomes a Left built from the value." : "The predicate passed, so the value is kept." };
       } },
-    { id: "option", label: "Option · filter", binds: {F: "Option"}, signature: "(A → bool) → Option<A> → Option<A>", ribbon: { before: ["Option", "A"], after: ["Option", "A"], fn: "A → bool" }, defaults: { input: false, predicate: true },
+    { id: "option", label: "Option · filter", binds: {F: "Option"}, signature: "(A → bool) → Option<A> → Option<A>", ribbon: { before: "Option<A>", after: "Option<A>", fn: "A → bool" }, defaults: { input: false, predicate: true },
       build: (t) => {
         const r = filterOption(optionIn(t, "input"), () => !t.predicate);
         const called = r.trace.calls.length > 0;

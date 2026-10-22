@@ -171,3 +171,20 @@ describe("receiver fills in the type variable", () => {
     expect(second.container.querySelector(".receiver-label")?.textContent).toBe("P =");
   });
 });
+
+describe("shape ribbon draws sum types as their cases", () => {
+  it("Either shows Left and Right; map changes only the Right payload", () => {
+    const { container } = renderAt("/op/map");
+    const sums = [...container.querySelectorAll(".ribbon-grid .sum")];
+    expect(sums.map((s) => s.getAttribute("aria-label"))).toEqual(["Either: one of Left or Right", "Either: one of Left or Right"]);
+    const caseBalls = (sum: Element) => [...sum.querySelectorAll(".case")].map((c) => [c.querySelector(".case-name")?.textContent, c.querySelector(".ball")?.textContent]);
+    expect(caseBalls(sums[0] as Element)).toEqual([["Left", "E"], ["Right", "A"]]);
+    expect(caseBalls(sums[1] as Element)).toEqual([["Left", "E"], ["Right", "B"]]);
+  });
+  it("Option shows Some and None", () => {
+    const { container } = renderAt("/op/map");
+    fireEvent.click(screen.getByRole("button", { name: "Option" }));
+    const names = [...container.querySelectorAll(".ribbon-grid .sum")[0]?.querySelectorAll(".case-name") ?? []].map((n) => n.textContent);
+    expect(names).toEqual(["Some", "None"]);
+  });
+});
