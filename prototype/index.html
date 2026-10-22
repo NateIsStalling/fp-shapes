@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="FP Shapes makes functional programming transformations visible." />
+  <title>FP Shapes — Explore operations visually</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#explore" data-route="explore" aria-label="FP Shapes home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i></span>
+        <span>FP Shapes</span>
+      </a>
+      <p class="tagline">Types define possibilities.<br />Shapes make them visible.</p>
+
+      <nav class="nav-list">
+        <a class="nav-item is-active" href="#explore" data-route="explore"><span>⌕</span>Explore</a>
+        <a class="nav-item" href="#learn" data-route="learn"><span>◫</span>Learn</a>
+        <a class="nav-item" href="#concepts" data-route="concepts"><span>◇</span>Concepts</a>
+        <a class="nav-item" href="#glossary" data-route="glossary"><span>≡</span>Glossary</a>
+      </nav>
+
+      <div class="sidebar-section">
+        <p class="sidebar-label">EXAMPLES</p>
+        <a class="nav-item quiet" href="#validation" data-route="validation"><span>✓</span>Validation</a>
+        <a class="nav-item quiet" href="#parsing" data-route="parsing"><span>⌁</span>Parsing</a>
+        <a class="nav-item quiet" href="#async" data-route="async"><span>↻</span>Async workflows</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <p><span>i</span> Prototype · v0.1</p>
+        <a href="https://github.com" target="_blank" rel="noreferrer"><span>⌘</span>GitHub</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div id="exploreView">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">VISUAL OPERATION INDEX</p>
+          <h1>Explore operations</h1>
+          <p>Search an operation. See its shape.</p>
+        </div>
+        <button class="icon-button" id="themeButton" aria-label="Toggle contrast" title="Toggle contrast">◐</button>
+      </header>
+
+      <section class="search-area" aria-label="Operation search">
+        <div class="search-row">
+          <label class="search-box">
+            <span aria-hidden="true">⌕</span>
+            <input id="operationSearch" type="search" value="SelectMany" autocomplete="off" aria-label="Search an operation or alias" />
+            <kbd>⌘ K</kbd>
+          </label>
+          <label class="ecosystem-filter">
+            <span class="sr-only">Filter by ecosystem</span>
+            <select id="ecosystemFilter">
+              <option value="all">All ecosystems</option>
+              <option value="csharp-linq">C# · LINQ</option>
+              <option value="csharp-languageext">C# · LanguageExt</option>
+              <option value="fsharp">F#</option>
+              <option value="haskell">Haskell</option>
+              <option value="typescript-array">TypeScript · Array</option>
+              <option value="typescript-fpts">TypeScript · fp-ts</option>
+            </select>
+          </label>
+        </div>
+        <p class="search-hint">Try <button data-query="map">map</button>, <button data-query="bind">bind</button>, <button data-query=">>=">&gt;&gt;=</button>, or <button data-query="traverse">traverse</button></p>
+        <div class="search-results" id="searchResults" role="listbox" aria-label="Matching operations" hidden></div>
+      </section>
+
+      <section class="match-card" aria-live="polite">
+        <div>
+          <p class="eyebrow">MATCHED OPERATION</p>
+          <div class="match-title-row">
+            <h2 id="matchedName">SelectMany</h2>
+            <span class="badge" id="matchedEcosystem">C# · LINQ</span>
+          </div>
+          <p class="canonical-line">Canonical concept: <strong id="canonicalName">flatMap</strong></p>
+          <p id="operationDescription">Chain an operation that returns the same kind of structure, then remove one layer of nesting.</p>
+        </div>
+        <button class="bookmark" id="bookmarkButton" type="button" aria-label="Bookmark operation" aria-pressed="false">◇</button>
+      </section>
+
+      <section class="visual-card">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CANONICAL SHAPE</p>
+            <h2>What shape does it have?</h2>
+          </div>
+          <button class="text-button" id="playButton" type="button"><span>▶</span> Play transformation</button>
+        </div>
+
+        <div class="signature" id="signature">F&lt;A&gt; × (A → F&lt;B&gt;) → F&lt;B&gt;</div>
+
+        <div class="shape-stage" id="shapeStage">
+          <div class="shape-group input-group">
+            <span class="shape-label" id="inputLabel">F&lt;A&gt;</span>
+            <div class="wrapper wrapper-purple"><span class="value value-a">A</span></div>
+          </div>
+          <div class="stage-arrow" aria-hidden="true"><span></span></div>
+          <div class="operation-node">
+            <span id="functionLabel">A → F&lt;B&gt;</span>
+            <div class="function-flow"><span class="value mini value-a">A</span><b>→</b><span class="mini-wrapper"><span class="value mini value-b">B</span></span></div>
+          </div>
+          <div class="stage-arrow" aria-hidden="true"><span></span></div>
+          <div class="shape-group output-group">
+            <span class="shape-label" id="outputLabel">F&lt;B&gt;</span>
+            <div class="wrapper wrapper-green"><span class="value value-b">B</span></div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="example-heading">
+          <h3 id="exampleHeading">Concrete example</h3>
+          <div class="case-switch" role="group" aria-label="Example case">
+            <button class="is-selected" data-case="success" type="button">Success</button>
+            <button data-case="failure" type="button">Failure</button>
+          </div>
+        </div>
+
+        <div class="concrete-flow" id="concreteFlow">
+          <div class="result-box before-result">
+            <span class="result-label">Result&lt;E, User&gt;</span>
+            <div class="alternatives" id="beforeContents">
+              <span class="error-shape">E</span>
+              <span class="success-shape">User</span>
+            </div>
+          </div>
+          <div class="flow-arrow"><span id="concreteFunction">User → Result&lt;E, Account&gt;</span><i></i></div>
+          <div class="result-box after-result">
+            <span class="result-label">Result&lt;E, Account&gt;</span>
+            <div class="alternatives" id="afterContents">
+              <span class="error-shape">E</span>
+              <span class="success-shape">Account</span>
+            </div>
+          </div>
+        </div>
+        <p class="annotation" id="annotation"><span>↳</span> The failure path passes through unchanged.</p>
+      </section>
+
+      <section class="neighbors-section">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">COMPOSITION NEIGHBORHOOD</p>
+            <h2>What fits around this operation?</h2>
+          </div>
+          <p>Follow a relationship to keep exploring.</p>
+        </div>
+        <div class="neighbor-track" id="neighborTrack"></div>
+      </section>
+      </div>
+
+      <section id="contentView" class="content-view" hidden aria-live="polite"></section>
+    </main>
+
+    <aside class="inspector" aria-label="Concept details">
+      <div class="inspector-header">
+        <p class="eyebrow">CANONICAL CONCEPT</p>
+        <h2 id="inspectorTitle">flatMap</h2>
+        <span class="concept-badge" id="conceptKind">Structure-changing</span>
+        <a class="concept-page-link" id="conceptPageLink" href="#concept/monad">Read the concept page →</a>
+      </div>
+
+      <section class="inspector-section">
+        <h3>Also called</h3>
+        <div class="pill-list" id="aliasList"></div>
+      </section>
+
+      <section class="inspector-section">
+        <h3>In other ecosystems</h3>
+        <dl class="ecosystem-list" id="ecosystemList"></dl>
+      </section>
+
+      <section class="inspector-section">
+        <div class="theory-heading">
+          <h3>Why it works</h3>
+          <button type="button" id="theoryToggle" aria-expanded="false">Show theory <span>⌄</span></button>
+        </div>
+        <div class="theory-panel" id="theoryPanel" hidden>
+          <p id="theoryText"></p>
+          <code id="lawText"></code>
+        </div>
+      </section>
+
+      <section class="inspector-section">
+        <h3>Related concepts</h3>
+        <div class="related-list" id="relatedList"></div>
+      </section>
+
+      <div class="inspector-callout">
+        <span>✦</span>
+        <div><strong>Same concept, different names.</strong><p>Start with the behavior; translate into your ecosystem second.</p></div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
