@@ -100,7 +100,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
       <aside className="aside" aria-labelledby="eco-h">
         <p className="eyebrow">Ecosystems: what is it called here?</p>
         <h2 id="eco-h" className="aside-title">{op.name} · {receiver.label}{strategies.length > 1 ? ` · ${STRATEGY_LABEL[activeStrategy].toLowerCase()}` : ""}</h2>
-        {entries.length === 0 && <p className="muted">No conformance-tested entry yet for this combination.</p>}
+        {entries.length === 0 && <p className="muted">Under construction.</p>}
         {entries.map((n) => (
           <div key={n.eco + n.api} className="eco-row">
             <div className="eco-head"><strong>{n.eco}</strong><span className="version">{n.version}</span></div>
