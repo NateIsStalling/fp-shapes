@@ -17,7 +17,7 @@ npm test                                   # vitest run: laws, traps, layer-boun
 npx vitest run src/semantics/traverse.test.ts   # one test file
 npx vitest run -t "stop at first"          # tests whose name matches
 npm run typecheck                          # tsc (strict, noEmit)
-npm run dev                                # Vite dev server
+npm run dev                                # Vite dev server at http://localhost:5173/ (base / in dev)
 npm run build                              # typecheck + static build to dist/ (base /fp-shapes/)
 ```
 
