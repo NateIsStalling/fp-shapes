@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="FP Shapes: see what functional programming operations do to the shape of your data, and what each ecosystem calls them." />
     <title>FP Shapes</title>
+    <script>
+      // Apply a stored theme choice before first paint, so the page never flashes the wrong theme.
+      try { const t = localStorage.getItem("fp-shapes-theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />

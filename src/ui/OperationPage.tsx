@@ -4,6 +4,7 @@ import type { OperationInfo } from "../catalog/operations";
 import { operationScenes } from "../scenes/registry";
 import type { EvaluationStrategy } from "../semantics";
 import { SampleBlock } from "./SampleBlock";
+import { ThemeToggle } from "./ThemeToggle";
 import { SceneView } from "./SceneView";
 import { ShapeRibbon } from "./ShapeRibbon";
 
@@ -33,9 +34,9 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
   const hasToggles = Object.keys(receiver.defaults).length > 0;
 
   return (
-    <div className="page-with-aside">
-      <main className="main">
-        <header className="op-header">
+    <div className="op-page">
+      <header className="title-bar">
+        <div className="op-header">
           <nav aria-label="Breadcrumb" className="breadcrumb">
             <ol><li>Operations</li><li>{op.group}</li></ol>
           </nav>
@@ -44,7 +45,11 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <p className="mono op-signature">{op.signature}</p>
             <span className="abstraction-tag"><span>abstraction</span>{op.abstraction}</span>
           </div>
-        </header>
+        </div>
+        <ThemeToggle />
+      </header>
+      <div className="page-with-aside">
+      <main className="main">
 
         <section aria-labelledby="shape-h" className="section">
           <h2 id="shape-h">Shape: which layers move?</h2>
@@ -102,6 +107,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
           </div>
         ))}
       </aside>
+    </div>
     </div>
   );
 }

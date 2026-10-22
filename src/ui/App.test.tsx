@@ -111,3 +111,25 @@ describe("samples in the names panel", () => {
     expect(writes[0]).toContain("input.Map(x => x * 10)");
   });
 });
+
+describe("title bar and theme", () => {
+  it("the title bar spans the page, outside the main column", () => {
+    const { container } = renderAt("/op/map");
+    const bar = container.querySelector("header.title-bar");
+    expect(bar?.querySelector("h1")?.textContent).toBe("map");
+    expect(bar?.closest("main")).toBeNull();
+  });
+
+  it("the theme toggle switches and remembers dark mode", () => {
+    document.documentElement.removeAttribute("data-theme");
+    renderAt("/op/map");
+    const toggle = screen.getByRole("button", { name: "Dark theme" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(toggle);
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("fp-shapes-theme")).toBe("dark");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(toggle);
+    expect(document.documentElement.dataset.theme).toBe("light");
+  });
+});
