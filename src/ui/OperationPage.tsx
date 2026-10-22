@@ -54,14 +54,14 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
         </header>
 
         <section aria-labelledby="shape-h" className="section">
-          <h2 id="shape-h"><span className="step">1</span>Shape: which layers move?</h2>
+          <h2 id="shape-h"><span className="step">1</span>{" "}Shape: which layers move?</h2>
           <div className="card">
             <ShapeRibbon op={op.name} {...receiver.ribbon} />
           </div>
         </section>
 
         <section aria-labelledby="behavior-h" className="section">
-          <h2 id="behavior-h"><span className="step">2</span>Behavior: what runs, and what comes out?</h2>
+          <h2 id="behavior-h"><span className="step">2</span>{" "}Behavior: what runs, and what comes out?</h2>
           <div className="control-row">
             {strategies.length > 1 && (
               <>
@@ -85,7 +85,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
       </main>
 
       <aside className="aside" aria-labelledby="eco-h">
-        <p className="eyebrow"><span className="step">3</span>Ecosystems: what is it called here?</p>
+        <p className="eyebrow eyebrow-step"><span className="step">3</span>{" "}Ecosystems: what is it called here?</p>
         <h2 id="eco-h" className="aside-title">{op.name} · {receiver.label}{strategies.length > 1 ? ` · ${STRATEGY_LABEL[activeStrategy].toLowerCase()}` : ""}</h2>
         {entries.length === 0 && <p className="muted">No conformance-tested entry yet for this combination.</p>}
         {entries.map((n) => (
