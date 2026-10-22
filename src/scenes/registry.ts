@@ -126,7 +126,7 @@ function traverseScene(k: Kind3, t: Toggles, strategy: EvaluationStrategy, isSeq
     resultText = show.validation(r.result);
   }
   const input = isSequence ? list(idx.map((i) => elementSlot(k, t, i, `element ${i + 1}`, "in"))) : listOf(elems(4, "a"), "in");
-  const steps = idx.map((i) => (isSequence ? step(called.has(i)) : step(called.has(i), elementSlot(k, t, i, `f(a${sub(i)}) returns`, "out"))));
+  const steps = idx.map((i) => (isSequence ? step(called.has(i)) : step(called.has(i), elementSlot(k, t, i, `f(a${sub(i)})`, "out"))));
   const n = fails.filter(Boolean).length;
   const caption =
     (n === 0
@@ -270,7 +270,7 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
     { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, C>", fn: "Either<B> × ((A, B) → C)" }, defaults: { a: false, b: false },
       build: (t) => {
         const r = zipWithEither(eitherIn(t, "a", "a", "e₁"), eitherIn(t, "b", "b", "e₂"), () => "c");
-        return { inputs: [{ node: eitherSlot(t, "a", "a", "e₁", "in", "first Either") }, { node: eitherSlot(t, "b", "b", "e₂", "in", "second Either") }], output: eitherOut(r.result),
+        return { inputsAs: "tuple", inputs: [{ node: eitherSlot(t, "a", "a", "e₁", "in", "first Either") }, { node: eitherSlot(t, "b", "b", "e₂", "in", "second Either") }], output: eitherOut(r.result),
           caption: t.a && t.b ? "Both failed. Either keeps only the first `Left`, `e₁`." : t.a || t.b ? "One side failed, so its `Left` is the result." : "Both succeeded, and `f` combined `a` and `b` into `c`." };
       } },
     { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E, C>", fn: "Validation<B> × ((A, B) → C)" }, defaults: { a: true, b: true },
@@ -278,19 +278,19 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const a: Validation<string, string> = t.a ? failure(["e₁"]) : success("a");
         const b: Validation<string, string> = t.b ? failure(["e₂"]) : success("b");
         const r = zipWithValidation(a, b, () => "c");
-        return { inputs: [{ node: validationSlot(t, "a", "a", ["e₁"], "in", "first Validation") }, { node: validationSlot(t, "b", "b", ["e₂"], "in", "second Validation") }], output: validationOut(r.result),
+        return { inputsAs: "tuple", inputs: [{ node: validationSlot(t, "a", "a", ["e₁"], "in", "first Validation") }, { node: validationSlot(t, "b", "b", ["e₂"], "in", "second Validation") }], output: validationOut(r.result),
           caption: t.a && t.b ? "Both failed, and Validation keeps both errors: `e₁` then `e₂`." : t.a || t.b ? "One side failed, so its error is the result." : "Both succeeded, and `f` combined `a` and `b` into `c`." };
       } },
     { id: "list", label: "List (cartesian)", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<C>", fn: "List<B> × ((A, B) → C)" }, defaults: {},
       build: () => {
         const r = zipWithListCartesian(["1", "2", "3"], ["a", "b"], (x, y) => x + y);
-        return { inputs: [{ node: listOf(["1", "2", "3"], "in") }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
+        return { inputsAs: "tuple", inputs: [{ node: listOf(["1", "2", "3"], "in") }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
           caption: "Every element meets every element: 3 × 2 = 6 results. This is List's applicative (`liftA2`, query syntax, `sequenceT`)." };
       } },
     { id: "ziplist", label: "List (positional)", binds: {F: "ZipList"}, ribbon: { before: "List<A>", after: "List<C>", fn: "List<B> × ((A, B) → C)" }, defaults: {},
       build: () => {
         const r = zipWithListPositional(["1", "2", "3"], ["a", "b"], (x, y) => x + y);
-        return { inputs: [{ node: listOf(["1", "2", "3"], "in"), steps: [0, 1, 2].map((i) => step(!r.trace.skipped.includes(i))) }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
+        return { inputsAs: "tuple", inputs: [{ node: listOf(["1", "2", "3"], "in"), steps: [0, 1, 2].map((i) => step(!r.trace.skipped.includes(i))) }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
           caption: "Elements pair up by position, and the extra `3` is dropped. This is `zipWith`, `ZipList`, and LINQ `Zip`." };
       } },
   ] },

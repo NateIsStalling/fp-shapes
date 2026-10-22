@@ -30,7 +30,7 @@ export interface SlotOption {
 
 export interface SlotNode {
   readonly type: "slot";
-  readonly label: string; // what the slot holds: "Either", "f(a₂) returns", ...
+  readonly label: string; // what the slot holds: "Either", "f(a₂)", ...
   readonly key: string; // the input this slot controls
   readonly options: readonly SlotOption[];
   readonly selected: number;
@@ -58,6 +58,8 @@ export interface SceneInput {
 
 export interface Scene {
   readonly inputs: readonly SceneInput[];
+  // "tuple": the inputs are one argument, a tuple, drawn in one Tuple box.
+  readonly inputsAs?: "tuple";
   readonly output: SceneNode;
   readonly caption: string;
 }

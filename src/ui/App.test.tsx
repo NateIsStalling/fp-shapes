@@ -29,9 +29,9 @@ describe("interaction", () => {
   it("traverse: each slot is a radio group; moving pieces recomputes the result", () => {
     renderAt("/");
     expect(caption()).toMatch(/f was called on 2 of 4 elements, then it stopped at the first failure\. Result: Left\(e₂\)\./);
-    expect((within(screen.getByRole("group", { name: "f(a₂) returns" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
-    pick("f(a₂) returns", /Right/);
-    pick("f(a₄) returns", /Right/);
+    expect((within(screen.getByRole("group", { name: "f(a₂)" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
+    pick("f(a₂)", /Right/);
+    pick("f(a₄)", /Right/);
     expect(caption()).toMatch(/f succeeded on all 4 elements\. Result: Right\(\[b₁, b₂, b₃, b₄\]\)\./);
     fireEvent.click(screen.getByRole("button", { name: "Validation" }));
     expect(caption()).toMatch(/All 2 failures are kept\. Result: Failure\(\[e₂, e₄\]\)\./);
@@ -56,6 +56,13 @@ describe("interaction", () => {
     renderAt("/op/zip");
     fireEvent.click(screen.getByRole("button", { name: "List (positional)" }));
     expect(caption()).toMatch(/the extra 3 is dropped/);
+  });
+
+  it("zip: the two inputs are one tuple argument, drawn in one Tuple box", () => {
+    renderAt("/op/zip");
+    const tuple = screen.getByRole("group", { name: "Tuple" });
+    expect(within(tuple).getByRole("group", { name: "first Either" })).toBeTruthy();
+    expect(within(tuple).getByRole("group", { name: "second Either" })).toBeTruthy();
   });
 
   it("captions render code tokens as code", () => {

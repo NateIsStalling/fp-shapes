@@ -50,7 +50,6 @@ function StepCell({ step, onSet }: { step: Step; onSet: SetInput }) {
     <div className={`step-cell${step.called ? "" : " step-not-called"}`}>
       <span className={step.called ? "connector" : "connector connector-skipped"} aria-hidden="true" />
       {step.label && <span className="step-label">{step.label}</span>}
-      {!step.called && <span className="step-text step-text-skipped">not called</span>}
       {step.effect && (
         <span className="effect-tag" title="A side effect: not a value, and not part of the result">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" /><circle cx="8" cy="8" r="2" /></svg>
@@ -58,6 +57,7 @@ function StepCell({ step, onSet }: { step: Step; onSet: SetInput }) {
         </span>
       )}
       {step.result ? <Node node={step.result} onSet={onSet} /> : step.called && !step.effect && <span className="step-text">called</span>}
+      {!step.called && <span className="step-text step-text-skipped">not called</span>}
     </div>
   );
 }
@@ -90,8 +90,17 @@ export function SceneView({ scene, onSet }: { scene: Scene; onSet: SetInput }) {
   return (
     <figure className="card lane">
       <div className="lane-row">
-        <div className="lane-inputs">{scene.inputs.map((input, i) => <Input key={i} input={input} onSet={onSet} />)}</div>
-        <svg className="ribbon-arrow" viewBox="0 0 56 14" aria-hidden="true"><path d="M1 7h50" /><path d="M46 2l7 5-7 5" /></svg>
+        {scene.inputsAs === "tuple" ? (
+          <div className="lane-inputs">
+            <div className="layer layer-tuple tuple-inputs" role="group" aria-label="Tuple">
+              <span className="layer-label">Tuple</span>
+              <div className="tuple-items">{scene.inputs.map((input, i) => <Input key={i} input={input} onSet={onSet} />)}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="lane-inputs">{scene.inputs.map((input, i) => <Input key={i} input={input} onSet={onSet} />)}</div>
+        )}
+        <svg className="lane-arrow" viewBox="0 0 14 36" aria-hidden="true"><path d="M7 1v30" /><path d="M2 26l5 7 5-7" /></svg>
         <div className="lane-output" aria-label="Result"><Node node={scene.output} onSet={() => undefined} /></div>
       </div>
       <figcaption aria-live="polite" className="lane-caption"><RichText text={scene.caption} /></figcaption>
