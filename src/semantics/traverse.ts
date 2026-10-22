@@ -13,20 +13,24 @@ import {
 } from "./receivers";
 
 // Instrumented traverse: the same results as the lawful traverseArray, plus a
-// trace of which calls happened. Ecosystems differ in *when they stop calling
-// f*, so that difference is modeled as named variants.
+// trace of which calls happened.
+//
+// The receiver decides the result. Either and Option keep only the first
+// failure; Validation keeps every failure because its applicative accumulates.
+// Ecosystems differ only in *evaluation*, meaning whether f is still called
+// after a failure. That changes the trace, never the result.
 
 export type TraverseReceiver = "option" | "either" | "validation";
 
-export type TraverseVariant =
-  | "stop-at-first" // monadic: f is not called after the first failure
-  | "call-all-first-wins" // applicative over a strict Either: every call happens, the first failure survives
-  | "accumulate"; // Validation: every call happens, every failure survives
+export type EvaluationStrategy =
+  | "short-circuit" // f is not called after the first failure (monadic or lazy traverse)
+  | "eager"; // f is called on every element (applicative traverse in a strict language)
 
-export const traverseVariants: Readonly<Record<TraverseReceiver, readonly TraverseVariant[]>> = {
-  option: ["stop-at-first", "call-all-first-wins"],
-  either: ["stop-at-first", "call-all-first-wins"],
-  validation: ["accumulate"],
+export const evaluationStrategies: Readonly<Record<TraverseReceiver, readonly EvaluationStrategy[]>> = {
+  option: ["short-circuit", "eager"],
+  either: ["short-circuit", "eager"],
+  // Validation must see every element to accumulate, so it is always eager.
+  validation: ["eager"],
 };
 
 export interface Call<A, R> {
@@ -47,7 +51,7 @@ export interface Run<Result, A, R> {
 
 type Outcome<E, B> = { readonly ok: true; readonly value: B } | { readonly ok: false; readonly error: E };
 
-// Shared walker. `isFailure` and `stopOnFailure` are the only knobs.
+// Shared walker. `read` and `stopOnFailure` are the only knobs.
 function walk<A, R, E, B>(
   as: readonly A[],
   f: (a: A) => R,
@@ -77,22 +81,22 @@ function walk<A, R, E, B>(
 }
 
 export function traverseEither<A, E, B>(
-  variant: "stop-at-first" | "call-all-first-wins",
+  strategy: EvaluationStrategy,
   as: readonly A[],
   f: (a: A) => Either<E, B>,
 ): Run<Either<E, readonly B[]>, A, Either<E, B>> {
-  const w = walk(as, f, (r): Outcome<E, B> => (r.tag === "right" ? { ok: true, value: r.value } : { ok: false, error: r.error }), variant === "stop-at-first");
+  const w = walk(as, f, (r): Outcome<E, B> => (r.tag === "right" ? { ok: true, value: r.value } : { ok: false, error: r.error }), strategy === "short-circuit");
   const [first] = w.errors;
   const result: Either<E, readonly B[]> = w.errors.length > 0 ? left(first as E) : right(w.values);
   return { result, trace: { calls: w.calls, skipped: w.skipped } };
 }
 
 export function traverseOption<A, B>(
-  variant: "stop-at-first" | "call-all-first-wins",
+  strategy: EvaluationStrategy,
   as: readonly A[],
   f: (a: A) => Option<B>,
 ): Run<Option<readonly B[]>, A, Option<B>> {
-  const w = walk(as, f, (r): Outcome<null, B> => (r.tag === "some" ? { ok: true, value: r.value } : { ok: false, error: null }), variant === "stop-at-first");
+  const w = walk(as, f, (r): Outcome<null, B> => (r.tag === "some" ? { ok: true, value: r.value } : { ok: false, error: null }), strategy === "short-circuit");
   const result: Option<readonly B[]> = w.errors.length > 0 ? none : some(w.values);
   return { result, trace: { calls: w.calls, skipped: w.skipped } };
 }

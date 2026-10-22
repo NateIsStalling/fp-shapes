@@ -134,7 +134,7 @@ Distinctions the site must keep visible:
 | Sequencing | `tap` (effectful) | Monad | Unchanged; the side step can fail |
 | Sequencing | `peek` (side effect only) | Functor | Unchanged |
 | Zipping | `zip` / `map2` | Applicative | Two containers merge into one |
-| Traversing | `traverse` (variants: stop-at-first, call-all/first-wins, accumulate), `sequence` | Traversable | Outer and inner layers swap |
+| Traversing | `traverse`, `sequence` | Traversable | Outer and inner layers swap |
 | Error handling | `mapError` | Bifunctor | Container stays; the error side changes |
 | Error handling | `recover` | MonadError | The failure branch is replaced |
 | Error handling | `alt` | Alt | The first success wins |
@@ -176,8 +176,8 @@ The layers depend only downward. Enforce this with a lint rule (e.g. `no-restric
 
 ```text
 src/
-├── semantics/   receivers, reference operations, behavior variants, traces; imports nothing else in src and never React
-├── scenes/      pure (operation, receiver, variant, inputs) → Scene builders, plus text summaries; imports semantics only
+├── semantics/   receivers, reference operations, evaluation strategies, traces; imports nothing else in src and never React
+├── scenes/      pure (operation, receiver, evaluation strategy, inputs) → Scene builders, plus text summaries; imports semantics only
 ├── catalog/     ecosystems, libraries, versions, entries, aliases, abstractions, glossary definitions, snippet refs
 ├── search/      name search (alias index derived from the catalog; ambiguous queries return several candidates)
 │                and signature search (TypeExpression matching, Hoogle-style)
@@ -189,7 +189,11 @@ snippets/        real source files for each ecosystem, compiled in CI against th
 
 - Receivers are plain TypeScript discriminated unions.
 - Each operation returns a `Run`: the result plus a trace of the calls that were made, those that were skipped, and timing on the virtual clock.
-- Operations with ecosystem-dependent behavior expose named **variants**. Example: traverse has `stop-at-first`, `call-all-first-wins` and `accumulate`.
+- **The receiver decides the result; evaluation strategy decides only which calls run.** Never present an implementation difference as a different operation or a different result.
+  - Example: Either and Option keep the first failure. Validation keeps every failure, because its *applicative* accumulates. Accumulation belongs to the receiver, not to traverse.
+  - Where ecosystems differ in which calls they make, the operation exposes named **evaluation strategies**. For traverse, `short-circuit` (f is not called after the first failure: monadic or lazy) and `eager` (f is called on every element: applicative traverse in a strict language).
+  - Tests prove that every strategy gives the same result as the lawful reference. Validation has only `eager`.
+  - The UI shows the strategy control only where it applies, and says plainly that it changes calls, not results.
 
 ### Scenes
 
@@ -245,7 +249,7 @@ interface EcosystemEntry {
   receiver: ReceiverId
   status: "equivalent" | "library" | "partial" | "analogy" | "none"
   api?: { name: string; module?: string; signature: string }  // that ecosystem's own parameter order
-  variant?: VariantId             // links the API to the semantics variant it implements
+  strategy?: StrategyId           // links the API to the evaluation strategy it uses
   caveat?: string
   verified: { against: string; on: string; url: string }      // library version, ISO date, doc URL
   aliases?: AliasRecord[]
@@ -323,7 +327,7 @@ An ecosystem can document **several version tracks** side by side. Version tags 
 
 ```text
 #/                                       operation list
-#/op/:operationId?receiver=&variant=&ecosystem=
+#/op/:operationId?receiver=&strategy=&ecosystem=
 #/abstraction/:abstractionId
 #/index                                  matrix index: names, glossary terms, snippets
 ```
@@ -350,18 +354,18 @@ Accessibility requirements:
 ## Testing strategy
 
 - **Laws:** fast-check property tests of the Functor, Applicative, Monad and Traversable laws (as stated in the Haskell base docs) for every receiver that claims them. Validation is tested as an Applicative that is not a Monad.
-- **Traps:** a fixed test for each guardrail above, e.g. elements 2 and 4 fail under each traverse variant, or `[1,2]` × `"ab"` gives 4 cartesian pairs vs 2 positional pairs.
+- **Traps:** a fixed test for each guardrail above, e.g. elements 2 and 4 fail under each receiver and evaluation strategy, or `[1,2]` × `"ab"` gives 4 cartesian pairs vs 2 positional pairs.
 - **Scenes:** structural assertions on scene output, not pixel snapshots.
 - **Catalog validation:**
   - unique IDs
   - every entry has `verified`
-  - every `variant` exists in semantics
+  - every `strategy` exists in semantics
   - stale-version report
   - no alias resolves ambiguously without returning several candidates
 - **Search:** exact beats prefix, prefix beats substring. For signatures: alpha-equivalence, currying, argument reordering and concrete-to-abstract unification each have tests, plus a golden query list. `SelectMany`, `fold` and `join` return several qualified candidates.
 - **Snippets:** compiled in CI against the pinned versions.
 - **Routes:** every route renders, old hashes redirect, and URL state restores the selection.
-- **Smoke:** one Playwright test that loads an operation, edits an input, switches variant and ecosystem, opens the index, and checks that a mobile viewport doesn't overflow.
+- **Smoke:** one Playwright test that loads an operation, edits an input, switches receiver, strategy and ecosystem, opens the index, and checks that a mobile viewport doesn't overflow.
 
 ## GitHub Pages deployment
 
@@ -384,9 +388,9 @@ Grant only the permissions Pages needs. No secrets are required.
 
 1. **Decisions and research.** Done (2026-10-21). The research reports are kept in the "FP Shapes Research" artifact (https://claude.ai/artifact/SA8MMv26fNWtq1wSuXWKPX) for now. It is private to the repo owner.
 2. **Scaffold.** Vite/React/TS strict, Vitest, fast-check, `HashRouter`, the Pages workflow, the ported CSS, and the layer-boundary lint rule. *Exit:* the empty shell deploys, and importing React from `src/semantics` fails lint.
-3. **Semantics core.** Receivers, the Tier 1 operations with variants and traces, and the law and trap tests. *Exit:* all laws pass for every receiver that claims them.
+3. **Semantics core.** Receivers, the Tier 1 operations with evaluation strategies and traces, and the law and trap tests. *Exit:* all laws pass for every receiver that claims them.
 4. **Scenes and the Shape Ribbon.** Derive ribbons from canonical `TypeExpression`s (layer stacks plus their diff). Builders for each visual family (preserve, flatten, both branches, eliminate, flip nesting, combine) and the text summaries. *Exit:* every Tier 1 topic has scenes for all of its receivers.
-5. **Rendering and input editing.** `ShapeDiagram`, `InputEditor`, ghosted skipped calls, reduced motion. *Exit:* switching traverse variants visibly changes which calls happened.
+5. **Rendering and input editing.** `ShapeDiagram`, `InputEditor`, ghosted skipped calls, reduced motion. *Exit:* switching traverse's evaluation strategy visibly changes which calls happened, and the result stays the same.
 6. **Catalog, versioning and search.** Fill entries from the research with their verification records, derive the alias index and the glossary, and add catalog validation and the stale report. *Exit:* every matrix cell is a typed entry, including `none`.
 7. **Pages and the index.** Operation pages in the order Shape Ribbon → behavior → names panel, the navigation in fp-ts/Effect category groups, an abstraction tag in each page header, abstraction pages that lead with how each ecosystem represents the abstraction and show laws as pairs of equal diagrams, the matrix index with glossary terms and versioned snippets, and the snippet CI.
 8. **Signature search.** Parse queries in the neutral notation and the common ecosystem spellings, normalize them, and match and rank them against catalog signatures. *Exit:* `List<Option<A>> -> Option<List<A>>`, `a -> m b` style bind, `F<F<A>> -> F<A>`, and `(A -> B) -> List<A> -> List<B>` each return the expected operation as the top result, together with its ecosystem entries.
@@ -395,7 +399,7 @@ Grant only the permissions Pages needs. No secrets are required.
 
 ## Definition of done (launch)
 
-- Every Tier 1 topic is interactive, with computed scenes, for each of its receivers and variants.
+- Every Tier 1 topic is interactive, with computed scenes, for each of its receivers and evaluation strategies.
 - Laws and trap tests pass, and no diagram is hand-authored.
 - Every matrix cell exists as a typed entry with its version, its verification record, and either a status or an explicit `none`.
 - Pinned versions appear in the UI, and catalog validation reports no stale entries.
@@ -408,6 +412,6 @@ Grant only the permissions Pages needs. No secrets are required.
 - Verify semantics against the primary docs for the pinned version before adding them to the catalog. Never port claims from the prototype unchecked.
 - Keep each milestone runnable, and prefer small, reviewable commits.
 - Keep semantic corrections, catalog expansion and UI work in separate commits.
-- Add a regression test whenever you fix a catalog-resolution, ecosystem-selection or variant bug.
+- Add a regression test whenever you fix a catalog-resolution, ecosystem-selection or evaluation-strategy bug.
 - Record semantic uncertainty as `unverified` rather than asserting equivalence.
 - The typed catalog is the single source of truth. Navigation, the glossary and the alias index are derived from it, never maintained as parallel lists.
