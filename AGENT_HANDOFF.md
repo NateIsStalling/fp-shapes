@@ -199,6 +199,9 @@ snippets/        real source files for each ecosystem, compiled in CI against th
 
 ### Scenes
 
+Operation pages are **data-driven**: one generic page renders every operation from its scene builders (`src/scenes/registry.ts`) and catalog data. Don't write a React component for an individual operation. A toggle can be attached to a ball or to a container's label, so every input in a Scene can be flipped directly.
+
+
 `ShapeDiagram` receives a `Scene` and never an operation name:
 
 ```ts

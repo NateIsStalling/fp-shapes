@@ -36,6 +36,15 @@ To view the prototype, open `prototype/index.html` directly.
 - `src/catalog/` holds `EcosystemEntry` records: API name, the ecosystem's own signature order, `status` (`equivalent` | `library` | `partial` | `analogy` | `none`), a `strategy` link, version and verification data, aliases with name history, and optional snippet refs. It also holds abstraction records describing how each ecosystem represents Functor, Monad and so on: first-class, encoded, library-only or absent. Syntax that resolves by method name (LINQ query syntax, F# CE builders) counts as "absent (syntax only)".
 - Derived, never hand-maintained: the alias index, the glossary and navigation. An ambiguous alias (`SelectMany`, `fold`, `join`, `Do`) returns several qualified candidates.
 
+## Adding or changing an operation (no per-operation React)
+
+Every operation page is rendered by one generic `src/ui/OperationPage.tsx` and `SceneView.tsx`. To add an operation:
+1. **Semantics:** implement it in `src/semantics/` so that it returns a `Run` with a trace. Add law and trap tests.
+2. **Scenes:** add a builder for each receiver in `src/scenes/registry.ts`. Each builder supplies the ribbon spec, the default toggles (true means that input fails), the evaluation strategies, and a `build` that runs the semantics and returns a `Scene`.
+3. **Catalog:** add the navigation entry to `src/catalog/operations.ts`. Names go in `src/catalog/names.ts`, and only when a conformance test backs them.
+
+`tests/registry.test.ts` checks that the navigation, registry and names agree, that every receiver builds for every strategy, and that every toggle can be clicked in the default state.
+
 ## Pinned ecosystems
 
 - Effect 4.0.5. v3 names are indexed only as legacy aliases.

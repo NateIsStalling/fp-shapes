@@ -1,0 +1,96 @@
+import { describe, expect, it } from "vitest";
+import { names } from "../src/catalog/names";
+import { operationGroups } from "../src/catalog/operations";
+import { operationScenes } from "../src/scenes/registry";
+import type { Scene, SceneNode } from "../src/scenes/scene";
+
+// The UI renders every operation from data. These checks keep the catalog,
+// the scene registry and the names panel consistent with each other.
+
+const allOps = operationGroups.flatMap((g) => g.operations);
+
+function toggleKeys(scene: Scene): Set<string> {
+  const keys = new Set<string>();
+  const walk = (n: SceneNode) => {
+    if (n.type === "ball") { if (n.toggle) keys.add(n.toggle); }
+    else { if (n.toggle) keys.add(n.toggle); n.children.forEach(walk); }
+  };
+  for (const input of scene.inputs) {
+    walk(input.node);
+    for (const s of input.steps ?? []) if (s.result) walk(s.result);
+  }
+  return keys;
+}
+
+describe("scene registry", () => {
+  it("covers every operation in the navigation, and nothing else", () => {
+    expect(Object.keys(operationScenes).sort()).toEqual(allOps.map((o) => o.id).sort());
+  });
+
+  for (const op of allOps) {
+    describe(op.id, () => {
+      const receivers = operationScenes[op.id]?.receivers ?? [];
+      it("has at least one receiver with unique ids", () => {
+        expect(receivers.length).toBeGreaterThan(0);
+        expect(new Set(receivers.map((r) => r.id)).size).toBe(receivers.length);
+      });
+      for (const r of receivers) {
+        it(`${r.id}: builds for every strategy, and every input toggle is clickable`, () => {
+          for (const s of r.strategies?.length ? r.strategies : (["short-circuit"] as const)) {
+            const scene = r.build(r.defaults, s);
+            expect(scene.inputs.length).toBeGreaterThan(0);
+            expect(scene.caption.length).toBeGreaterThan(0);
+          }
+          const visible = toggleKeys(r.build(r.defaults, r.strategies?.[0] ?? "short-circuit"));
+          for (const key of Object.keys(r.defaults)) expect(visible, `toggle "${key}"`).toContain(key);
+          for (const key of Object.keys(r.defaults)) {
+            const flipped = r.build({ ...r.defaults, [key]: !r.defaults[key] }, r.strategies?.[0] ?? "short-circuit");
+            expect(flipped.caption.length).toBeGreaterThan(0);
+          }
+          expect(r.ribbon.before.length).toBeGreaterThan(0);
+          expect(r.ribbon.after.length).toBeGreaterThan(0);
+        });
+      }
+    });
+  }
+});
+
+describe("names panel", () => {
+  it("only refers to operations and receivers that exist", () => {
+    for (const key of Object.keys(names)) {
+      const [op, receiver] = key.split(":");
+      const receivers = operationScenes[op as string]?.receivers.map((r) => r.id) ?? [];
+      expect(receivers, key).toContain(receiver);
+    }
+  });
+});
+
+describe("scenes show the traps", () => {
+  const find = (op: string, receiver: string) => {
+    const r = operationScenes[op]?.receivers.find((x) => x.id === receiver);
+    if (!r) throw new Error(`${op}:${receiver} missing`);
+    return r;
+  };
+  const balls = (n: SceneNode): string[] => (n.type === "ball" ? [n.label] : n.children.flatMap(balls));
+
+  it("zip: cartesian gives 6 results, positional gives 2", () => {
+    expect(balls(find("zip", "list").build({}, "short-circuit").output)).toHaveLength(6);
+    expect(balls(find("zip", "ziplist").build({}, "short-circuit").output)).toEqual(["1a", "2b"]);
+  });
+  it("traverse: strategies change the calls, never the output", () => {
+    const r = find("traverse", "either");
+    const sc = r.build(r.defaults, "short-circuit");
+    const eager = r.build(r.defaults, "eager");
+    expect(sc.output).toEqual(eager.output);
+    expect(sc.inputs[0]?.steps?.filter((s) => s.called)).toHaveLength(2);
+    expect(eager.inputs[0]?.steps?.filter((s) => s.called)).toHaveLength(4);
+  });
+  it("Validation keeps both errors where Either keeps one", () => {
+    expect(balls(find("zip", "validation").build({ a: true, b: true }, "short-circuit").output)).toEqual(["e₁", "e₂"]);
+    expect(balls(find("zip", "either").build({ a: true, b: true }, "short-circuit").output)).toEqual(["e₁"]);
+  });
+  it("bimap runs one function for Either and both for a Tuple", () => {
+    expect(find("bimap", "either").build({ input: false }, "short-circuit").inputs[0]?.steps).toHaveLength(1);
+    expect(find("bimap", "tuple").build({}, "short-circuit").inputs[0]?.steps?.map((s) => s.label)).toEqual(["f", "g"]);
+  });
+});

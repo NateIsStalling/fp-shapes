@@ -1,6 +1,6 @@
 import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { operationGroups, operationsById, type OperationId } from "../catalog/operations";
-import { TraversePage } from "./TraversePage";
+import { OperationPage } from "./OperationPage";
 
 function Sidebar() {
   return (
@@ -30,17 +30,7 @@ function OperationRoute() {
   const { operationId } = useParams();
   const op = operationsById.get(operationId as OperationId);
   if (!op) return <Navigate to="/" replace />;
-  if (op.id === "traverse") return <TraversePage />;
-  return (
-    <main className="main">
-      <header className="op-header">
-        <p className="eyebrow">{op.group}</p>
-        <div className="op-title"><h1>{op.name}</h1><span className="abstraction-tag"><span>abstraction</span>{op.abstraction}</span></div>
-        <p className="mono op-signature">{op.signature}</p>
-      </header>
-      <p className="muted">The semantics for {op.name} are implemented and tested. Its page is next: shape ribbon, behavior lane, and ecosystem names.</p>
-    </main>
-  );
+  return <OperationPage key={op.id} op={op} />;
 }
 
 export function App() {
