@@ -71,10 +71,10 @@ describe("navigation", () => {
 });
 
 describe("section headings", () => {
-  it("keep a space between the step number and the label", () => {
-    const { container } = renderAt("/op/traverse");
-    expect(screen.getByRole("heading", { level: 2, name: "1 Shape: which layers move?" })).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 2, name: "2 Behavior: what runs, and what comes out?" })).toBeTruthy();
-    expect(container.querySelector(".eyebrow-step")?.textContent).toBe("3 Ecosystems: what is it called here?");
+  it("name the three parts of every operation page", () => {
+    renderAt("/op/traverse");
+    expect(screen.getByRole("heading", { level: 2, name: "Shape: which layers move?" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Behavior: what runs, and what comes out?" })).toBeTruthy();
+    expect(screen.getByText("Ecosystems: what is it called here?")).toBeTruthy();
   });
 });
