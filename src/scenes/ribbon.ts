@@ -52,12 +52,12 @@ export function diffLayers(before: readonly string[], after: readonly string[]):
   const payloadChanged = pb !== pa;
 
   const parts: string[] = [];
-  if (moved.length === 2) parts.push(`${moved[0]} and ${moved[1]} swap places.`);
-  else if (moved.length === 1) parts.push(`${moved[0]} moves inside.`);
-  if (restA.length) parts.push(`${restA.join(" and ")} is introduced on the outside.`);
-  if (restB.length) parts.push(restB.length === 1 && unchanged.includes(restB[0] as string) ? `One ${restB[0]} layer is removed.` : `${restB.join(" and ")} is removed.`);
-  if (!moved.length && !restA.length && !restB.length && unchanged.length) parts.push(`${unchanged.join(" and ")} stays the same.`);
-  const product = (p: string) => (p.includes(",") ? `(${p})` : p);
+  if (moved.length === 2) parts.push(`\`${moved[0]}\` and \`${moved[1]}\` swap places.`);
+  else if (moved.length === 1) parts.push(`\`${moved[0]}\` moves inside.`);
+  if (restA.length) parts.push(`${restA.map((n) => `\`${n}\``).join(" and ")} is introduced on the outside.`);
+  if (restB.length) parts.push(restB.length === 1 && unchanged.includes(restB[0] as string) ? `One \`${restB[0]}\` layer is removed.` : `${restB.map((n) => `\`${n}\``).join(" and ")} is removed.`);
+  if (!moved.length && !restA.length && !restB.length && unchanged.length) parts.push(`${unchanged.map((n) => `\`${n}\``).join(" and ")} stays the same.`);
+  const product = (p: string) => (p.includes(",") ? `\`(${p})\`` : `\`${p}\``);
   parts.push(payloadChanged ? `The payload changes from ${product(pb)} to ${product(pa)}.` : `The payload stays ${product(pb)}.`);
 
   return { unchanged, moved, introduced: restA, removed: restB, payloadChanged, caption: parts.join(" ") };
@@ -74,6 +74,6 @@ export function describeTypes(before: string, after: string): RibbonDiff {
   const errorChanged = eb.length > 0 && ea.length > 0 && eb.join() !== ea.join();
   if (!errorChanged) return d;
   // When only the error side changed, "the payload stays" leads; say what changed first.
-  const caption = d.caption.replace(/(The payload [^.]*\.)$/, `The error changes from ${eb[0]} to ${ea[ea.length - 1]}. $1`);
+  const caption = d.caption.replace(/(The payload [^.]*\.)$/, `The error changes from \`${eb[0]}\` to \`${ea[ea.length - 1]}\`. $1`);
   return { ...d, caption };
 }

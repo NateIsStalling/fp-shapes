@@ -5,6 +5,7 @@ import { operationScenes } from "../scenes/registry";
 import { instantiate, markType, tokenize } from "../scenes/signature";
 import type { EvaluationStrategy } from "../semantics";
 import { SampleBlock } from "./SampleBlock";
+import { RichText } from "./RichText";
 import { SceneView } from "./SceneView";
 import { ShapeRibbon } from "./ShapeRibbon";
 
@@ -87,7 +88,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
                 <span className="note">{STRATEGY_NOTE[activeStrategy]}</span>
               </>
             )}
-            {receiver.note && <span className="note">{receiver.note}</span>}
+            {receiver.note && <span className="note"><RichText text={receiver.note} /></span>}
             {hasToggles && <span className="note">Each slot holds one of its cases. Choose a different case to change that input.</span>}
           </div>
           <SceneView scene={scene} onSet={setInput} />
@@ -106,7 +107,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <div className="eco-head"><strong>{n.eco}</strong><span className="version">{n.version}</span></div>
             <span className="mono">{n.api}</span>
             {n.status === "partial" && <span className="status-partial">partial</span>}
-            {n.note && <span className="muted">{n.note}</span>}
+            {n.note && <span className="muted"><RichText text={n.note} /></span>}
             {n.sample && <SampleBlock code={n.sample} language={n.eco === "LanguageExt" ? "C#" : "TypeScript"} />}
           </div>
         ))}

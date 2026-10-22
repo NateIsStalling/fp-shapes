@@ -1,5 +1,6 @@
 import { useId } from "react";
 import type { Scene, SceneInput, SceneNode, SlotNode, Step } from "../scenes/scene";
+import { RichText } from "./RichText";
 
 // Draws any Scene. Knows nothing about which operation produced it.
 // Editable inputs are shape-sorter slots: real radio groups, one hole per
@@ -93,7 +94,7 @@ export function SceneView({ scene, onSet }: { scene: Scene; onSet: SetInput }) {
         <svg className="ribbon-arrow" viewBox="0 0 56 14" aria-hidden="true"><path d="M1 7h50" /><path d="M46 2l7 5-7 5" /></svg>
         <div className="lane-output" aria-label="Result"><Node node={scene.output} onSet={() => undefined} /></div>
       </div>
-      <figcaption aria-live="polite" className="lane-caption">{scene.caption}</figcaption>
+      <figcaption aria-live="polite" className="lane-caption"><RichText text={scene.caption} /></figcaption>
     </figure>
   );
 }

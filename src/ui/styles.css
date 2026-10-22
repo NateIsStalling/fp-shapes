@@ -141,6 +141,8 @@ button { font: inherit; cursor: pointer; }
 a { color: var(--purple-dark); }
 :focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
 .mono { font-family: var(--mono); }
+/* Code tokens inside prose: variables, constructors, API names. */
+.tok { font-family: var(--mono); font-size: .93em; font-weight: 500; color: var(--purple-dark); }
 .muted { color: var(--muted); }
 .small { font-size: 13px; }
 .eyebrow { margin: 0; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }

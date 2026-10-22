@@ -16,43 +16,54 @@ describe("every operation page renders from data", () => {
       expect(screen.getByRole("heading", { level: 1, name: op.name })).toBeTruthy();
       expect(container.querySelector(".ribbon-caption")?.textContent).toMatch(new RegExp(`^${op.name}: `));
       expect(container.querySelector(".lane-caption")?.textContent?.length).toBeGreaterThan(10);
+      for (const el of container.querySelectorAll(".lane-caption, .ribbon-caption, .note, .muted")) expect(el.textContent).not.toContain("`");
     });
   }
 });
 
 describe("interaction", () => {
+  // Captions mix text and code tokens, so match on the whole caption text.
+  const caption = () => document.querySelector(".lane-caption")?.textContent ?? "";
   const pick = (group: string, option: RegExp) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("radio", { name: option }));
 
   it("traverse: each slot is a radio group; moving pieces recomputes the result", () => {
     renderAt("/");
-    expect(screen.getByText(/f was called on 2 of 4 elements, then it stopped at the first failure\. Result: Left\(e₂\)\./)).toBeTruthy();
+    expect(caption()).toMatch(/f was called on 2 of 4 elements, then it stopped at the first failure\. Result: Left\(e₂\)\./);
     expect((within(screen.getByRole("group", { name: "f(a₂) returns" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
     pick("f(a₂) returns", /Right/);
     pick("f(a₄) returns", /Right/);
-    expect(screen.getByText(/f succeeded on all 4 elements\. Result: Right\(\[b₁, b₂, b₃, b₄\]\)\./)).toBeTruthy();
+    expect(caption()).toMatch(/f succeeded on all 4 elements\. Result: Right\(\[b₁, b₂, b₃, b₄\]\)\./);
     fireEvent.click(screen.getByRole("button", { name: "Validation" }));
-    expect(screen.getByText(/All 2 failures are kept\. Result: Failure\(\[e₂, e₄\]\)\./)).toBeTruthy();
+    expect(caption()).toMatch(/All 2 failures are kept\. Result: Failure\(\[e₂, e₄\]\)\./);
     expect(screen.queryByRole("group", { name: "Evaluation" })).toBeNull();
   });
 
   it("traverse: eager evaluation calls f everywhere but keeps the same result", () => {
     renderAt("/op/traverse");
     fireEvent.click(screen.getByRole("button", { name: "Eager" }));
-    expect(screen.getByText(/f was called on all 4 elements\. 2 failed, and only the first failure survives\. Result: Left\(e₂\)\./)).toBeTruthy();
+    expect(caption()).toMatch(/f was called on all 4 elements\. 2 failed, and only the first failure survives\. Result: Left\(e₂\)\./);
   });
 
   it("flatten: the outer slot holds the inner slot, and both can be changed", () => {
     renderAt("/op/flatten");
     pick("inner Either", /Left/);
-    expect(screen.getByText(/the inner value comes out as it is/)).toBeTruthy();
+    expect(caption()).toMatch(/the inner value comes out as it is/);
     pick("outer Either", /Left e₁/);
-    expect(screen.getByText(/The outer Left becomes the result\./)).toBeTruthy();
+    expect(caption()).toMatch(/The outer Left becomes the result\./);
   });
 
   it("zip: switching to the positional receiver drops the unmatched element", () => {
     renderAt("/op/zip");
     fireEvent.click(screen.getByRole("button", { name: "List (positional)" }));
-    expect(screen.getByText(/the extra 3 is dropped/)).toBeTruthy();
+    expect(caption()).toMatch(/the extra 3 is dropped/);
+  });
+
+  it("captions render code tokens as code", () => {
+    renderAt("/op/traverse");
+    const tokens = [...document.querySelectorAll(".lane-caption code.tok")].map((c) => c.textContent);
+    expect(tokens).toContain("f");
+    expect(tokens).toContain("Left(e₂)");
+    expect(document.querySelector(".lane-caption")?.textContent).not.toContain("`");
   });
 
   it("unknown routes fall back to traverse", () => {

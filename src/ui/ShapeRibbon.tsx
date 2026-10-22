@@ -1,5 +1,6 @@
 import { describeTypes, layerKind } from "../scenes/ribbon";
 import { casesOf, parseType, showType, type TypeExpr } from "../scenes/types";
+import { RichText } from "./RichText";
 
 interface Props {
   before: string;
@@ -87,7 +88,7 @@ export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut }: Props)
         )}
         <div className="ribbon-col"><span className="ribbon-type">{showType(a)}</span><Type t={a} side={{ inputs, output: true }} /></div>
       </div>
-      <figcaption className="ribbon-caption">{op}: {diff.caption}</figcaption>
+      <figcaption className="ribbon-caption"><code className="tok">{op}</code>: <RichText text={diff.caption} /></figcaption>
     </figure>
   );
 }

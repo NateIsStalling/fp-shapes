@@ -18,9 +18,9 @@ describe("type expressions", () => {
 
 describe("ribbon descriptions from types", () => {
   it("traverse: List moves inside and Either appears outside", () => {
-    expect(describeTypes("List<A>", "Either<E, List<B>>").caption).toBe("List moves inside. Either is introduced on the outside. The payload changes from A to B.");
+    expect(describeTypes("List<A>", "Either<E, List<B>>").caption).toBe("`List` moves inside. `Either` is introduced on the outside. The payload changes from `A` to `B`.");
   });
   it("mapError: only the error side changes", () => {
-    expect(describeTypes("Either<E, A>", "Either<E₂, A>").caption).toBe("Either stays the same. The error changes from E to E₂. The payload stays A.");
+    expect(describeTypes("Either<E, A>", "Either<E₂, A>").caption).toBe("`Either` stays the same. The error changes from `E` to `E₂`. The payload stays `A`.");
   });
 });
