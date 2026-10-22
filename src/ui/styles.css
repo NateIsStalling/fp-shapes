@@ -1,4 +1,4 @@
-/* Tokens from the prototype's visual language. */
+/* Design tokens: light theme, with dark overrides below. */
 :root {
   color-scheme: light;
   --bg: #f7f7fb;

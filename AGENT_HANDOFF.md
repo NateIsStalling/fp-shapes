@@ -2,7 +2,7 @@
 
 ## Assignment
 
-Build FP Shapes as a static Vite, React and TypeScript site deployed to GitHub Pages. The supplied prototype is a reference for its visual language and some interactions. It is not a reference for semantics, and it is no longer the scope target.
+Build FP Shapes as a static Vite, React and TypeScript site deployed to GitHub Pages.
 
 The spirit of the project is **RxMarbles plus a reverse Hoogle**: a Rosetta stone for functional programming.
 
@@ -77,28 +77,17 @@ Do not add:
 
 Do not present ecosystem analogues as exact semantic equivalents.
 
-## Supplied baseline
+## Visual language
 
-`prototype/` (`index.html`, `app.js`, `styles.css`) and `reference/fp-shapes-production.png` are the reference for the visual language: the lavender palette, Manrope/DM Mono, the shapes and badges, the responsive behavior, and the high-contrast toggle. The search, alias and inspector interactions are a starting point.
+The visual system lives in `src/ui/styles.css` as tokens: the lavender palette, Manrope/DM Mono, the shapes (a value is a circle, an error a square, an absent value an empty ring) and badges, light and dark themes, and the responsive layout.
 
 ## Semantic authority
-
-The prototype is **not** a source of truth for functional-programming semantics. Its signatures, laws, aliases, ecosystem mappings, notes and snippets contain known errors. Examples:
-
-- The `traverse` and `sequence` laws contradict each other.
-- F# `Result` is shown with its type parameters in the wrong order.
-- Functions are attributed to FSharp.Core that it does not contain.
-- `liftA2` and `zipWith` are presented as one operation, though they differ for lists.
-- `tap` conflates an effectful step with a side-effect peek.
-- Short-circuiting `Either` traversal is presented as accumulating errors.
-- Alias resolution silently picks a receiver by object key order.
 
 Rules:
 
 - The authority for each semantic claim is the primary documentation for the pinned library version, recorded alongside the claim.
 - Diagrams are computed by reference implementations, never hand-authored. Laws are verified against those implementations with property-based tests.
 - When a claim can't be verified, mark it `unverified` in the catalog rather than asserting it.
-- Do not write tests that encode the prototype's semantic behavior.
 
 ## Semantic guardrails
 
@@ -338,7 +327,7 @@ An ecosystem can document **several version tracks** side by side. Version tags 
 #/index                                  matrix index: names, glossary terms, snippets
 ```
 
-Redirect old prototype hashes: `#explore` → `#/`, and `#concept/<id>` → `#/abstraction/<id>` where that abstraction exists, otherwise `#/`. Unknown routes fall back to `#/`.
+Unknown routes fall back to `#/`.
 
 ## Styling and accessibility
 
@@ -417,7 +406,7 @@ Grant only the permissions Pages needs. No secrets are required.
 
 ## Agent working rules
 
-- Verify semantics against the primary docs for the pinned version before adding them to the catalog. Never port claims from the prototype unchecked.
+- Verify semantics against the primary docs for the pinned version before adding them to the catalog.
 - Keep each milestone runnable, and prefer small, reviewable commits.
 - Keep semantic corrections, catalog expansion and UI work in separate commits.
 - Add a regression test whenever you fix a catalog-resolution, ecosystem-selection or evaluation-strategy bug.

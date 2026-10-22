@@ -4,11 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-The repo has a vanilla HTML/JS/CSS **prototype**, but not the real app yet. `AGENT_HANDOFF.md` is the spec. It covers the decisions, architecture, catalog and versioning model, routes, test plan, milestones and definition of done. Read it before starting any build work.
+The app is a static Vite, React and TypeScript site in `src/`. `AGENT_HANDOFF.md` is the spec. It covers the decisions, architecture, catalog and versioning model, routes, test plan, milestones and definition of done. Read it before starting any build work.
 
 - **Product direction: RxMarbles + reverse Hoogle, as an FP Rosetta stone.** **Shape is the organizing principle:** every operation page, search result, matrix cell detail and abstraction example shows the same **Shape Ribbon**. It is derived from the canonical `TypeExpression` and shows which layers moved, stayed, appeared or disappeared. Operation pages run shape → behavior → ecosystems, the navigation uses fp-ts/Effect `@category` groups (Constructors, Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering), and each operation page shows its canonical abstraction (Functor, Monad, …) as a tag in its header. The navigation shows names only. Concurrent traverse is deferred. Each page covers one operation. Inputs are interactive, and the diagram is **computed** by running a reference implementation, never hand-written. You can find an operation by its name in any ecosystem *or* by a type signature (`List<Option<A>> -> Option<List<A>>` → `sequence`). That makes signatures structured `TypeExpression`s, never display strings. A matrix index shows the API name in each target ecosystem, along with versioned snippets and glossary terms. "No equivalent" counts as a real answer. Learn paths, concept essays and example labs are out of scope.
-- **`prototype/` is a reference for UX and visuals only.** `app.js` holds catalog data, search, routing and rendering; `styles.css` has the visual system; `index.html` has the shell. **It is not a source of truth for semantics.** Its signatures, laws, aliases, ecosystem mappings and snippets have known errors, so verify every semantic claim against the primary docs for the pinned library version (see "Semantic authority" in `AGENT_HANDOFF.md`).
-- `reference/fp-shapes-production.png` is the visual baseline at desktop width.
+- **Semantics come from primary docs.** Verify every semantic claim against the primary docs for the pinned library version (see "Semantic authority" in `AGENT_HANDOFF.md`).
 
 ## Commands
 
@@ -24,8 +23,6 @@ npm run samples:extract                    # regenerate src/catalog/samples.gene
 ```
 
 Stack: Vite 8, React 19, TypeScript 7 (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Vitest 5, fast-check 4. In fast-check properties, use `void expect(...)` or a block body. This Vitest's matchers return a value that fast-check reads as a failed property.
-
-To view the prototype, open `prototype/index.html` directly.
 
 `tests/conformance/` runs real fp-ts 2.16.11 and effect 4.0.5 code (exact-pinned devDependencies) against the reference semantics, comparing results and which calls happened. Keep those pins equal to the catalog's. When you add a catalog claim for fp-ts or Effect, add a conformance test for it. Laws belong in the project docs and the tests, not in site copy.
 
@@ -73,5 +70,5 @@ An ecosystem can have several version tracks. Entries list the tracks they apply
   - each ecosystem's own parameter order (F#/Effect put success first; Haskell/fp-ts put the error first)
   - Validation is not a Monad
   - concurrency and cancellation behavior
-- Use HashRouter. Old prototype hashes redirect: `#explore` → `#/`, `#concept/<id>` → `#/abstraction/<id>`.
+- Use HashRouter. Unknown routes fall back to the default operation.
 - Add a regression test whenever you fix a catalog-resolution, ecosystem-selection or evaluation-strategy bug.
