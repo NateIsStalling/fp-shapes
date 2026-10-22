@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   EitherApplicative,
   IdentityApplicative,
+  ListApplicative,
   OptionApplicative,
   ValidationApplicative,
   sequenceArray,
@@ -26,6 +27,8 @@ const wrapValidation: Wrap<"Validation"> = (arb) =>
     fc.array(fc.string({ maxLength: 3 }), { minLength: 1, maxLength: 3 }).map((es) => failure(es as unknown as NonEmpty<string>)),
     arb.map((v) => success(v)),
   );
+
+const wrapList: Wrap<"List"> = (arb) => fc.array(arb, { maxLength: 3 });
 
 const int = fc.integer({ min: -50, max: 50 });
 const intFn = fc.func(int);
@@ -86,6 +89,7 @@ function functorAndApplicativeLaws<F extends URIS>(F: Applicative<F>, wrap: Wrap
 functorAndApplicativeLaws(OptionApplicative, wrapOption);
 functorAndApplicativeLaws(EitherApplicative, wrapEither);
 functorAndApplicativeLaws(ValidationApplicative, wrapValidation);
+functorAndApplicativeLaws(ListApplicative, wrapList);
 
 describe("traversable laws that need two applicatives", () => {
   const xs = fc.array(int, { maxLength: 6 });

@@ -33,7 +33,7 @@ To view the prototype, open `prototype/index.html` directly.
 
 - `src/semantics/` contains receivers (Option, Either, Validation; later List, ZipList, Tuple) and reference operations. Each run returns its result plus a trace of the calls made and skipped. **The receiver decides the result; evaluation strategy (`short-circuit` | `eager`) decides only which calls run.** Validation accumulates because of its applicative, not because of a traverse "mode". This layer must never import React or any other layer.
 - `src/scenes/` holds pure builders that map (operation, receiver, evaluation strategy, inputs) to a `Scene` plus a text summary. `ShapeDiagram` renders Scenes and never branches on operation names.
-- `src/catalog/` holds `EcosystemEntry` records: API name, the ecosystem's own signature order, `status` (`equivalent` | `library` | `partial` | `analogy` | `none`), a `strategy` link, version and verification data, aliases with name history, and optional snippet refs. It also holds abstraction records describing how each ecosystem represents Functor, Monad and so on: first-class, encoded, library-only, duck-typed or absent.
+- `src/catalog/` holds `EcosystemEntry` records: API name, the ecosystem's own signature order, `status` (`equivalent` | `library` | `partial` | `analogy` | `none`), a `strategy` link, version and verification data, aliases with name history, and optional snippet refs. It also holds abstraction records describing how each ecosystem represents Functor, Monad and so on: first-class, encoded, library-only or absent. Syntax that resolves by method name (LINQ query syntax, F# CE builders) counts as "absent (syntax only)".
 - Derived, never hand-maintained: the alias index, the glossary and navigation. An ambiguous alias (`SelectMany`, `fold`, `join`, `Do`) returns several qualified candidates.
 
 ## Pinned ecosystems
@@ -49,7 +49,7 @@ An ecosystem can have several version tracks. Entries list the tracks they apply
 
 ## Rules that are easy to violate
 
-- Keep abstraction, instance and API name separate. `Select` is a method on `IEnumerable` that happens to satisfy the functor laws, so it's an instance method, not LINQ's "Functor".
+- Keep abstraction, instance and API name separate. `Select` is `map` for `IEnumerable` (an instance method), never "LINQ's Functor". `Func<A, B>` is the function argument; `Action<T>` (void) corresponds to peek.
 - The receiver type is part of the answer. Keep these distinctions visible:
   - short-circuit vs accumulate
   - positional vs cartesian `zip`

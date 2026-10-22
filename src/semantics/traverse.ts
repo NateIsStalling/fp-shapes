@@ -11,6 +11,7 @@ import {
   type Option,
   type Validation,
 } from "./receivers";
+import type { Call, Run } from "./trace";
 
 // Instrumented traverse: the same results as the lawful traverseArray, plus a
 // trace of which calls happened.
@@ -32,22 +33,6 @@ export const evaluationStrategies: Readonly<Record<TraverseReceiver, readonly Ev
   // Validation must see every element to accumulate, so it is always eager.
   validation: ["eager"],
 };
-
-export interface Call<A, R> {
-  readonly index: number;
-  readonly input: A;
-  readonly output: R;
-}
-
-export interface Trace<A, R> {
-  readonly calls: readonly Call<A, R>[];
-  readonly skipped: readonly number[];
-}
-
-export interface Run<Result, A, R> {
-  readonly result: Result;
-  readonly trace: Trace<A, R>;
-}
 
 type Outcome<E, B> = { readonly ok: true; readonly value: B } | { readonly ok: false; readonly error: E };
 
@@ -116,3 +101,12 @@ export function traverseValidation<A, E, B>(
     first === undefined ? success(w.values) : failure(rest.reduce((acc, e) => concatNonEmpty(acc, e), first));
   return { result, trace: { calls: w.calls, skipped: w.skipped } };
 }
+
+// sequence = traverse(id): the effect moves outside, the list moves inside.
+export const sequenceEither = <E, A>(strategy: EvaluationStrategy, fas: readonly Either<E, A>[]) =>
+  traverseEither(strategy, fas, (fa) => fa);
+
+export const sequenceOption = <A>(strategy: EvaluationStrategy, fas: readonly Option<A>[]) =>
+  traverseOption(strategy, fas, (fa) => fa);
+
+export const sequenceValidation = <E, A>(fas: readonly Validation<E, A>[]) => traverseValidation(fas, (fa) => fa);

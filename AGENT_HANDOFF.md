@@ -33,11 +33,11 @@ Every operation page follows that order: shape, then behavior, then ecosystems.
 
 Keep these three levels separate in the data model and the UI:
 
-1. **Abstraction**: e.g. Functor, with its laws, and how each ecosystem represents it. The representation can be first-class, encoded, library-only, duck-typed, or absent.
+1. **Abstraction**: e.g. Functor, with its laws, and how each ecosystem represents it. The representation can be first-class, encoded, library-only, or absent. When a language only has *syntax* that resolves by method name (LINQ query syntax, F# computation-expression builders), classify it as **absent (syntax only)**, not as a representation of the abstraction.
 2. **Instance**: a receiver type that satisfies the abstraction, with its own behavior (failure handling, evaluation, cardinality).
 3. **API name**: what an ecosystem calls the operation on that receiver.
 
-`IEnumerable.Select` satisfies the functor laws in practice, but that does not make LINQ a Functor abstraction.
+`IEnumerable.Select` is `map` for one type. It satisfies the functor laws for pure selectors, which makes `IEnumerable` a functor *instance*. That does not make LINQ a Functor abstraction, and `Select` should never be labeled "Functor". `Func<A, B>` is the function argument, not the functor (though `Func<T, _>` is a separate instance, the Reader functor). `Action<T>` returns void and corresponds to peek, not map.
 
 ## Decisions (2026-10-21)
 

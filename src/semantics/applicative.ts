@@ -18,6 +18,7 @@ export interface URItoKind<E, A> {
   readonly Option: Option<A>;
   readonly Either: Either<E, A>;
   readonly Validation: Validation<E, A>;
+  readonly List: readonly A[];
 }
 
 export type URIS = keyof URItoKind<unknown, unknown>;
@@ -67,6 +68,14 @@ export const ValidationApplicative: Applicative<"Validation"> = {
     if (fa.tag === "failure") return fa;
     return success(fab.value(fa.value));
   },
+};
+
+// List's applicative is the cartesian product: every function meets every value.
+export const ListApplicative: Applicative<"List"> = {
+  URI: "List",
+  of: (a) => [a],
+  map: (fa, f) => fa.map((a) => f(a)),
+  ap: (fab, fa) => fab.flatMap((f) => fa.map((a) => f(a))),
 };
 
 // The lawful reference traverse over arrays. Every f(a) is evaluated, as with
