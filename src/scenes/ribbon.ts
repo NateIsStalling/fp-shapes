@@ -1,10 +1,11 @@
 // Shape Ribbon scene: compare the layer stacks before and after an operation.
 // Layers are listed outermost first; the last entry is the payload.
 
-export type LayerKind = "collection" | "effect";
+export type LayerKind = "collection" | "effect" | "tuple";
 
+const PRODUCTS = new Set(["Tuple"]);
 const COLLECTIONS = new Set(["List", "T", "Seq", "Lst", "Array", "IEnumerable", "ZipList"]);
-export const layerKind = (name: string): LayerKind => (COLLECTIONS.has(name) ? "collection" : "effect");
+export const layerKind = (name: string): LayerKind => (PRODUCTS.has(name) ? "tuple" : COLLECTIONS.has(name) ? "collection" : "effect");
 
 export interface RibbonDiff {
   readonly unchanged: readonly string[];
@@ -54,7 +55,8 @@ export function diffLayers(before: readonly string[], after: readonly string[]):
   if (restA.length) parts.push(`${restA.join(" and ")} is introduced on the outside.`);
   if (restB.length) parts.push(restB.length === 1 && unchanged.includes(restB[0] as string) ? `One ${restB[0]} layer is removed.` : `${restB.join(" and ")} is removed.`);
   if (!moved.length && !restA.length && !restB.length && unchanged.length) parts.push(`${unchanged.join(" and ")} stays the same.`);
-  parts.push(payloadChanged ? `The payload changes from ${pb} to ${pa}.` : `The payload stays ${pb}.`);
+  const product = (p: string) => (p.includes(",") ? `(${p})` : p);
+  parts.push(payloadChanged ? `The payload changes from ${product(pb)} to ${product(pa)}.` : `The payload stays ${product(pb)}.`);
 
   return { unchanged, moved, introduced: restA, removed: restB, payloadChanged, caption: parts.join(" ") };
 }

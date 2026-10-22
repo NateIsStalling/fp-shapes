@@ -13,7 +13,11 @@ interface Props {
 
 function Stack({ layers, payloadClass }: { layers: readonly string[]; payloadClass: string }) {
   const containers = layers.slice(0, -1);
-  const payload = <span className={`ball ${payloadClass}`}>{layers[layers.length - 1]}</span>;
+  // A product payload ("A, X") is several values side by side, one ball each.
+  const parts = (layers[layers.length - 1] ?? "").split(/,\s*/);
+  const payload = parts.length > 1
+    ? <div className="ball-row">{parts.map((p) => <span key={p} className={`ball ${payloadClass}`}>{p}</span>)}</div>
+    : <span className={`ball ${payloadClass}`}>{parts[0]}</span>;
   const inner = containers.reduceRight<ReactNode>(
     (child, name) => (
       <div className={`layer layer-${layerKind(name)}`}>

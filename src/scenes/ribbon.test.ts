@@ -21,3 +21,9 @@ describe("Shape Ribbon diff", () => {
     expect(typeOf(["Option", "List", "B"])).toBe("Option<List<B>>");
   });
 });
+
+describe("product payloads", () => {
+  it("a Tuple's payload reads as a pair", () => {
+    expect(diffLayers(["Tuple", "A, X"], ["Tuple", "B, Y"]).caption).toBe("Tuple stays the same. The payload changes from (A, X) to (B, Y).");
+  });
+});

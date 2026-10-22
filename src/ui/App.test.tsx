@@ -88,3 +88,13 @@ describe("page header", () => {
     expect(shape?.querySelector('[aria-label="Receiver"]')).toBeTruthy();
   });
 });
+
+describe("shape ribbon", () => {
+  it("draws a Tuple's payload as one ball per part, inside a tuple layer", () => {
+    const { container } = renderAt("/op/bimap");
+    fireEvent.click(screen.getByRole("button", { name: "Tuple" }));
+    const before = container.querySelector(".ribbon-grid .ribbon-col .layer-tuple");
+    expect(before).toBeTruthy();
+    expect([...(before?.querySelectorAll(".ball") ?? [])].map((b) => b.textContent)).toEqual(["A", "X"]);
+  });
+});
