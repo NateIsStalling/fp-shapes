@@ -4,9 +4,9 @@
 
 Migrate the supplied FP Shapes prototype into a maintainable Vite, React, and TypeScript project that builds to static files and deploys to GitHub Pages.
 
-Preserve the current product, content, and visual language while creating a foundation that can support dozens of additional operations and richer interactive visualizations.
+Preserve the current product surface, interactions, and visual language while creating a foundation that can support dozens of additional operations and richer interactive visualizations.
 
-This is a structural migration, not a redesign.
+This is a structural migration, not a redesign. It is also not a straight port of content: the prototype's semantic content must be verified before it enters the typed catalog. See [Semantic authority](#semantic-authority).
 
 ## Product thesis
 
@@ -32,7 +32,7 @@ The experience should remain concepts-first. Ecosystem APIs translate the canoni
 
 Deliver a repository that:
 
-1. Reproduces the supplied prototype's current behavior and presentation.
+1. Reproduces the supplied prototype's interactions and presentation, with semantic content verified against primary documentation rather than copied.
 2. Represents operations, concepts, glossary terms, ecosystems, and visualizations as typed data.
 3. Renders that data through reusable React components.
 4. Supports static GitHub Pages deployment.
@@ -75,11 +75,32 @@ The prototype currently contains approximately:
 - 1,019 lines of JavaScript
 - 331 lines of CSS
 
-The JavaScript contains no remote data access or persistent application state. Most content is already represented as JavaScript objects, making the migration primarily a separation and typing exercise.
+The JavaScript contains no remote data access or persistent application state. Most content is already represented as JavaScript objects, which makes the structure easy to extract. The semantics in those objects still need verification (see below).
+
+## Semantic authority
+
+The prototype is a reference for UX, interaction, and visual design only. It is **not** a source of truth for functional-programming semantics.
+
+Its signatures, laws, aliases, ecosystem mappings, semantic notes, and code snippets contain known errors. Examples:
+
+- The `traverse` and `sequence` laws contradict each other.
+- F# `Result` is shown with its type parameters in the wrong order.
+- Functions are attributed to FSharp.Core that it does not contain.
+- Haskell `liftA2` and `zipWith` are presented as one operation, though they differ for lists.
+- `tap` conflates an effectful step with a side-effect peek.
+- Short-circuiting `Either` traversal is presented as if it accumulated errors.
+- Alias resolution silently picks a receiver type by object key order.
+
+Rules:
+
+- The authority for each semantic claim is the primary documentation for a specific library and version, recorded alongside the claim.
+- Port prototype content only after verifying it. When a claim can't be verified, mark it unverified in the catalog rather than asserting it.
+- Correcting a semantic error is in scope for the migration and is not a redesign. Make such corrections in their own commits, separate from structural changes.
+- Do not write tests that lock in the prototype's semantic behavior. Write tests against verified behavior.
 
 ## Current operations
 
-All twelve operations must remain searchable and interactive:
+All twelve operations remain in scope and must be searchable and interactive. An operation may be split or renamed when verification shows that it conflates distinct behaviors (for example, `tap`).
 
 1. `map`
 2. `flatMap`
@@ -94,7 +115,11 @@ All twelve operations must remain searchable and interactive:
 11. `flatten`
 12. `zip`
 
-Alias lookup must continue to resolve names such as `Select`, `SelectMany`, `Bind`, `chain`, `fmap`, `>>=`, `mapLeft`, `join`, and the other aliases already present in `prototype/app.js`.
+Alias lookup must resolve names such as `Select`, `SelectMany`, `Bind`, `chain`, `fmap`, `>>=`, `mapLeft`, and `join`. The aliases in `prototype/app.js` are candidates, not requirements:
+
+- Keep an alias only when documentation shows the ecosystem and receiver type it belongs to.
+- Drop aliases that can't be traced to a library.
+- Qualify aliases whose meaning depends on the receiver (e.g. `join`, `fold`, `Do`, `all`, `orElse`) so they don't resolve without context.
 
 ## Semantic guardrails
 
@@ -346,7 +371,7 @@ Move search ranking into a pure domain function:
 rankOperations(catalog, query, ecosystemId): RankedOperation[]
 ```
 
-Preserve current behavior before tuning relevance. Add unit tests around canonical names, aliases, case insensitivity, exact matches, ecosystem-specific aliases, and empty queries.
+Keep the prototype's scoring tiers (exact, prefix, substring, description) as a starting point. Do not keep its ecosystem selection, which picks the first matching ecosystem in object key order. When an alias exists in several ecosystems or for several receiver types, return every candidate and let the UI ask which one is meant. Add unit tests around canonical names, aliases, case insensitivity, exact matches, ecosystem-specific aliases, and empty queries.
 
 ### Shape diagram
 
@@ -566,15 +591,17 @@ Exit criteria:
 
 ### Phase 2: Extract the catalog
 
-- Convert current operation objects into typed definitions.
+- Convert current operation objects into typed definitions, verifying each semantic claim against primary documentation as it is ported.
 - Extract concepts, glossary terms, ecosystems, and example labs.
+- Record each ecosystem claim's source: documentation URL, library, and version. Mark claims that couldn't be verified as unverified.
 - Implement catalog validation.
 - Port search ranking into pure functions.
-- Add domain tests before changing semantics.
+- Write domain tests against verified behavior, not against the prototype's output.
 
 Exit criteria:
 
-- All twelve operations and their aliases exist in the typed catalog.
+- All twelve operations exist in the typed catalog, with verified aliases, each qualified by ecosystem and receiver type.
+- Every ecosystem entry has a recorded source or an explicit unverified marker.
 - Search and glossary resolution tests pass.
 - Content no longer lives inside page-rendering functions.
 
@@ -638,7 +665,8 @@ Exit criteria:
 
 The migration is complete when:
 
-- The React version has feature parity with the supplied prototype.
+- The React version has feature parity with the supplied prototype's interactions and presentation.
+- Semantic content is verified against primary documentation or explicitly marked unverified. None of it is carried over from the prototype unchecked.
 - All twelve operations remain searchable and interactive.
 - Ecosystem distinctions are preserved.
 - All existing content routes are implemented.
@@ -665,8 +693,8 @@ The lower end assumes visual parity rather than redesign and reuses the current 
 
 ## Agent working rules
 
-- Inspect the supplied source before replacing behavior.
-- Preserve current content unless correcting a demonstrable error.
+- Inspect the supplied source before replacing UX or interaction behavior.
+- Treat the prototype's semantic content as unverified. Verify it against primary documentation before porting it, and correct it in a dedicated commit when it is wrong.
 - Keep each migration step runnable.
 - Prefer small, reviewable commits aligned with the phases above.
 - Do not mix redesign, catalog expansion, and migration in the same commit.
@@ -686,4 +714,4 @@ The first commit should include only:
 - Test infrastructure
 - GitHub Pages-aware Vite base configuration
 
-The second commit should extract and test the catalog before porting the interactive renderer. This sequence reduces the risk of burying current semantics inside hastily translated JSX.
+The second commit should extract, verify, and test the catalog before porting the interactive renderer. This order reduces the risk of burying unverified semantics inside hastily translated JSX.

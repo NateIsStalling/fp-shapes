@@ -32,7 +32,9 @@ Opening `index.html` directly may work for most interactions
 - Hash-based navigation
 - Responsive desktop and mobile layouts
 
-The production screenshot in `reference/` is the visual parity baseline. The source files in `prototype/` are authoritative for behavior and content.
+The production screenshot in `reference/` is the visual parity baseline. The source files in `prototype/` are a reference for UX, interaction, and visual design.
+
+The prototype is **not** authoritative for semantics. Its signatures, laws, aliases, ecosystem mappings, notes, and code snippets contain known errors. Verify every semantic claim against the primary documentation for a specific library and version before adding it to the typed catalog.
 
 ## Intended migration target
 
