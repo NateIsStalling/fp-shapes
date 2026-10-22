@@ -78,3 +78,13 @@ describe("section headings", () => {
     expect(screen.getByText("Ecosystems: what is it called here?")).toBeTruthy();
   });
 });
+
+describe("page header", () => {
+  it("has a breadcrumb, keeps the abstraction next to the signature, and puts the receiver under Shape", () => {
+    const { container } = renderAt("/op/traverse");
+    expect(screen.getByRole("navigation", { name: "Breadcrumb" }).textContent).toBe("OperationsTraversing");
+    expect(container.querySelector(".op-shape .abstraction-tag")?.textContent).toBe("abstractionTraversable");
+    const shape = screen.getByRole("heading", { level: 2, name: "Shape: which layers move?" }).closest("section");
+    expect(shape?.querySelector('[aria-label="Receiver"]')).toBeTruthy();
+  });
+});

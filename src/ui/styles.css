@@ -58,9 +58,11 @@ a { color: var(--purple-dark); }
 .version { font: 400 12px var(--mono); color: var(--muted); }
 
 /* Operation header and controls */
-.op-header { display: flex; flex-direction: column; gap: 8px; }
-.op-title { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.op-title h1 { margin: 0; font-size: 40px; line-height: 1.08; letter-spacing: -.045em; }
+.op-header { display: flex; flex-direction: column; gap: 6px; }
+.breadcrumb ol { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+.breadcrumb li + li::before { content: "›"; margin-right: 6px; color: #a3a4b8; }
+.op-header h1 { margin: 0; font-size: 40px; line-height: 1.08; letter-spacing: -.045em; }
+.op-shape { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .abstraction-tag { display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 12px; border-radius: 999px; background: var(--purple-soft); color: var(--purple-dark); font-weight: 600; font-size: 14px; text-decoration: none; }
 .abstraction-tag span { font: 500 12px var(--mono); color: var(--muted); }
 .op-signature { margin: 0; font-size: 18px; }
