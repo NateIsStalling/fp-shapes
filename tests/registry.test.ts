@@ -30,6 +30,9 @@ describe("scene registry", () => {
   for (const op of allOps) {
     describe(op.id, () => {
       const receivers = operationScenes[op.id]?.receivers ?? [];
+      it("every receiver fills in the operation's type variable", () => {
+        for (const r of receivers) expect(r.binds[op.receiverVar], `${op.id}:${r.id} binds ${op.receiverVar}`).toBeTruthy();
+      });
       it("has at least one receiver with unique ids", () => {
         expect(receivers.length).toBeGreaterThan(0);
         expect(new Set(receivers.map((r) => r.id)).size).toBe(receivers.length);

@@ -76,6 +76,10 @@ export interface ReceiverScene {
   readonly id: string;
   readonly label: string;
   readonly ribbon: RibbonSpec;
+  // What the operation's type variables stand for with this receiver.
+  readonly binds: Readonly<Record<string, string>>;
+  // The full signature, when this receiver's shape differs from the canonical one.
+  readonly signature?: string;
   readonly defaults: Toggles;
   readonly strategies?: readonly EvaluationStrategy[]; // the control appears only when there are two or more
   readonly note?: string;

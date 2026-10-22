@@ -16,6 +16,8 @@ export interface OperationInfo {
   readonly name: string;
   readonly abstraction: string;
   readonly signature: string;
+  // The type variable the receiver control fills in (F, or P for two-sided types).
+  readonly receiverVar: string;
 }
 
 export interface OperationGroup {
@@ -25,33 +27,33 @@ export interface OperationGroup {
 
 export const operationGroups: readonly OperationGroup[] = [
   { name: "Mapping", operations: [
-    { id: "map", name: "map", abstraction: "Functor", signature: "(A → B) → F<A> → F<B>" },
-    { id: "bimap", name: "bimap", abstraction: "Bifunctor", signature: "(E → E₂) × (A → B) → P<E, A> → P<E₂, B>" },
+    { id: "map", name: "map", abstraction: "Functor", signature: "(A → B) → F<A> → F<B>", receiverVar: "F" },
+    { id: "bimap", name: "bimap", abstraction: "Bifunctor", signature: "(E → E₂) × (A → B) → P<E, A> → P<E₂, B>", receiverVar: "P" },
   ] },
   { name: "Sequencing", operations: [
-    { id: "flatMap", name: "flatMap", abstraction: "Monad", signature: "(A → F<B>) → F<A> → F<B>" },
-    { id: "flatten", name: "flatten", abstraction: "Monad", signature: "F<F<A>> → F<A>" },
-    { id: "tap", name: "tap", abstraction: "Monad", signature: "(A → F<_>) → F<A> → F<A>" },
-    { id: "peek", name: "peek", abstraction: "Functor", signature: "(A → void) → F<A> → F<A>" },
+    { id: "flatMap", name: "flatMap", abstraction: "Monad", signature: "(A → F<B>) → F<A> → F<B>", receiverVar: "F" },
+    { id: "flatten", name: "flatten", abstraction: "Monad", signature: "F<F<A>> → F<A>", receiverVar: "F" },
+    { id: "tap", name: "tap", abstraction: "Monad", signature: "(A → F<_>) → F<A> → F<A>", receiverVar: "F" },
+    { id: "peek", name: "peek", abstraction: "Functor", signature: "(A → void) → F<A> → F<A>", receiverVar: "F" },
   ] },
   { name: "Zipping", operations: [
-    { id: "zip", name: "zip / map2", abstraction: "Applicative", signature: "F<A> × F<B> × ((A, B) → C) → F<C>" },
+    { id: "zip", name: "zip / map2", abstraction: "Applicative", signature: "F<A> × F<B> × ((A, B) → C) → F<C>", receiverVar: "F" },
   ] },
   { name: "Traversing", operations: [
-    { id: "traverse", name: "traverse", abstraction: "Traversable", signature: "(A → F<B>) → T<A> → F<T<B>>" },
-    { id: "sequence", name: "sequence", abstraction: "Traversable", signature: "T<F<A>> → F<T<A>>" },
+    { id: "traverse", name: "traverse", abstraction: "Traversable", signature: "(A → F<B>) → T<A> → F<T<B>>", receiverVar: "F" },
+    { id: "sequence", name: "sequence", abstraction: "Traversable", signature: "T<F<A>> → F<T<A>>", receiverVar: "F" },
   ] },
   { name: "Error handling", operations: [
-    { id: "mapError", name: "mapError", abstraction: "Bifunctor", signature: "(E → E₂) → P<E, A> → P<E₂, A>" },
-    { id: "recover", name: "recover", abstraction: "MonadError", signature: "(E → F<E₂, A>) → F<E, A> → F<E₂, A>" },
-    { id: "alt", name: "alt", abstraction: "Alt", signature: "F<A> × (() → F<A>) → F<A>" },
-    { id: "getOrElse", name: "getOrElse", abstraction: "eliminator", signature: "(E → A) → Either<E, A> → A" },
+    { id: "mapError", name: "mapError", abstraction: "Bifunctor", signature: "(E → E₂) → P<E, A> → P<E₂, A>", receiverVar: "P" },
+    { id: "recover", name: "recover", abstraction: "MonadError", signature: "(E → F<E₂, A>) → F<E, A> → F<E₂, A>", receiverVar: "F" },
+    { id: "alt", name: "alt", abstraction: "Alt", signature: "F<A> × (() → F<A>) → F<A>", receiverVar: "F" },
+    { id: "getOrElse", name: "getOrElse", abstraction: "eliminator", signature: "F<A> → A", receiverVar: "F" },
   ] },
   { name: "Pattern matching", operations: [
-    { id: "match", name: "match", abstraction: "eliminator", signature: "(E → R) × (A → R) → Either<E, A> → R" },
+    { id: "match", name: "match", abstraction: "eliminator", signature: "(cases → R) → F<A> → R", receiverVar: "F" },
   ] },
   { name: "Filtering", operations: [
-    { id: "filterOrElse", name: "filterOrElse", abstraction: "derived", signature: "(A → bool) × (A → E) → Either<E, A> → Either<E, A>" },
+    { id: "filterOrElse", name: "filterOrElse", abstraction: "derived", signature: "(A → bool) → F<A> → F<A>", receiverVar: "F" },
   ] },
 ];
 

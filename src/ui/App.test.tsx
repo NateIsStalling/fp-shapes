@@ -84,7 +84,7 @@ describe("page header", () => {
     const { container } = renderAt("/op/traverse");
     expect(screen.getByRole("navigation", { name: "Breadcrumb" }).textContent).toBe("OperationsTraversing");
     expect(container.querySelector(".op-shape .abstraction-tag")?.textContent).toBe("abstractionTraversable");
-    expect(container.querySelector('header.title-bar [aria-label="Receiver"]')).toBeTruthy();
+    expect(container.querySelector('header.title-bar [aria-label="Receiver: F"]')).toBeTruthy();
   });
 });
 
@@ -148,5 +148,25 @@ describe("app chrome", () => {
     const foot = container.querySelector(".sidebar-foot");
     expect(foot?.querySelector(".github-badge")).toBeTruthy();
     expect(foot?.querySelector(".theme-switch")).toBeTruthy();
+  });
+});
+
+describe("receiver fills in the type variable", () => {
+  it("labels the control with the signature's variable and shows the filled-in signature", () => {
+    const { container } = renderAt("/op/traverse");
+    expect([...container.querySelectorAll(".op-signature .type-var")].map((n) => n.textContent)).toEqual(["F", "F"]);
+    expect(container.querySelector(".receiver-label")?.textContent).toBe("F =");
+    const concrete = () => container.querySelector(".op-signature-concrete")?.textContent;
+    expect(concrete()).toContain("(A → Either<B>) → List<A> → Either<List<B>>");
+    fireEvent.click(screen.getByRole("button", { name: "Option" }));
+    expect(concrete()).toContain("(A → Option<B>) → List<A> → Option<List<B>>");
+  });
+  it("two-sided types use P, and receivers with different shapes give their own signature", () => {
+    const { container } = renderAt("/op/getOrElse");
+    fireEvent.click(screen.getByRole("button", { name: "Option · constant" }));
+    expect(container.querySelector(".op-signature-concrete")?.textContent).toContain("A → Option<A> → A");
+    cleanup();
+    const second = renderAt("/op/bimap");
+    expect(second.container.querySelector(".receiver-label")?.textContent).toBe("P =");
   });
 });

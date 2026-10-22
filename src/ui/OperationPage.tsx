@@ -2,6 +2,7 @@ import { useState } from "react";
 import { namesFor } from "../catalog/names";
 import type { OperationInfo } from "../catalog/operations";
 import { operationScenes } from "../scenes/registry";
+import { instantiate, tokenize } from "../scenes/signature";
 import type { EvaluationStrategy } from "../semantics";
 import { SampleBlock } from "./SampleBlock";
 import { SceneView } from "./SceneView";
@@ -41,19 +42,24 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
           </nav>
           <h1>{op.name}</h1>
           <div className="op-shape">
-            <p className="mono op-signature">{op.signature}</p>
+            <p className="mono op-signature">
+              {tokenize(op.signature, op.receiverVar).map((tk, i) => (tk.isVar ? <span key={i} className="type-var">{tk.text}</span> : tk.text))}
+            </p>
             <span className="abstraction-tag"><span>abstraction</span>{op.abstraction}</span>
           </div>
           {receivers.length > 1 && (
-            <div className="control-row">
-              <span className="eyebrow">Receiver</span>
-              <div className="seg" role="group" aria-label="Receiver">
+            <div className="control-row receiver-row">
+              <span className="receiver-label" aria-hidden="true"><span className="type-var">{op.receiverVar}</span> =</span>
+              <div className="seg" role="group" aria-label={`Receiver: ${op.receiverVar}`}>
                 {receivers.map((r) => (
                   <button key={r.id} type="button" className={r.id === receiver.id ? "on" : ""} aria-pressed={r.id === receiver.id} onClick={() => setReceiverId(r.id)}>{r.label}</button>
                 ))}
               </div>
             </div>
           )}
+          <p className="mono op-signature-concrete" aria-live="polite">
+            <span className="sr-only">With {receiver.label}: </span>{receiver.signature ?? instantiate(op.signature, receiver.binds)}
+          </p>
         </div>
       </header>
       <div className="page-with-aside">
