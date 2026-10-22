@@ -12,8 +12,8 @@ const allOps = operationGroups.flatMap((g) => g.operations);
 function toggleKeys(scene: Scene): Set<string> {
   const keys = new Set<string>();
   const walk = (n: SceneNode) => {
-    if (n.type === "ball") { if (n.toggle) keys.add(n.toggle); }
-    else { if (n.toggle) keys.add(n.toggle); n.children.forEach(walk); }
+    if (n.type === "slot") { keys.add(n.key); n.options.forEach((o) => o.content.forEach(walk)); }
+    else if (n.type === "container") n.children.forEach(walk);
   };
   for (const input of scene.inputs) {
     walk(input.node);
@@ -71,7 +71,7 @@ describe("scenes show the traps", () => {
     if (!r) throw new Error(`${op}:${receiver} missing`);
     return r;
   };
-  const balls = (n: SceneNode): string[] => (n.type === "ball" ? [n.label] : n.children.flatMap(balls));
+  const balls = (n: SceneNode): string[] => (n.type === "ball" ? [n.label] : n.type === "container" ? n.children.flatMap(balls) : []);
 
   it("zip: cartesian gives 6 results, positional gives 2", () => {
     expect(balls(find("zip", "list").build({}, "short-circuit").output)).toHaveLength(6);

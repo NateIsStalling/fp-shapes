@@ -28,7 +28,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
   const activeStrategy: EvaluationStrategy = strategies.includes(strategy) ? strategy : (strategies[0] ?? "short-circuit");
   const scene = receiver.build(toggles, activeStrategy);
   const entries = namesFor(op.id, receiver.id, strategies.length ? activeStrategy : undefined);
-  const flip = (key: string) => setToggleState((s) => ({ ...s, [receiver.id]: { ...toggles, [key]: !toggles[key] } }));
+  const setInput = (key: string, fails: boolean) => setToggleState((s) => ({ ...s, [receiver.id]: { ...toggles, [key]: fails } }));
   const hasToggles = Object.keys(receiver.defaults).length > 0;
 
   return (
@@ -75,9 +75,9 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
               </>
             )}
             {receiver.note && <span className="note">{receiver.note}</span>}
-            {hasToggles && <span className="note">Click a ball to make that input fail or succeed.</span>}
+            {hasToggles && <span className="note">Each slot holds one of its cases. Move a piece into another hole to change that input.</span>}
           </div>
-          <SceneView scene={scene} toggles={toggles} onToggle={flip} />
+          <SceneView scene={scene} onSet={setInput} />
           {hasToggles && (
             <button type="button" className="link-button" onClick={() => setToggleState((s) => { const next = { ...s }; delete next[receiver.id]; return next; })}>Reset example</button>
           )}

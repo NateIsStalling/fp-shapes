@@ -1,86 +1,88 @@
-import type { BallNode, Scene, SceneInput, SceneNode, Step } from "../scenes/scene";
+import { useId } from "react";
+import type { Scene, SceneInput, SceneNode, SlotNode, Step } from "../scenes/scene";
 
 // Draws any Scene. Knows nothing about which operation produced it.
+// Editable inputs are shape-sorter slots: real radio groups, one hole per
+// case, with exactly one piece in place.
 
-interface Props {
-  scene: Scene;
-  toggles: Readonly<Record<string, boolean>>;
-  onToggle: (key: string) => void;
-}
+type SetInput = (key: string, fails: boolean) => void;
 
 const kindClass = (kind: string) => (kind === "collection" ? "layer-collection" : kind === "tuple" ? "layer-tuple" : "layer-effect");
 
-function Ball({ node, toggles, onToggle }: { node: BallNode } & Pick<Props, "toggles" | "onToggle">) {
-  const cls = `ball ball-${node.tone}`;
-  if (!node.toggle) return <span className={cls}>{node.label}</span>;
-  const failing = !!toggles[node.toggle];
+function Node({ node, onSet, ghost = false }: { node: SceneNode; onSet: SetInput; ghost?: boolean }) {
+  if (node.type === "ball") return <span className={`ball ball-${node.tone}${ghost ? " ball-ghost" : ""}`}>{node.label}</span>;
+  if (node.type === "slot") return ghost ? <span className="ghost-box">{node.label}</span> : <Slot slot={node} onSet={onSet} />;
   return (
-    <button type="button" className={`${cls} ball-toggle`} aria-pressed={failing}
-      aria-label={`${node.label}: ${failing ? "failing" : "succeeding"}. Activate to make it ${failing ? "succeed" : "fail"}.`}
-      onClick={() => onToggle(node.toggle as string)}>
-      {node.label}
-    </button>
-  );
-}
-
-function Node({ node, ...rest }: { node: SceneNode } & Pick<Props, "toggles" | "onToggle">) {
-  if (node.type === "ball") return <Ball node={node} {...rest} />;
-  const label = node.toggle ? (
-    <button type="button" className="layer-label layer-label-toggle" aria-label={`${node.label} layer: succeeding. Activate to make it fail.`} onClick={() => rest.onToggle(node.toggle as string)}>{node.label}</button>
-  ) : (
-    <span className="layer-label">{node.label}</span>
-  );
-  return (
-    <div className={`layer ${kindClass(node.kind)}`}>
-      {label}
-      <div className="layer-children">{node.children.map((c, i) => <Node key={i} node={c} {...rest} />)}</div>
+    <div className={`layer ${kindClass(node.kind)}${ghost ? " layer-ghost" : ""}`}>
+      <span className="layer-label">{node.label}</span>
+      <div className="layer-children">{node.children.map((c, i) => <Node key={i} node={c} onSet={onSet} ghost={ghost} />)}</div>
     </div>
   );
 }
 
-function StepCell({ step }: { step: Step }) {
+function Slot({ slot, onSet }: { slot: SlotNode; onSet: SetInput }) {
+  const name = useId();
   return (
-    <div className="step-cell">
+    <fieldset className="slot">
+      <legend className="slot-label">{slot.label}</legend>
+      <div className="slot-holes">
+        {slot.options.map((o, i) => {
+          const filled = i === slot.selected;
+          return (
+            <label key={o.name} className={`hole ${filled ? "hole-filled" : "hole-empty"}`}>
+              <input type="radio" className="sr-only" name={name} checked={filled} onChange={() => onSet(slot.key, o.fails)} />
+              <span className="hole-name">{o.name}</span>
+              <span className="hole-content">{o.content.map((c, j) => <Node key={j} node={c} onSet={onSet} ghost={!filled} />)}</span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function StepCell({ step, onSet }: { step: Step; onSet: SetInput }) {
+  return (
+    <div className={`step-cell${step.called ? "" : " step-not-called"}`}>
       <span className={step.called ? "connector" : "connector connector-skipped"} aria-hidden="true" />
       {step.label && <span className="step-label">{step.label}</span>}
-      {step.result ? <span className={`ball ball-${step.result.tone}`}>{step.result.label}</span>
-        : step.called ? <span className="step-text">used</span>
-        : <span className="step-text step-text-skipped">{`skipped`}</span>}
+      {!step.called && <span className="step-text step-text-skipped">not called</span>}
+      {step.result ? <Node node={step.result} onSet={onSet} /> : step.called && <span className="step-text">called</span>}
     </div>
   );
 }
 
 // When a container has one step per child, children and steps share grid
 // columns, so each call sits directly under its element.
-function Input({ input, ...rest }: { input: SceneInput } & Pick<Props, "toggles" | "onToggle">) {
+function Input({ input, onSet }: { input: SceneInput; onSet: SetInput }) {
   const { node, steps } = input;
-  const aligned = steps && node.type === "container" && steps.length === node.children.length;
+  const aligned = steps && node.type === "container" && steps.length === node.children.length && steps.length > 1;
   return (
     <div className="scene-input">
       {input.caption && <span className="input-caption">{input.caption}</span>}
-      {aligned ? (
+      {aligned && node.type === "container" ? (
         <div className="aligned" style={{ gridTemplateColumns: `repeat(${steps.length}, auto)` }}>
           <div className={`aligned-bg layer ${kindClass(node.kind)}`}><span className="layer-label">{node.label}</span></div>
-          {node.children.map((c, i) => <div key={`c${i}`} className="aligned-child" style={{ gridColumn: i + 1 }}><Node node={c} {...rest} /></div>)}
-          {steps.map((s, i) => <div key={`s${i}`} className="aligned-step" style={{ gridColumn: i + 1 }}><StepCell step={s} /></div>)}
+          {node.children.map((c, i) => <div key={`c${i}`} className="aligned-child" style={{ gridColumn: i + 1 }}><Node node={c} onSet={onSet} /></div>)}
+          {steps.map((s, i) => <div key={`s${i}`} className="aligned-step" style={{ gridColumn: i + 1 }}><StepCell step={s} onSet={onSet} /></div>)}
         </div>
       ) : (
         <div className="stacked">
-          <Node node={node} {...rest} />
-          {steps?.map((s, i) => <StepCell key={i} step={s} />)}
+          <Node node={node} onSet={onSet} />
+          {steps?.map((s, i) => <StepCell key={i} step={s} onSet={onSet} />)}
         </div>
       )}
     </div>
   );
 }
 
-export function SceneView({ scene, toggles, onToggle }: Props) {
+export function SceneView({ scene, onSet }: { scene: Scene; onSet: SetInput }) {
   return (
     <figure className="card lane">
       <div className="lane-row">
-        <div className="lane-inputs">{scene.inputs.map((input, i) => <Input key={i} input={input} toggles={toggles} onToggle={onToggle} />)}</div>
+        <div className="lane-inputs">{scene.inputs.map((input, i) => <Input key={i} input={input} onSet={onSet} />)}</div>
         <svg className="ribbon-arrow" viewBox="0 0 56 14" aria-hidden="true"><path d="M1 7h50" /><path d="M46 2l7 5-7 5" /></svg>
-        <div className="lane-output"><Node node={scene.output} toggles={{}} onToggle={() => undefined} /></div>
+        <div className="lane-output" aria-label="Result"><Node node={scene.output} onSet={() => undefined} /></div>
       </div>
       <figcaption aria-live="polite" className="lane-caption">{scene.caption}</figcaption>
     </figure>

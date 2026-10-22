@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { operationGroups } from "../catalog/operations";
@@ -21,12 +21,15 @@ describe("every operation page renders from data", () => {
 });
 
 describe("interaction", () => {
-  it("traverse: toggling elements and switching receivers recomputes the result", () => {
+  const pick = (group: string, option: RegExp) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("radio", { name: option }));
+
+  it("traverse: each slot is a radio group; moving pieces recomputes the result", () => {
     renderAt("/");
-    expect(screen.getByText(/f ran on 2 of 4 elements, then stopped at the first failure\. Result: Left\(e₂\)\./)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^a₂: failing/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^a₄: failing/ }));
-    expect(screen.getByText(/none failed\. Result: Right\(\[b₁, b₂, b₃, b₄\]\)\./)).toBeTruthy();
+    expect(screen.getByText(/f was called on 2 of 4 elements, then it stopped at the first failure\. Result: Left\(e₂\)\./)).toBeTruthy();
+    expect((within(screen.getByRole("group", { name: "f(a₂) returns" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
+    pick("f(a₂) returns", /Right/);
+    pick("f(a₄) returns", /Right/);
+    expect(screen.getByText(/f succeeded on all 4 elements\. Result: Right\(\[b₁, b₂, b₃, b₄\]\)\./)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Validation" }));
     expect(screen.getByText(/All 2 failures are kept\. Result: Failure\(\[e₂, e₄\]\)\./)).toBeTruthy();
     expect(screen.queryByRole("group", { name: "Evaluation" })).toBeNull();
@@ -35,7 +38,15 @@ describe("interaction", () => {
   it("traverse: eager evaluation calls f everywhere but keeps the same result", () => {
     renderAt("/op/traverse");
     fireEvent.click(screen.getByRole("button", { name: "Eager" }));
-    expect(screen.getByText(/f ran on all 4 elements\. 2 failed, and only the first failure survives\. Result: Left\(e₂\)\./)).toBeTruthy();
+    expect(screen.getByText(/f was called on all 4 elements\. 2 failed, and only the first failure survives\. Result: Left\(e₂\)\./)).toBeTruthy();
+  });
+
+  it("flatten: the outer slot holds the inner slot, and both can be changed", () => {
+    renderAt("/op/flatten");
+    pick("inner Either", /Left/);
+    expect(screen.getByText(/the inner value comes out as it is/)).toBeTruthy();
+    pick("outer Either", /Left e₁/);
+    expect(screen.getByText(/The outer Left becomes the result\./)).toBeTruthy();
   });
 
   it("zip: switching to the positional receiver drops the unmatched element", () => {
