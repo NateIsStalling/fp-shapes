@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { instantiate, tokenize } from "./signature";
+import { instantiate, markType, tokenize } from "./signature";
 
 describe("signature", () => {
   it("fills applied type variables only", () => {
@@ -10,5 +10,13 @@ describe("signature", () => {
   it("tokenizes the receiver's variable", () => {
     expect(tokenize("F<A> → F<B>", "F").filter((t) => t.isVar)).toHaveLength(2);
     expect(tokenize("T<A> → F<T<B>>", "F").map((t) => t.text).join("")).toBe("T<A> → F<T<B>>");
+  });
+});
+
+describe("markType", () => {
+  it("marks the filled-in type and keeps the text intact", () => {
+    const parts = markType("(A → Either<B>) → List<A> → Either<List<B>>", "Either");
+    expect(parts.filter((p) => p.isType)).toHaveLength(2);
+    expect(parts.map((p) => p.text).join("")).toBe("(A → Either<B>) → List<A> → Either<List<B>>");
   });
 });

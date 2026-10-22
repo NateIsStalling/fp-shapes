@@ -200,8 +200,10 @@ a { color: var(--purple-dark); }
 .abstraction-tag { display: inline-flex; align-items: baseline; gap: 8px; padding: 5px 12px; border-radius: 999px; background: var(--purple-soft); color: var(--purple-dark); font-weight: 600; font-size: 14px; text-decoration: none; }
 .abstraction-tag span { font: 500 12px var(--mono); color: var(--muted); }
 .op-signature { margin: 0; font-size: 18px; }
-/* The receiver fills in a type variable: the variable is marked the same way in the signature and on the control. */
-.type-var { color: var(--purple-dark); background: var(--purple-soft); border-radius: 5px; padding: 0 3px; font-weight: 500; }
+/* The receiver fills in a type variable: the variable is colored in the signature and on the control;
+   the type that replaces it is emphasized in the filled-in signature. */
+.type-var { color: var(--purple-dark); font-weight: 600; }
+.bound-type { color: var(--purple-dark); font-weight: 600; }
 .receiver-row { margin-top: 4px; }
 .receiver-label { font: 500 16px var(--mono); color: var(--soft-ink); }
 .op-signature-concrete { margin: 0; font-size: 15px; color: var(--soft-ink); }

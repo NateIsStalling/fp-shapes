@@ -2,7 +2,7 @@ import { useState } from "react";
 import { namesFor } from "../catalog/names";
 import type { OperationInfo } from "../catalog/operations";
 import { operationScenes } from "../scenes/registry";
-import { instantiate, tokenize } from "../scenes/signature";
+import { instantiate, markType, tokenize } from "../scenes/signature";
 import type { EvaluationStrategy } from "../semantics";
 import { SampleBlock } from "./SampleBlock";
 import { SceneView } from "./SceneView";
@@ -58,7 +58,8 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             </div>
           )}
           <p className="mono op-signature-concrete" aria-live="polite">
-            <span className="sr-only">With {receiver.label}: </span>{receiver.signature ?? instantiate(op.signature, receiver.binds)}
+            <span className="sr-only">With {receiver.label}: </span>
+            {markType(receiver.signature ?? instantiate(op.signature, receiver.binds), receiver.binds[op.receiverVar] ?? "").map((p, i) => (p.isType ? <strong key={i} className="bound-type">{p.text}</strong> : p.text))}
           </p>
         </div>
       </header>

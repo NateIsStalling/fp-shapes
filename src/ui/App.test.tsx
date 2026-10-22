@@ -158,6 +158,7 @@ describe("receiver fills in the type variable", () => {
     expect(container.querySelector(".receiver-label")?.textContent).toBe("F =");
     const concrete = () => container.querySelector(".op-signature-concrete")?.textContent;
     expect(concrete()).toContain("(A → Either<B>) → List<A> → Either<List<B>>");
+    expect([...container.querySelectorAll(".op-signature-concrete .bound-type")].map((n) => n.textContent)).toEqual(["Either", "Either"]);
     fireEvent.click(screen.getByRole("button", { name: "Option" }));
     expect(concrete()).toContain("(A → Option<B>) → List<A> → Option<List<B>>");
   });

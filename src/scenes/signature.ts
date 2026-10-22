@@ -20,3 +20,18 @@ export function tokenize(signature: string, variable: string): { text: string; i
   if (last < signature.length) out.push({ text: signature.slice(last), isVar: false });
   return out;
 }
+
+// Split a filled-in signature so the type that replaced the variable can be
+// emphasized, e.g. "Either" in "(A → Either<B>) → List<A> → Either<List<B>>".
+export function markType(signature: string, typeName: string): { text: string; isType: boolean }[] {
+  const out: { text: string; isType: boolean }[] = [];
+  const re = new RegExp(`\\b${typeName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=<)`, "g");
+  let last = 0;
+  for (const m of signature.matchAll(re)) {
+    if (m.index > last) out.push({ text: signature.slice(last, m.index), isType: false });
+    out.push({ text: typeName, isType: true });
+    last = m.index + typeName.length;
+  }
+  if (last < signature.length) out.push({ text: signature.slice(last), isType: false });
+  return out;
+}
