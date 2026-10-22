@@ -60,3 +60,12 @@ describe("interaction", () => {
     expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
   });
 });
+
+describe("navigation", () => {
+  it("links to the repository on GitHub", () => {
+    renderAt("/");
+    const link = screen.getByRole("link", { name: /GitHub/ });
+    expect(link.getAttribute("href")).toBe("https://github.com/NateIsStalling/fp-shapes");
+    expect(link.getAttribute("target")).toBe("_blank");
+  });
+});
