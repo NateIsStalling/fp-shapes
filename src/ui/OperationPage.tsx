@@ -4,7 +4,6 @@ import type { OperationInfo } from "../catalog/operations";
 import { operationScenes } from "../scenes/registry";
 import type { EvaluationStrategy } from "../semantics";
 import { SampleBlock } from "./SampleBlock";
-import { ThemeToggle } from "./ThemeToggle";
 import { SceneView } from "./SceneView";
 import { ShapeRibbon } from "./ShapeRibbon";
 
@@ -45,14 +44,6 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <p className="mono op-signature">{op.signature}</p>
             <span className="abstraction-tag"><span>abstraction</span>{op.abstraction}</span>
           </div>
-        </div>
-        <ThemeToggle />
-      </header>
-      <div className="page-with-aside">
-      <main className="main">
-
-        <section aria-labelledby="shape-h" className="section">
-          <h2 id="shape-h">Shape: which layers move?</h2>
           {receivers.length > 1 && (
             <div className="control-row">
               <span className="eyebrow">Receiver</span>
@@ -61,9 +52,15 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
                   <button key={r.id} type="button" className={r.id === receiver.id ? "on" : ""} aria-pressed={r.id === receiver.id} onClick={() => setReceiverId(r.id)}>{r.label}</button>
                 ))}
               </div>
-              <span className="note">Changes the shape and the behavior below.</span>
             </div>
           )}
+        </div>
+      </header>
+      <div className="page-with-aside">
+      <main className="main">
+
+        <section aria-labelledby="shape-h" className="section">
+          <h2 id="shape-h">Shape: which layers move?</h2>
           <div className="card">
             <ShapeRibbon op={op.name} {...receiver.ribbon} />
           </div>

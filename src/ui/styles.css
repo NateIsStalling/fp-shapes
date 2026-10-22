@@ -144,12 +144,15 @@ a { color: var(--purple-dark); }
 .eyebrow { margin: 0; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 
 /* Shell */
-.app-shell { min-height: 100vh; display: flex; flex-wrap: wrap; }
+.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.app-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px clamp(16px, 2vw, 24px); background: var(--sidebar); border-bottom: 1px solid var(--line); }
+.app-bar .tagline { margin: 0; color: var(--muted); font-size: 14px; }
+.app-body { flex: 1; display: flex; flex-wrap: wrap; min-width: 0; }
+.sidebar-foot { margin-top: auto; padding: 0 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sidebar { flex: 1 1 232px; max-width: 260px; padding: 28px 16px; background: var(--sidebar); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
-.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 20px; letter-spacing: -.03em; padding: 0 8px; }
-.tagline { margin: 0 8px 8px; color: var(--muted); font-size: 13px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 20px; letter-spacing: -.03em; }
 .nav-group { display: grid; gap: 1px; }
-.github-badge { margin: auto 8px 0; align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
+.github-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
 .github-badge:hover { border-color: var(--purple); color: var(--purple-dark); }
 .github-badge svg { width: 16px; height: 16px; fill: currentColor; }
 .nav-group .eyebrow { margin: 6px 12px 4px; }

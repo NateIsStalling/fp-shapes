@@ -80,12 +80,11 @@ describe("section headings", () => {
 });
 
 describe("page header", () => {
-  it("has a breadcrumb, keeps the abstraction next to the signature, and puts the receiver under Shape", () => {
+  it("has a breadcrumb, keeps the abstraction next to the signature, and puts the receiver in the title bar", () => {
     const { container } = renderAt("/op/traverse");
     expect(screen.getByRole("navigation", { name: "Breadcrumb" }).textContent).toBe("OperationsTraversing");
     expect(container.querySelector(".op-shape .abstraction-tag")?.textContent).toBe("abstractionTraversable");
-    const shape = screen.getByRole("heading", { level: 2, name: "Shape: which layers move?" }).closest("section");
-    expect(shape?.querySelector('[aria-label="Receiver"]')).toBeTruthy();
+    expect(container.querySelector('header.title-bar [aria-label="Receiver"]')).toBeTruthy();
   });
 });
 
@@ -131,5 +130,18 @@ describe("title bar and theme", () => {
     expect(toggle.getAttribute("aria-pressed")).toBe("true");
     fireEvent.click(toggle);
     expect(document.documentElement.dataset.theme).toBe("light");
+  });
+});
+
+describe("app chrome", () => {
+  it("has a full-width app bar with the name and tagline, and puts the theme toggle beside GitHub", () => {
+    const { container } = renderAt("/op/map");
+    const bar = container.querySelector("header.app-bar");
+    expect(bar?.textContent).toContain("FP Shapes");
+    expect(bar?.textContent).toContain("Interactive diagrams of functional programming operations");
+    expect(bar?.closest("nav")).toBeNull();
+    const foot = container.querySelector(".sidebar-foot");
+    expect(foot?.querySelector(".github-badge")).toBeTruthy();
+    expect(foot?.querySelector(".theme-toggle")).toBeTruthy();
   });
 });
