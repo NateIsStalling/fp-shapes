@@ -10,7 +10,22 @@ The repo has a vanilla HTML/JS/CSS **prototype**, but not the real app yet. `AGE
 - **`prototype/` is a reference for UX and visuals only.** `app.js` holds catalog data, search, routing and rendering; `styles.css` has the visual system; `index.html` has the shell. **It is not a source of truth for semantics.** Its signatures, laws, aliases, ecosystem mappings and snippets have known errors, so verify every semantic claim against the primary docs for the pinned library version (see "Semantic authority" in `AGENT_HANDOFF.md`).
 - `reference/fp-shapes-production.png` is the visual baseline at desktop width.
 
-There's no `package.json` or build, lint or test tooling yet. To view the prototype, open `prototype/index.html` directly. Once the scaffold exists, update this file with the real commands. The planned stack is Vite, Vitest, fast-check, React Testing Library, one Playwright smoke test, snippet compile checks in CI, and a GitHub Pages workflow with Vite `base: "/fp-shapes/"`.
+## Commands
+
+```sh
+npm test                                   # vitest run: laws, traps, layer-boundary checks
+npx vitest run src/semantics/traverse.test.ts   # one test file
+npx vitest run -t "stop at first"          # tests whose name matches
+npm run typecheck                          # tsc (strict, noEmit)
+npm run dev                                # Vite dev server
+npm run build                              # typecheck + static build to dist/ (base /fp-shapes/)
+```
+
+Stack: Vite 8, React 19, TypeScript 7 (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Vitest 5, fast-check 4. In fast-check properties, use `void expect(...)` or a block body. This Vitest's matchers return a value that fast-check reads as a failed property.
+
+To view the prototype, open `prototype/index.html` directly.
+
+`tests/architecture.test.ts` enforces the layer boundaries described below. Pure layers (`semantics`, `scenes`, `catalog`, `search`) can't import npm packages, except test files, which may use `vitest` and `fast-check`.
 
 ## Planned architecture (layers depend only downward; enforce with a lint rule)
 
