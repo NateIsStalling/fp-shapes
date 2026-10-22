@@ -25,6 +25,8 @@ Stack: Vite 8, React 19, TypeScript 7 (strict, `noUncheckedIndexedAccess`, `exac
 
 To view the prototype, open `prototype/index.html` directly.
 
+`tests/conformance/` runs real fp-ts 2.16.11 and effect 4.0.5 code (exact-pinned devDependencies) against the reference semantics, comparing results and which calls happened. Keep those pins equal to the catalog's. When you add a catalog claim for fp-ts or Effect, add a conformance test for it. Laws belong in the project docs and the tests, not in site copy.
+
 `tests/architecture.test.ts` enforces the layer boundaries described below. Pure layers (`semantics`, `scenes`, `catalog`, `search`) can't import npm packages, except test files, which may use `vitest` and `fast-check`.
 
 ## Planned architecture (layers depend only downward; enforce with a lint rule)

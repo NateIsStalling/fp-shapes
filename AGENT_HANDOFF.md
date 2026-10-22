@@ -54,6 +54,8 @@ Keep these three levels separate in the data model and the UI:
 | Multiple versions | **The model supports several version tracks per ecosystem** (see [Versioning](#versioning)), so LanguageExt v5 or Effect v3 can be added later without schema changes. The initial scope ships **one track per ecosystem**, and the version switcher stays hidden until an ecosystem has two. |
 | Initial scope cuts | **Concurrent traverse and the async timeline marbles are deferred**, along with LanguageExt v5. |
 | Shape Ribbon | **Required.** One reusable primitive shows the structural transformation everywhere: at the top of every operation page, beside every search result, in the matrix cell detail, and in abstraction instance examples. |
+| Laws on the site | **Not shown as copy.** Laws are documented in the project docs and enforced by property tests. Abstraction pages may still *draw* a law as a pair of diagrams that give the same result, but the site doesn't carry law statements or claims about testing. |
+| Library conformance | fp-ts and Effect are **devDependencies used in tests, not at runtime.** The diagrams stay ecosystem-neutral, and conformance tests prove the reference semantics match each library's results and call behavior at the pinned versions. |
 | Navigation | **Hybrid.** Navigation groups use the vocabulary fp-ts and Effect share in their `@category` tags (Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering), so TypeScript developers recognize them. The navigation shows operation names only. Each operation page shows its canonical abstraction (Functor, Monad, Traversable, …) as a tag in the description header, next to the title, linking to the abstraction page. The Shape Ribbon shows what happens to the shape; family names are not used in the navigation. |
 | C# BCL / LINQ | **Proposed:** a "C# · BCL" column covering `IEnumerable`, `Nullable` and `Task`, filled only where an equivalent exists. Mark analogies as `analogy`. |
 
@@ -354,6 +356,7 @@ Accessibility requirements:
 ## Testing strategy
 
 - **Laws:** fast-check property tests of the Functor, Applicative, Monad and Traversable laws (as stated in the Haskell base docs) for every receiver that claims them. Validation is tested as an Applicative that is not a Monad.
+- **Conformance (`tests/conformance/`):** run real library code against the reference semantics and compare results *and* which calls happened. fp-ts and effect are pinned with exact versions in `package.json`, matching the catalog pins. Each test names the API and the evaluation strategy the catalog claims it uses, so a failing test means a catalog claim is wrong. Libraries without a JS runtime (LanguageExt, F#, Haskell) need snippet CI instead.
 - **Traps:** a fixed test for each guardrail above, e.g. elements 2 and 4 fail under each receiver and evaluation strategy, or `[1,2]` × `"ab"` gives 4 cartesian pairs vs 2 positional pairs.
 - **Scenes:** structural assertions on scene output, not pixel snapshots.
 - **Catalog validation:**
