@@ -54,7 +54,7 @@ Keep these three levels separate in the data model and the UI:
 | Multiple versions | **The model supports several version tracks per ecosystem** (see [Versioning](#versioning)), so LanguageExt v5 or Effect v3 can be added later without schema changes. The initial scope ships **one track per ecosystem**, and the version switcher stays hidden until an ecosystem has two. |
 | Initial scope cuts | **Concurrent traverse and the async timeline marbles are deferred**, along with LanguageExt v5. |
 | Shape Ribbon | **Required.** One reusable primitive shows the structural transformation everywhere: at the top of every operation page, beside every search result, in the matrix cell detail, and in abstraction instance examples. |
-| Navigation | **Operations are grouped by shape family**, the way RxMarbles groups operators (see [Topics](#topics)). The same families drive the Shape Ribbon's visual vocabulary. |
+| Navigation | **Hybrid.** Navigation groups use the vocabulary fp-ts and Effect share in their `@category` tags (Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering), so TypeScript developers recognize them. Each operation carries a small canonical abstraction tag (Functor, Monad, Traversable, …) that links to its abstraction page. The Shape Ribbon shows what happens to the shape; family names are not used in the navigation. |
 | C# BCL / LINQ | **Proposed:** a "C# · BCL" column covering `IEnumerable`, `Nullable` and `Task`, filled only where an equivalent exists. Mark analogies as `analogy`. |
 
 ## Explicit non-goals
@@ -124,17 +124,25 @@ Distinctions the site must keep visible:
 
 ## Topics
 
-**Tier 1 (launch)**, grouped by shape family. These groups are the navigation sections.
+**Tier 1 (launch).** The groups are the navigation sections. Group names follow fp-ts 2.16.11 and Effect 4.0.5 `@category` tags (checked against their `.d.ts` files). The tag is the canonical abstraction.
 
-| Family | What happens to the shape | Operations |
-|---|---|---|
-| Transform | The container stays; the payload changes | `map`, `mapError`, `bimap` |
-| Flatten | One nested layer is removed | `flatMap`, `flatten` |
-| Combine | Two containers merge into one | `zip`/`map2` |
-| Flip layers | The outer and inner layers swap | `traverse` (variants: stop-at-first, call-all/first-wins, accumulate), `sequence` |
-| Recover | The failure branch is replaced or gated | `recover`, `alt`, `filterOrElse` |
-| Leave the context | The container disappears | `match`, `getOrElse` (two variants: a constant default, and a default computed from the error) |
-| Observe | The shape is unchanged | `tap` (effectful), `peek` (side effect only) |
+| Group | Operation | Abstraction tag | What happens to the shape |
+|---|---|---|---|
+| Mapping | `map` | Functor | Container stays; payload changes |
+| Mapping | `bimap` | Bifunctor | Container stays; both sides can change |
+| Sequencing | `flatMap`, `flatten` | Monad | One nested layer is removed |
+| Sequencing | `tap` (effectful) | Monad | Unchanged; the side step can fail |
+| Sequencing | `peek` (side effect only) | Functor | Unchanged |
+| Zipping | `zip` / `map2` | Applicative | Two containers merge into one |
+| Traversing | `traverse` (variants: stop-at-first, call-all/first-wins, accumulate), `sequence` | Traversable | Outer and inner layers swap |
+| Error handling | `mapError` | Bifunctor | Container stays; the error side changes |
+| Error handling | `recover` | MonadError | The failure branch is replaced |
+| Error handling | `alt` | Alt | The first success wins |
+| Error handling | `getOrElse` (constant / computed from the error) | eliminator | The container disappears |
+| Pattern matching | `match` | eliminator | The container disappears |
+| Filtering | `filterOrElse` | derived | A success can become a failure |
+
+Library placements differ for some operations, and the site should note it where it matters: fp-ts files `tap` under "combinators" and Effect files it under "sequencing"; fp-ts says "traversing" where Effect says "collecting". Both libraries put `mapLeft`/`mapError` and `getOrElse`/`orElseSucceed` under "error handling".
 
 **Tier 2:**
 - `ap`, `pure`
@@ -380,7 +388,7 @@ Grant only the permissions Pages needs. No secrets are required.
 4. **Scenes and the Shape Ribbon.** Derive ribbons from canonical `TypeExpression`s (layer stacks plus their diff). Builders for each visual family (preserve, flatten, both branches, eliminate, flip nesting, combine) and the text summaries. *Exit:* every Tier 1 topic has scenes for all of its receivers.
 5. **Rendering and input editing.** `ShapeDiagram`, `InputEditor`, ghosted skipped calls, reduced motion. *Exit:* switching traverse variants visibly changes which calls happened.
 6. **Catalog, versioning and search.** Fill entries from the research with their verification records, derive the alias index and the glossary, and add catalog validation and the stale report. *Exit:* every matrix cell is a typed entry, including `none`.
-7. **Pages and the index.** Operation pages in the order Shape Ribbon → behavior → names panel, the navigation grouped by shape family, abstraction pages that lead with how each ecosystem represents the abstraction and show laws as pairs of equal diagrams, the matrix index with glossary terms and versioned snippets, and the snippet CI.
+7. **Pages and the index.** Operation pages in the order Shape Ribbon → behavior → names panel, the navigation in fp-ts/Effect category groups with abstraction tags, abstraction pages that lead with how each ecosystem represents the abstraction and show laws as pairs of equal diagrams, the matrix index with glossary terms and versioned snippets, and the snippet CI.
 8. **Signature search.** Parse queries in the neutral notation and the common ecosystem spellings, normalize them, and match and rank them against catalog signatures. *Exit:* `List<Option<A>> -> Option<List<A>>`, `a -> m b` style bind, `F<F<A>> -> F<A>`, and `(A -> B) -> List<A> -> List<B>` each return the expected operation as the top result, together with its ecosystem entries.
 9. **Deferred: async marbles.** A timeline renderer for concurrent vs sequential traverse, cancellation, and async `zip`. Not in the initial scope.
 10. **Optional.** Static HTML pages for each operation, generated at build time for search-engine discoverability.
