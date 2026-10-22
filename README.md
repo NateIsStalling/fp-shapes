@@ -36,13 +36,25 @@ The production screenshot in `reference/` is the visual parity baseline. The sou
 
 The prototype is **not** authoritative for semantics. Its signatures, laws, aliases, ecosystem mappings, notes, and code snippets contain known errors. Verify every semantic claim against the primary documentation for a specific library and version before adding it to the typed catalog.
 
-## Intended migration target
+## Intended target
 
-- Vite
-- React
-- TypeScript
-- Static build output
-- GitHub Pages hosting
+RxMarbles plus a reverse Hoogle: a Rosetta stone for functional programming. You find an operation by its name in any ecosystem or by its type signature. Each operation page shows a diagram computed by running a reference implementation on inputs you can manipulate. A matrix index shows how each target ecosystem spells the operation, with versioned snippets and glossary terms. "No equivalent" is a valid answer in the matrix.
+
+The prototype's Learn paths, concept essays and example labs are out of scope.
+
+Target ecosystems (pinned versions):
+
+- C# LanguageExt: both 4.4.9 (stable) and 5.0.0-beta-78 (beta), as separate version tracks
+- C# BCL/LINQ
+- F#: FSharp.Core 10.1.402, FsToolkit.ErrorHandling 5.2.0, FSharpPlus 1.9.1
+- fp-ts 2.16.11
+- Effect 4.0.5
+- Haskell: base 4.22, mtl, and `either` for Validation
+
+Stack:
+
+- Vite, React and TypeScript
+- Static build output hosted on GitHub Pages
 - No backend, accounts, database, authentication, or server-side rendering
 
-See `AGENT_HANDOFF.md` for the complete migration plan and acceptance criteria.
+See `AGENT_HANDOFF.md` for the full plan, decisions and acceptance criteria.

@@ -1,44 +1,56 @@
-# FP Shapes: React and GitHub Pages migration handoff
+# FP Shapes: build handoff
 
 ## Assignment
 
-Migrate the supplied FP Shapes prototype into a maintainable Vite, React, and TypeScript project that builds to static files and deploys to GitHub Pages.
+Build FP Shapes as a static Vite, React and TypeScript site deployed to GitHub Pages. The supplied prototype is a reference for its visual language and some interactions. It is not a reference for semantics, and it is no longer the scope target.
 
-Preserve the current product surface, interactions, and visual language while creating a foundation that can support dozens of additional operations and richer interactive visualizations.
+The spirit of the project is **RxMarbles plus a reverse Hoogle**: a Rosetta stone for functional programming.
 
-This is a structural migration, not a redesign. It is also not a straight port of content: the prototype's semantic content must be verified before it enters the typed catalog. See [Semantic authority](#semantic-authority).
+- **RxMarbles:**
+  - One operation per page.
+  - Inputs that you can manipulate.
+  - A diagram **computed** by running a reference implementation of the operation on those inputs.
+- **Reverse Hoogle:**
+  - Find an operation from a name in any ecosystem (`SelectMany`, `>>=`, `traverseResultA`, `Effect.validate`).
+  - Or find it from a type signature or shape (`List<Option<A>> -> Option<List<A>>` finds `sequence`).
+  - Then see how every target ecosystem spells it, including explicit "no equivalent" answers.
 
 ## Product thesis
 
-FP Shapes is a visual operation index and cross-ecosystem Rosetta Stone for functional programming.
-
-The central interaction is:
-
 ```text
-known operation or alias
+name (any ecosystem)  ─┐
+                       ├→ operation + abstraction + canonical signature
+signature / shape    ──┘
         ↓
-canonical concept and signature
+abstraction and canonical signature
         ↓
-visual transformation
+computed, interactive transformation (per receiver, per behavior variant)
         ↓
-composition neighborhood
-        ↓
-ecosystem-specific expression and caveats
+ecosystem expression, version, and caveats
 ```
 
-The experience should remain concepts-first. Ecosystem APIs translate the canonical behavior; they do not define the information architecture.
+Keep these three levels separate in the data model and the UI:
 
-## Required outcome
+1. **Abstraction**: e.g. Functor, with its laws, and how each ecosystem represents it. The representation can be first-class, encoded, library-only, duck-typed, or absent.
+2. **Instance**: a receiver type that satisfies the abstraction, with its own behavior (failure handling, evaluation, cardinality).
+3. **API name**: what an ecosystem calls the operation on that receiver.
 
-Deliver a repository that:
+`IEnumerable.Select` satisfies the functor laws in practice, but that does not make LINQ a Functor abstraction.
 
-1. Reproduces the supplied prototype's interactions and presentation, with semantic content verified against primary documentation rather than copied.
-2. Represents operations, concepts, glossary terms, ecosystems, and visualizations as typed data.
-3. Renders that data through reusable React components.
-4. Supports static GitHub Pages deployment.
-5. Requires no accounts, API, database, secrets, or server runtime.
-6. Includes focused automated tests for the domain behavior most likely to regress.
-7. Makes adding an ordinary new operation a small catalog change rather than a renderer rewrite.
+## Decisions (2026-10-21)
+
+| Topic | Decision |
+|---|---|
+| Scope | Keep: operation pages with computed diagrams, alias search, receiver lanes, abstraction pages, and the ecosystem matrix index. **Cut:** Learn paths, concept essays, and the Validation/Parsing/Async labs. |
+| Glossary | Kept **inside the matrix index**, not as a standalone page. Terms are derived from catalog records (abstractions, receivers, operations, aliases), each with a one-line definition stored on that record. |
+| Code snippets | Kept **inside the matrix index**, attached to individual ecosystem entries. Optional per entry, versioned, and compile-checked where CI supports it (see [Versioning](#versioning)). |
+| Effect | Pinned to **v4** (`effect` 4.0.5). v3 names (`Either`, `catchAll`, `validateAll`, `Option.fromNullable`, `Effect.orElse`) are indexed only as legacy aliases that point to the v4 replacement. |
+| fp-ts | **Kept**, pinned to 2.16.11 and labeled "maintenance; Effect is the successor". Legacy aliases (`chain`, `chainFirst`, `fold`, …) are indexed as aliases. |
+| F# | One F# column. Each entry is tagged by library: **FSharp.Core 10.1.402**, **FsToolkit.ErrorHandling 5.2.0**, **FSharpPlus 1.9.1**. |
+| Haskell | base 4.22.0.0, mtl 2.3.2, transformers 0.6.3.0, async 2.2.6. Validation comes from **`either` 5.0.3, `Data.Either.Validation`**. |
+| LanguageExt | **Both v4 and v5 are documented** as separate version tracks: `v4` = 4.4.9 (stable, the default) and `v5` = `5.0.0-beta-78` (beta). Many APIs differ between them. `Either.Match`/`BiMap` argument order flipped, the async types were replaced, and `Traverse`/`Sequence` swapped meanings. |
+| Multiple versions | **An ecosystem can document more than one version track** (see [Versioning](#versioning)). LanguageExt uses this now. Effect stays on a single v4 track, but the model allows adding v3 later. |
+| C# BCL / LINQ | **Proposed:** a "C# · BCL" column covering `IEnumerable`, `Nullable` and `Task`, filled only where an equivalent exists. Mark analogies as `analogy`. |
 
 ## Explicit non-goals
 
@@ -49,669 +61,307 @@ Do not add:
 - A database or CMS
 - Server-side rendering
 - Arbitrary pasted-code analysis
-- Language-server or compiler integration
+- Language-server or compiler integration at runtime (compiling snippets in CI is in scope)
 - Package-wide API indexing
 - AI-generated search results
 - Telemetry that requires a hosted service
-- A visual redesign unrelated to the migration
+- Standalone learning content: paths, essays, labs
 
-Do not convert ecosystem analogues into claims of exact semantic equivalence.
+Do not present ecosystem analogues as exact semantic equivalents.
 
 ## Supplied baseline
 
-The current prototype is under `prototype/`:
-
-| File | Purpose |
-|---|---|
-| `index.html` | Application shell and current Explore markup |
-| `app.js` | Catalog data, search, routing, rendering, concept pages, glossary, and labs |
-| `styles.css` | Complete visual system and responsive behavior |
-
-`reference/fp-shapes-production.png` is a desktop visual-parity reference.
-
-The prototype currently contains approximately:
-
-- 206 lines of HTML
-- 1,019 lines of JavaScript
-- 331 lines of CSS
-
-The JavaScript contains no remote data access or persistent application state. Most content is already represented as JavaScript objects, which makes the structure easy to extract. The semantics in those objects still need verification (see below).
+`prototype/` (`index.html`, `app.js`, `styles.css`) and `reference/fp-shapes-production.png` are the reference for the visual language: the lavender palette, Manrope/DM Mono, the shapes and badges, the responsive behavior, and the high-contrast toggle. The search, alias and inspector interactions are a starting point.
 
 ## Semantic authority
 
-The prototype is a reference for UX, interaction, and visual design only. It is **not** a source of truth for functional-programming semantics.
-
-Its signatures, laws, aliases, ecosystem mappings, semantic notes, and code snippets contain known errors. Examples:
+The prototype is **not** a source of truth for functional-programming semantics. Its signatures, laws, aliases, ecosystem mappings, notes and snippets contain known errors. Examples:
 
 - The `traverse` and `sequence` laws contradict each other.
 - F# `Result` is shown with its type parameters in the wrong order.
 - Functions are attributed to FSharp.Core that it does not contain.
-- Haskell `liftA2` and `zipWith` are presented as one operation, though they differ for lists.
+- `liftA2` and `zipWith` are presented as one operation, though they differ for lists.
 - `tap` conflates an effectful step with a side-effect peek.
-- Short-circuiting `Either` traversal is presented as if it accumulated errors.
-- Alias resolution silently picks a receiver type by object key order.
+- Short-circuiting `Either` traversal is presented as accumulating errors.
+- Alias resolution silently picks a receiver by object key order.
 
 Rules:
 
-- The authority for each semantic claim is the primary documentation for a specific library and version, recorded alongside the claim.
-- Port prototype content only after verifying it. When a claim can't be verified, mark it unverified in the catalog rather than asserting it.
-- Correcting a semantic error is in scope for the migration and is not a redesign. Make such corrections in their own commits, separate from structural changes.
-- Do not write tests that lock in the prototype's semantic behavior. Write tests against verified behavior.
-
-## Current operations
-
-All twelve operations remain in scope and must be searchable and interactive. An operation may be split or renamed when verification shows that it conflates distinct behaviors (for example, `tap`).
-
-1. `map`
-2. `flatMap`
-3. `mapError`
-4. `match`
-5. `traverse`
-6. `sequence`
-7. `bimap`
-8. `recover`
-9. `getOrElse`
-10. `tap`
-11. `flatten`
-12. `zip`
-
-Alias lookup must resolve names such as `Select`, `SelectMany`, `Bind`, `chain`, `fmap`, `>>=`, `mapLeft`, and `join`. The aliases in `prototype/app.js` are candidates, not requirements:
-
-- Keep an alias only when documentation shows the ecosystem and receiver type it belongs to.
-- Drop aliases that can't be traced to a library.
-- Qualify aliases whose meaning depends on the receiver (e.g. `join`, `fold`, `Do`, `all`, `orElse`) so they don't resolve without context.
+- The authority for each semantic claim is the primary documentation for the pinned library version, recorded alongside the claim.
+- Diagrams are computed by reference implementations, never hand-authored. Laws are verified against those implementations with property-based tests.
+- When a claim can't be verified, mark it `unverified` in the catalog rather than asserting it.
+- Do not write tests that encode the prototype's semantic behavior.
 
 ## Semantic guardrails
 
-Receiver type is part of the answer.
+The receiver type is part of the answer. Never imply that preserving an abstract `F` preserves object identity, a concrete collection class, evaluation strategy, cardinality, or error behavior.
 
-Keep these ecosystem distinctions visible:
+Distinctions the site must keep visible:
 
-- C# LINQ `Select` and `SelectMany` operate on `IEnumerable` sequence shapes.
-- LanguageExt `Map`, `Bind`, and query-syntax equivalents operate on `Either`-style branch shapes.
-- TypeScript `Array.map` and `Array.flatMap` operate on array shapes.
-- fp-ts `Either.map`, `flatMap`, `mapLeft`, and related operations operate on `Either` branches.
-- F# `Result`, Haskell type classes, native collections, and library abstractions must retain their documented semantic differences.
+- **Short-circuit vs accumulate.** Either-based traverse stops at the first Left. Only Validation accumulates. Some APIs (LanguageExt applicative `Traverse`, fp-ts parallel `TE.traverseArray`) call every function but still return only the first error.
+- **Positional vs cartesian.** Haskell `liftA2` on lists and LINQ query syntax produce the cartesian product. `zipWith`, `Enumerable.Zip` and `RA.zipWith` pair by position and truncate.
+- **Parameter order.**
+  - Success first: F# `Result<'T,'E>`, Effect `Result<A, E>`.
+  - Error first: Haskell `Either e a`, fp-ts `Either<E, A>`.
+  - The two F# Validation types differ: FSharpPlus `Validation<'e,'t>` is a separate type with the error first, while FsToolkit's `Validation<'ok,'e>` is an alias for `Result<'ok, 'e list>`.
+- **Validation is Applicative, not Monad.** A library that offers a bind on Validation short-circuits.
+- **Concurrency and cancellation.**
+  - `Task.WhenAll` waits for every task.
+  - fp-ts parallel TaskEither runs every task.
+  - Haskell `mapConcurrently` and Effect cancel the remaining work on failure.
+  - Effect is sequential unless `concurrency` is set.
+- **Names that mean different things.**
+  - `fold`: match in fp-ts, Foldable in Haskell.
+  - `join`: string concatenation in JS and C#.
+  - `Do`: fp-ts do-notation vs a LanguageExt peek.
+  - mtl `mapError`: not a map over the error.
+  - `first`: Data.Bifunctor vs Control.Arrow.
 
-Distinguish these levels throughout the UI and data model:
+## Topics
 
-1. Canonical structural relationship
-2. Common ecosystem expression
-3. Important semantic differences or constraints
+**Tier 1 (launch):**
+- `map`, `flatMap`, `flatten`
+- `zip`/`map2`
+- `traverse`, with variants: stop-at-first, call-all/first-wins, accumulate
+- `sequence`
+- `mapError`, `bimap`
+- `match`
+- `getOrElse`, in two variants: a constant default, and a default computed from the error
+- `recover`, `alt`
+- `tap` (effectful), `peek` (side effect only)
+- `filterOrElse`
 
-Never imply that preserving an abstract `F` means preserving object identity, a concrete collection class, evaluation strategy, cardinality, or error behavior.
+**Tier 2:**
+- concurrent traverse (timeline marbles)
+- `ap`, `pure`
+- `fold`/`reduce` (Foldable, distinct from `match`)
+- Kleisli composition
+- comprehension syntax
+- from-nullable
+
+**Receivers:** Option, Either, Validation, List, ZipList, Tuple (for `bimap`), and a simulated Async on a virtual clock.
+
+**Abstractions:** Functor, Applicative, Monad, Foldable, Traversable, Bifunctor, Alternative, Semigroup/Monoid, MonadError.
+
+The full per-topic deep dive and the name/abstraction matrices are in the FP Shapes Build Plan artifact.
 
 ## Recommended stack
 
 - Current stable Node.js LTS
-- Vite
-- React
-- TypeScript with strict mode
-- React Router using `HashRouter`
-- Vitest
-- React Testing Library
-- Existing CSS initially
-- GitHub Actions for Pages deployment
+- Vite, React, TypeScript (strict)
+- React Router with `HashRouter`. GitHub Pages has no SPA rewrites, so hash routes survive a refresh.
+- Vitest, React Testing Library, and fast-check for law property tests
+- The existing CSS, ported first
+- GitHub Actions for Pages deployment and the snippet compile checks
 
-Avoid a full UI framework unless a concrete requirement appears. The supplied CSS already defines the product's visual identity.
+Avoid a UI framework or CSS-in-JS unless a concrete need appears.
 
-Use `HashRouter` for the first migration because:
+## Architecture
 
-- The prototype already uses hash routes.
-- GitHub Pages does not provide arbitrary SPA rewrite rules.
-- Existing links can survive the migration.
-- Refreshing a concept route will continue to resolve through `index.html`.
-
-## Suggested project structure
+The layers depend only downward. Enforce this with a lint rule (e.g. `no-restricted-imports` or dependency-cruiser) from the first commit.
 
 ```text
-fp-shapes/
-├── .github/
-│   └── workflows/
-│       └── deploy-pages.yml
-├── public/
-├── src/
-│   ├── app/
-│   │   ├── App.tsx
-│   │   └── routes.tsx
-│   ├── components/
-│   │   ├── AppShell.tsx
-│   │   ├── Sidebar.tsx
-│   │   ├── ConceptInspector.tsx
-│   │   ├── CopyCodeButton.tsx
-│   │   └── ThemeButton.tsx
-│   ├── catalog/
-│   │   ├── operations/
-│   │   │   ├── map.ts
-│   │   │   ├── flatMap.ts
-│   │   │   └── index.ts
-│   │   ├── concepts.ts
-│   │   ├── ecosystems.ts
-│   │   ├── glossary.ts
-│   │   └── examples.ts
-│   ├── domain/
-│   │   ├── catalog.ts
-│   │   ├── operation.ts
-│   │   ├── search.ts
-│   │   ├── shape.ts
-│   │   └── visualization.ts
-│   ├── features/
-│   │   ├── explore/
-│   │   │   ├── ExplorePage.tsx
-│   │   │   ├── OperationSearch.tsx
-│   │   │   ├── ShapeDiagram.tsx
-│   │   │   ├── ConcreteExample.tsx
-│   │   │   └── CompositionNeighborhood.tsx
-│   │   ├── concepts/
-│   │   ├── glossary/
-│   │   ├── learn/
-│   │   └── examples/
-│   ├── styles/
-│   │   └── global.css
-│   ├── main.tsx
-│   └── vite-env.d.ts
-├── index.html
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
+src/
+├── semantics/   receivers, reference operations, behavior variants, traces; imports nothing else in src and never React
+├── scenes/      pure (operation, receiver, variant, inputs) → Scene builders, plus text summaries; imports semantics only
+├── catalog/     ecosystems, libraries, versions, entries, aliases, abstractions, glossary definitions, snippet refs
+├── search/      name search (alias index derived from the catalog; ambiguous queries return several candidates)
+│                and signature search (TypeExpression matching, Hoogle-style)
+└── ui/          React: ShapeDiagram, InputEditor, NamesPanel, MatrixIndex, routes; imports scenes, catalog, search
+snippets/        real source files for each ecosystem, compiled in CI against the pinned versions
 ```
 
-This is a suggested boundary map, not a requirement to create one file per small component. Prefer cohesive modules over excessive fragmentation.
+### Semantics
 
-## Domain model
+- Receivers are plain TypeScript discriminated unions.
+- Each operation returns a `Run`: the result plus a trace of the calls that were made, those that were skipped, and timing on the virtual clock.
+- Operations with ecosystem-dependent behavior expose named **variants**. Example: traverse has `stop-at-first`, `call-all-first-wins` and `accumulate`.
 
-### Identifiers
+### Scenes
 
-Use stable, explicit identifiers rather than display strings as foreign keys:
+`ShapeDiagram` receives a `Scene` and never an operation name:
 
 ```ts
-export type OperationId =
-  | "map"
-  | "flatMap"
-  | "mapError"
-  | "match"
-  | "traverse"
-  | "sequence"
-  | "bimap"
-  | "recover"
-  | "getOrElse"
-  | "tap"
-  | "flatten"
-  | "zip";
-
-export type EcosystemId =
-  | "canonical"
-  | "csharp-linq"
-  | "csharp-languageext"
-  | "fsharp"
-  | "haskell"
-  | "typescript-array"
-  | "typescript-fpts";
+interface Scene { lanes: Lane[]; links: Link[]; annotations: Note[]; summary: string[]; timeline?: { ticks: number } }
+interface Lane  { id: string; role: "input" | "function" | "output"; receiver: ReceiverId; items: Item[] }
+interface Item  { id: ItemId; kind: "value" | "error" | "none" | "nested"; label: string; t?: number; state?: "computed" | "skipped" }
 ```
 
-The operation union may later be generated from catalog keys, but prioritize readable, strict types during the initial migration.
+Item IDs are stable, so the renderer can animate continuity between scenes. The text summary is generated from the same Scene.
 
-### Operation definition
-
-Use a shape similar to:
+### Catalog
 
 ```ts
-export interface OperationDefinition {
-  id: OperationId;
-  canonicalName: string;
-  aliases: AliasDefinition[];
-  category: OperationCategory;
-  summary: string;
-  canonicalSignature: TypeExpression;
-  theory: TheoryDefinition;
-  visualization: VisualizationDefinition;
-  examples: Partial<Record<EcosystemId, EcosystemExample>>;
-  relationships: OperationRelationship[];
-  conceptIds: ConceptId[];
+interface EcosystemEntry {
+  operationId: OperationId
+  ecosystem: EcosystemId          // "languageext" | "csharp-bcl" | "fsharp" | "fp-ts" | "effect" | "haskell"
+  library: LibraryId              // e.g. "fsharp-core", "fstoolkit", "fsharpplus", "mtl", "either"
+  receiver: ReceiverId
+  status: "equivalent" | "library" | "partial" | "analogy" | "none"
+  api?: { name: string; module?: string; signature: string }  // that ecosystem's own parameter order
+  variant?: VariantId             // links the API to the semantics variant it implements
+  caveat?: string
+  verified: { against: string; on: string; url: string }      // library version, ISO date, doc URL
+  aliases?: AliasRecord[]
+  snippet?: SnippetRef
 }
 ```
 
-An alias should optionally identify its ecosystem and documentation context. Avoid flattening every alias into an unqualified string once the typed catalog exists.
+Signatures are structured `TypeExpression`s, not display strings. That covers the canonical signature on each operation and the `api.signature` on each entry, which must keep that ecosystem's own parameter order. A formatter renders them for display in each ecosystem's own notation.
 
 ```ts
-export interface AliasDefinition {
-  name: string;
-  ecosystemId?: EcosystemId;
-  note?: string;
-}
-```
-
-### Type expressions
-
-Do not store every signature only as rendered text. Introduce a minimal recursive representation that can support later matching and richer diagrams:
-
-```ts
-export type TypeExpression =
-  | { kind: "variable"; name: string }
-  | { kind: "named"; name: string; arguments: TypeExpression[] }
-  | { kind: "function"; input: TypeExpression; output: TypeExpression }
+type TypeExpression =
+  | { kind: "var"; name: string }                                  // A, B, E
+  | { kind: "ctor"; name: string; args: TypeExpression[] }         // F<A>, Either<E, A>, List<A>
+  | { kind: "fn"; params: TypeExpression[]; result: TypeExpression }
   | { kind: "tuple"; elements: TypeExpression[] }
-  | { kind: "union"; alternatives: TypeExpression[] };
 ```
 
-Provide a formatter that produces the current compact signatures. The initial migration does not need a free-text signature parser.
+"No equivalent" is an explicit `status: "none"` record, never a missing key. A missing entry renders as "not yet researched", never as another ecosystem's example.
 
-### Shape primitives
+### Signature search (reverse Hoogle)
 
-Richer visualization should be built from a small vocabulary of composable primitives:
+The query is a signature in a neutral notation, for example `List<Option<A>> -> Option<List<A>>`, `(A -> F<B>) -> F<A> -> F<B>` or `F<F<A>> -> F<A>`. Matching works as follows:
 
-```ts
-export type Shape =
-  | { kind: "value"; id: string; label: string; tone?: ShapeTone }
-  | { kind: "container"; id: string; label: string; content: Shape }
-  | { kind: "alternatives"; id: string; left: Shape; right: Shape }
-  | { kind: "product"; id: string; members: Shape[] }
-  | { kind: "collection"; id: string; items: Shape[] }
-  | { kind: "function"; id: string; input: Shape; output: Shape };
-```
+- **Equivalences.** Matching is up to:
+  - renaming type variables (alpha-equivalence)
+  - currying and uncurrying
+  - argument order, including receiver-first vs receiver-last (pipe) styles
+- **Concrete types.** A concrete receiver in the query (`List`, `Option`, `Either<E, _>`, `Validation`, `Task`) unifies with abstract constructor variables (`F`, `T`) when that receiver is a known instance of the required abstraction.
+- **Ranking.** Exact matches rank first, then matches that needed argument reordering or currying, then matches that only fit once the query is generalized (e.g. `Either<E, A>` read as `P<E, A>`).
+- **Results.** The operation, the abstraction it belongs to, and the matching ecosystem entries, so a query can land directly on "fp-ts `RA.traverse(E.getApplicativeValidation(S))`".
+- **Scope.** Keep it small: a few hundred catalog signatures, no general type checker, no type classes beyond the catalog's abstraction table. The input syntax should accept common ecosystem spellings (`a -> m b`, `Func<A, B>`, `'a -> 'b`) and normalize them.
 
-Keep stable shape IDs so the renderer can animate continuity between input and output.
+## Versioning
 
-### Visualization definition
+An ecosystem can document **several version tracks** side by side. Version tags are required at four levels.
 
-```ts
-export interface VisualizationDefinition {
-  input: Shape;
-  operation: OperationGlyph;
-  output: Shape;
-  preservedIds: string[];
-  changedIds: string[];
-  removedIds?: string[];
-  introducedIds?: string[];
-  annotations: VisualizationAnnotation[];
-}
-```
+1. **Version tracks (pins).** `catalog/ecosystems.ts` declares one or more tracks for each library, each with an exact pin:
 
-Do not build a general graph-layout engine during this migration. Implement the layouts needed by the current operation families:
+   ```ts
+   interface VersionTrack { id: string; version: string; channel: "stable" | "beta" | "maintenance"; default?: boolean }
 
-- Structure-preserving
-- Structure-changing or flattening
-- Alternative-aware
-- Structure-consuming
-- Structure-reorienting
-- Independent combination
+   languageext: [{ id: "v4", version: "4.4.9", channel: "stable", default: true },
+                 { id: "v5", version: "5.0.0-beta-78", channel: "beta" }]
+   effect:      [{ id: "v4", version: "4.0.5", channel: "stable", default: true }]
+   ```
 
-The model should make a later graph renderer possible without delaying parity.
+   - Column headers and the names panel show the active track as a chip.
+   - An ecosystem with more than one track gets a **version switcher**. Its choice is kept in the URL (`?languageext=v5`) so links stay shareable.
+   - Abstraction records are per track too. For example, LanguageExt v5 has first-class traits (`Functor<F>` via `K<F,A>`), while v4 has struct-based type classes.
 
-## React component boundaries
+2. **Entries per track.**
+   - An entry lists the tracks it applies to (`tracks: ["v4", "v5"]` when the API is identical in both), so unchanged APIs aren't duplicated.
+   - When an API differs between tracks, there is one entry per track, linked by a `crossTrack` note that says what changed:
+     - `argument-order`: e.g. `Match(Right, Left)` → `Match(Left, Right)`
+     - `renamed`
+     - `semantics`: e.g. v4 `Traverse`/`Sequence` vs Haskell's meaning
+     - `removed`: e.g. v4 `EitherAsync`
+   - Each entry records the version it was verified against and the date.
+   - Catalog validation flags an entry as **stale** when `verified.against` differs from its track's pin, so upgrading a pin produces a re-verification list instead of silent drift.
 
-### Application shell
+3. **Name history.**
+   - Aliases carry `track`, `since`, `legacy` (with its replacement) and `removedIn`/`renamedTo`.
+   - Search covers names from every track and labels each result with its track. Searching `EitherAsync` shows "LanguageExt v4 only; removed in v5".
+   - Versions that are not documented tracks (Effect v3, fp-ts legacy aliases) exist only as aliases. Searching `catchAll` shows "Effect v3 name; in v4 use `catch`".
 
-`AppShell` owns the responsive three-column shell:
+4. **Snippets.**
+   - Each snippet records its track and the exact versions it was tested with, and lives as a real file under `snippets/<ecosystem>/<track>/`.
+   - CI compiles each track separately against lockfiles that match its pins:
+     - TypeScript: `tsc --noEmit` with `fp-ts@2.16.11` and `effect@4.0.5`.
+     - C#/F#: one `dotnet build` project per track. LanguageExt 4.4.9 and 5.0.0-beta-78 get separate projects, so a snippet can't compile by accident against the wrong version.
+     - Haskell: `cabal build` with a freeze file. This can come later.
+   - A snippet displays its track/version tag and either "compiled in CI" or "unchecked".
 
-- Primary navigation sidebar
-- Main route outlet
-- Contextual inspector on Explore
-
-Keep route content responsible for route-specific state.
-
-### Explore page
-
-`ExplorePage` owns:
-
-- Current operation
-- Search query
-- Ecosystem filter
-- Example case
-- Theory disclosure
-- Animation state
-
-Prefer local React state. A global state library is not justified.
-
-### Search
-
-Move search ranking into a pure domain function:
-
-```ts
-rankOperations(catalog, query, ecosystemId): RankedOperation[]
-```
-
-Keep the prototype's scoring tiers (exact, prefix, substring, description) as a starting point. Do not keep its ecosystem selection, which picks the first matching ecosystem in object key order. When an alias exists in several ecosystems or for several receiver types, return every candidate and let the UI ask which one is meant. Add unit tests around canonical names, aliases, case insensitivity, exact matches, ecosystem-specific aliases, and empty queries.
-
-### Shape diagram
-
-`ShapeDiagram` should receive a declarative visualization definition and render it without knowing which operation produced it.
-
-Animation may initially remain CSS-class-driven:
-
-```tsx
-<ShapeDiagram scene={operation.visualization} phase={animationPhase} />
-```
-
-Avoid embedding business semantics in animation timers.
-
-### Ecosystem examples
-
-Use one reusable component for concrete examples and documentation cards. It should make these fields visible:
-
-- Ecosystem
-- API or expression name
-- Code snippet
-- Concrete before/function/after shapes
-- Semantic note
-- Primary documentation link where available
-
-### Glossary
-
-The `Explore example` indicator must continue to derive from the operation catalog. Do not maintain a second Boolean or manual list.
-
-Resolve a glossary term by its normalized term against operation IDs, canonical names, and aliases. A badge is shown only when the target operation exists and navigation can succeed.
-
-## Content strategy
-
-For the initial migration, keep catalog content in typed TypeScript modules.
-
-Do not introduce a CMS. Do not require authors to edit JSX to add an ordinary operation.
-
-If concept essays later become substantially longer, MDX may be evaluated separately. It is not required for parity.
-
-Each operation module should export one complete definition. The catalog index should validate uniqueness of:
-
-- Operation IDs
-- Canonical names after normalization
-- Aliases within an ecosystem where ambiguity would be harmful
-
-Allow the same API name to mean different things for different receiver types. `SelectMany` and `flatMap` must not resolve without considering ecosystem or receiver context when that distinction matters.
-
-## Routing
-
-Preserve recognizable routes:
+## Routes
 
 ```text
-#/explore
-#/learn
-#/concepts
-#/concept/:conceptId
-#/glossary
-#/validation
-#/parsing
-#/async
+#/                                       operation list
+#/op/:operationId?receiver=&variant=&ecosystem=
+#/abstraction/:abstractionId
+#/index                                  matrix index: names, glossary terms, snippets
 ```
 
-It is acceptable to normalize the current `#concept/monad` format into React Router's hash-router output as long as shared links and refresh behavior work on GitHub Pages.
+Redirect old prototype hashes: `#explore` → `#/`, and `#concept/<id>` → `#/abstraction/<id>` where that abstraction exists, otherwise `#/`. Unknown routes fall back to `#/`.
 
-When an operation or glossary link navigates to Explore, encode enough state in the URL to restore the selection where practical:
+## Styling and accessibility
 
-```text
-#/explore?operation=flatMap&ecosystem=csharp-linq
-```
-
-This is preferable to invisible global navigation state and makes examples shareable.
-
-## Styling and responsiveness
-
-Port the existing CSS before refactoring it.
-
-Preserve:
-
-- Quiet lavender interface
-- Manrope and DM Mono typography treatment
-- Three-column desktop hierarchy
-- Left navigation and right inspector
-- Existing badges, cards, shapes, and diagram colors
-- Responsive collapse behavior
-- High-contrast toggle
-
-Once parity is achieved:
-
-- Group selectors by component or feature.
+- Port the existing CSS before refactoring it.
+- Keep the lavender interface, Manrope/DM Mono, the badges and shapes, the responsive collapse, and the high-contrast toggle.
 - Move repeated colors and spacing into CSS custom properties.
-- Retain semantic class names.
-- Avoid CSS-in-JS unless there is a demonstrated need.
+- The screenshot is a comparison reference, not a reason to hard-code desktop dimensions.
 
-The production screenshot is a comparison reference, not a reason to hard-code desktop dimensions.
-
-## Accessibility requirements
-
-Preserve or improve:
+Accessibility requirements:
 
 - Semantic landmarks
-- Keyboard operation of search and result selection
+- Keyboard operation of search, of result selection, and of every input-editor control
 - Visible focus states
-- `aria-live` announcements for operation changes
-- `aria-expanded` and disclosure state
-- Button semantics for interactive chips
-- Text alternatives for visual transformations
-- Sufficient contrast in normal and high-contrast modes
-- Reduced-motion behavior
-
-Add a textual transformation summary adjacent to each visualization so meaning does not depend on animation or color.
-
-Respect `prefers-reduced-motion` and render a stable end state without automatic movement.
+- `aria-live` announcements when a scene changes
+- A text summary next to every diagram, so meaning never depends on animation or color
+- Sufficient contrast in both modes
+- `prefers-reduced-motion`: render the stable end state with no automatic movement
 
 ## Testing strategy
 
-### Unit tests
-
-Cover pure domain behavior:
-
-- Canonical operation lookup
-- Alias lookup
-- Case normalization
-- Ecosystem filtering
-- Ranking exact names above partial aliases
-- Type-expression formatting
-- Glossary-to-operation resolution
-- Catalog uniqueness validation
-
-### Component tests
-
-Cover key product interactions:
-
-- Searching `SelectMany` resolves `flatMap`.
-- Selecting C# LINQ displays an `IEnumerable` example.
-- Selecting LanguageExt displays an `Either` example.
-- TypeScript Array and fp-ts display different container shapes.
-- Failure cases bypass success transformations where appropriate.
-- Glossary badges appear only for backed operations.
-- Clicking an Explore badge opens the expected operation.
-- Theory disclosure and code-copy controls remain operable.
-
-### Route tests
-
-- Every primary route renders.
-- Every concept relationship link resolves.
-- Unknown routes fall back safely.
-- Direct hash navigation restores the selected operation when encoded.
-
-### Browser smoke test
-
-Use one lightweight Playwright smoke test if the project already accepts the dependency. At minimum verify:
-
-1. Load Explore.
-2. Search for `SelectMany`.
-3. Resolve `flatMap`.
-4. Switch ecosystem.
-5. Open Glossary.
-6. Follow an Explore example back to Explore.
-7. Confirm a mobile viewport does not overflow horizontally.
-
-Do not create a large end-to-end suite during the migration.
+- **Laws:** fast-check property tests of the Functor, Applicative, Monad and Traversable laws (as stated in the Haskell base docs) for every receiver that claims them. Validation is tested as an Applicative that is not a Monad.
+- **Traps:** a fixed test for each guardrail above, e.g. elements 2 and 4 fail under each traverse variant, or `[1,2]` × `"ab"` gives 4 cartesian pairs vs 2 positional pairs.
+- **Scenes:** structural assertions on scene output, not pixel snapshots.
+- **Catalog validation:**
+  - unique IDs
+  - every entry has `verified`
+  - every `variant` exists in semantics
+  - stale-version report
+  - no alias resolves ambiguously without returning several candidates
+- **Search:** exact beats prefix, prefix beats substring. For signatures: alpha-equivalence, currying, argument reordering and concrete-to-abstract unification each have tests, plus a golden query list. `SelectMany`, `fold` and `join` return several qualified candidates.
+- **Snippets:** compiled in CI against the pinned versions.
+- **Routes:** every route renders, old hashes redirect, and URL state restores the selection.
+- **Smoke:** one Playwright test that loads an operation, edits an input, switches variant and ecosystem, opens the index, and checks that a mobile viewport doesn't overflow.
 
 ## GitHub Pages deployment
 
-The build output must be static `dist/` files.
+Static `dist/` output. For `https://<username>.github.io/fp-shapes/`, use Vite `base: "/fp-shapes/"`.
 
-For a project site hosted at:
+The Pages workflow (based on the current official guidance):
 
-```text
-https://<username>.github.io/fp-shapes/
-```
-
-configure Vite with:
-
-```ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-
-export default defineConfig({
-  plugins: [react()],
-  base: "/fp-shapes/",
-});
-```
-
-If the repository itself is named `<username>.github.io`, use `base: "/"` instead.
-
-Add a Pages workflow based on the current official GitHub Pages and Vite guidance. The workflow should:
-
-1. Trigger on pushes to the default branch and manual dispatch.
+1. Trigger on pushes to the default branch and on manual dispatch.
 2. Check out the repository.
-3. Install the supported Node version.
-4. Run the reproducible package-manager install.
-5. Run tests.
-6. Run the Vite production build.
-7. Upload `dist/` as the Pages artifact.
-8. Deploy through the GitHub Pages deployment action.
+3. Install Node.
+4. Run a reproducible install.
+5. Run the tests and the snippet checks.
+6. Build.
+7. Upload `dist/`.
+8. Deploy through the Pages action.
 
-Grant only the permissions required by the official Pages workflow.
+Grant only the permissions Pages needs. No secrets are required.
 
-No repository secret should be required for the standard Pages deployment.
+## Milestones
 
-## Migration sequence
+1. **Decisions and research.** Done (2026-10-21). The research reports are kept in the "FP Shapes Research" artifact (https://claude.ai/artifact/SA8MMv26fNWtq1wSuXWKPX) for now. It is private to the repo owner.
+2. **Scaffold.** Vite/React/TS strict, Vitest, fast-check, `HashRouter`, the Pages workflow, the ported CSS, and the layer-boundary lint rule. *Exit:* the empty shell deploys, and importing React from `src/semantics` fails lint.
+3. **Semantics core.** Receivers, the Tier 1 operations with variants and traces, and the law and trap tests. *Exit:* all laws pass for every receiver that claims them.
+4. **Scenes.** Builders for each visual family (preserve, flatten, both branches, eliminate, flip nesting, combine) and the text summaries. *Exit:* every Tier 1 topic has scenes for all of its receivers.
+5. **Rendering and input editing.** `ShapeDiagram`, `InputEditor`, ghosted skipped calls, reduced motion. *Exit:* switching traverse variants visibly changes which calls happened.
+6. **Catalog, versioning and search.** Fill entries from the research with their verification records, derive the alias index and the glossary, and add catalog validation and the stale report. *Exit:* every matrix cell is a typed entry, including `none`.
+7. **Pages and the index.** Operation pages with the names panel, abstraction pages that lead with how each ecosystem represents the abstraction and show laws as pairs of equal diagrams, the matrix index with glossary terms and versioned snippets, and the snippet CI.
+8. **Signature search.** Parse queries in the neutral notation and the common ecosystem spellings, normalize them, and match and rank them against catalog signatures. *Exit:* `List<Option<A>> -> Option<List<A>>`, `a -> m b` style bind, `F<F<A>> -> F<A>`, and `(A -> B) -> List<A> -> List<B>` each return the expected operation as the top result, together with its ecosystem entries.
+9. **Async marbles.** A timeline renderer for concurrent vs sequential traverse, cancellation, and async `zip`.
+10. **Optional.** Static HTML pages for each operation, generated at build time for search-engine discoverability.
 
-### Phase 1: Scaffold and safety net
+## Definition of done (launch)
 
-- Initialize Vite React TypeScript.
-- Add strict TypeScript settings.
-- Add Vitest and React Testing Library.
-- Copy the current CSS and font declarations.
-- Establish hash routes.
-- Add the GitHub Pages build configuration.
-- Add a baseline smoke test that the application shell renders.
-
-Exit criteria:
-
-- `npm run build` produces a static `dist/`.
-- Every intended route can be reached on a local static server.
-
-### Phase 2: Extract the catalog
-
-- Convert current operation objects into typed definitions, verifying each semantic claim against primary documentation as it is ported.
-- Extract concepts, glossary terms, ecosystems, and example labs.
-- Record each ecosystem claim's source: documentation URL, library, and version. Mark claims that couldn't be verified as unverified.
-- Implement catalog validation.
-- Port search ranking into pure functions.
-- Write domain tests against verified behavior, not against the prototype's output.
-
-Exit criteria:
-
-- All twelve operations exist in the typed catalog, with verified aliases, each qualified by ecosystem and receiver type.
-- Every ecosystem entry has a recorded source or an explicit unverified marker.
-- Search and glossary resolution tests pass.
-- Content no longer lives inside page-rendering functions.
-
-### Phase 3: Explore parity
-
-- Build operation search and result selection.
-- Build the inspector.
-- Build canonical and concrete visualization components.
-- Build case switching, ecosystem filtering, theory disclosure, and composition-neighborhood navigation.
-- Preserve keyboard behavior and live announcements.
-
-Exit criteria:
-
-- Every current operation renders.
-- LINQ/LanguageExt and Array/fp-ts distinctions remain correct.
-- The supplied screenshot can be reproduced closely at its viewport size.
-
-### Phase 4: Content routes
-
-- Port Learn.
-- Port Concepts overview.
-- Port all concept-detail pages.
-- Port Glossary and its derived Explore indicators.
-- Port Validation, Parsing, and Async workflow examples.
-
-Exit criteria:
-
-- No current route is a placeholder.
-- Cross-links resolve without full-page reloads.
-- Copy controls and labs work.
-
-### Phase 5: Visualization foundation
-
-- Replace operation-specific DOM assumptions with typed shape primitives.
-- Implement the required visualization-family layouts.
-- Add stable IDs for preserved and changed shapes.
-- Add reduced-motion behavior and textual summaries.
-
-Exit criteria:
-
-- `ShapeDiagram` renders from data rather than operation-name conditionals.
-- Adding an operation in an existing family does not require editing the renderer.
-
-### Phase 6: Verification and deployment
-
-- Run unit and component tests.
-- Run the production build.
-- Serve the built `dist/` locally to catch base-path issues.
-- Perform desktop and mobile visual checks.
-- Configure GitHub Pages.
-- Deploy from the default branch.
-- Update the repository README with local development, content-authoring, test, and deployment instructions.
-
-Exit criteria:
-
-- The GitHub Pages URL works without authentication.
-- Direct hash links survive refresh.
-- No source file or network request references the prior prototype host.
-
-## Definition of done
-
-The migration is complete when:
-
-- The React version has feature parity with the supplied prototype's interactions and presentation.
-- Semantic content is verified against primary documentation or explicitly marked unverified. None of it is carried over from the prototype unchecked.
-- All twelve operations remain searchable and interactive.
-- Ecosystem distinctions are preserved.
-- All existing content routes are implemented.
-- Operation and visualization data are typed and separate from React rendering.
-- An existing-family operation can be added without modifying the generic renderer.
-- Automated tests cover search, glossary resolution, critical ecosystem variants, and routes.
-- The static production build deploys successfully to GitHub Pages.
-- Visitors require no account or login.
-- The repository contains no backend, secrets, or unused hosted-service integration.
-
-## Suggested effort
-
-Expected implementation effort for one experienced frontend engineer:
-
-| Work | Estimate |
-|---|---:|
-| Scaffold, routing, and data extraction | 0.5–1 day |
-| Explore and visualization parity | 1–1.5 days |
-| Content pages and glossary | 0.5–1 day |
-| Tests, accessibility, and GitHub Pages deployment | 1 day |
-| Total maintainable migration | 3–4.5 focused days |
-
-The lower end assumes visual parity rather than redesign and reuses the current CSS. Rich new visualization behaviors should be scheduled after the migration baseline is stable.
+- Every Tier 1 topic is interactive, with computed scenes, for each of its receivers and variants.
+- Laws and trap tests pass, and no diagram is hand-authored.
+- Every matrix cell exists as a typed entry with its version, its verification record, and either a status or an explicit `none`.
+- Pinned versions appear in the UI, and catalog validation reports no stale entries.
+- Snippets shown on the site compile in CI, or are labeled "unchecked".
+- Ambiguous aliases return several qualified candidates, and signature search finds every Tier 1 operation from its canonical signature and from at least one concrete instantiation.
+- The static build deploys to GitHub Pages and needs no account. No backend or secrets.
 
 ## Agent working rules
 
-- Inspect the supplied source before replacing UX or interaction behavior.
-- Treat the prototype's semantic content as unverified. Verify it against primary documentation before porting it, and correct it in a dedicated commit when it is wrong.
-- Keep each migration step runnable.
-- Prefer small, reviewable commits aligned with the phases above.
-- Do not mix redesign, catalog expansion, and migration in the same commit.
-- Add a regression test whenever fixing a catalog-resolution or ecosystem-selection bug.
-- Record semantic uncertainties rather than silently asserting cross-ecosystem equivalence.
-- Treat the typed catalog as the source of truth; derived navigation and glossary indicators must not use parallel manual lists.
-
-## Recommended first commit
-
-The first commit should include only:
-
-- Vite React TypeScript scaffold
-- Existing global CSS
-- Static application shell
-- Hash routing
-- Empty route components matching the current route map
-- Test infrastructure
-- GitHub Pages-aware Vite base configuration
-
-The second commit should extract, verify, and test the catalog before porting the interactive renderer. This order reduces the risk of burying unverified semantics inside hastily translated JSX.
+- Verify semantics against the primary docs for the pinned version before adding them to the catalog. Never port claims from the prototype unchecked.
+- Keep each milestone runnable, and prefer small, reviewable commits.
+- Keep semantic corrections, catalog expansion and UI work in separate commits.
+- Add a regression test whenever you fix a catalog-resolution, ecosystem-selection or variant bug.
+- Record semantic uncertainty as `unverified` rather than asserting equivalence.
+- The typed catalog is the single source of truth. Navigation, the glossary and the alias index are derived from it, never maintained as parallel lists.

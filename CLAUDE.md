@@ -4,30 +4,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-The repo has not been migrated yet. It contains a working vanilla HTML/JS/CSS **prototype** and a plan for moving it to Vite + React + TypeScript, deployed as static files on GitHub Pages. `AGENT_HANDOFF.md` is the full migration spec: domain model, component boundaries, routes, test plan, phases and definition of done. Read it before doing migration work.
+The repo has a vanilla HTML/JS/CSS **prototype**, but not the real app yet. `AGENT_HANDOFF.md` is the spec. It covers the decisions, architecture, catalog and versioning model, routes, test plan, milestones and definition of done. Read it before starting any build work.
 
-- `prototype/` is a reference for UX, interaction and visual design only (`app.js` holds the catalog data, search, routing and rendering; `styles.css` holds the whole visual system; `index.html` is the shell and the Explore markup). **It is not a source of truth for semantics.** Its operation signatures, laws, aliases, ecosystem mappings, notes and code snippets contain known errors. Before porting any semantic claim, verify it against the primary documentation for the specific library and version. See "Semantic authority" in `AGENT_HANDOFF.md`.
-- `reference/fp-shapes-production.png` is the desktop visual-parity baseline. Compare against it, but don't hard-code its dimensions.
+- **Product direction: RxMarbles + reverse Hoogle, as an FP Rosetta stone.** Each page covers one operation. Inputs are interactive, and the diagram is **computed** by running a reference implementation, never hand-written. You can find an operation by its name in any ecosystem *or* by a type signature (`List<Option<A>> -> Option<List<A>>` → `sequence`). That makes signatures structured `TypeExpression`s, never display strings. A matrix index shows the API name in each target ecosystem, along with versioned snippets and glossary terms. "No equivalent" counts as a real answer. Learn paths, concept essays and example labs are out of scope.
+- **`prototype/` is a reference for UX and visuals only.** `app.js` holds catalog data, search, routing and rendering; `styles.css` has the visual system; `index.html` has the shell. **It is not a source of truth for semantics.** Its signatures, laws, aliases, ecosystem mappings and snippets have known errors, so verify every semantic claim against the primary docs for the pinned library version (see "Semantic authority" in `AGENT_HANDOFF.md`).
+- `reference/fp-shapes-production.png` is the visual baseline at desktop width.
 
-There is no `package.json`, build, lint or test tooling yet. To run the prototype, open `prototype/index.html` directly.
+There's no `package.json` or build, lint or test tooling yet. To view the prototype, open `prototype/index.html` directly. Once the scaffold exists, update this file with the real commands. The planned stack is Vite, Vitest, fast-check, React Testing Library, one Playwright smoke test, snippet compile checks in CI, and a GitHub Pages workflow with Vite `base: "/fp-shapes/"`.
 
-When the Vite project exists, the plan expects `npm run build` → static `dist/`, Vitest + React Testing Library for unit and component tests, at most one Playwright smoke test, and a GitHub Actions Pages workflow (install → test → build → upload `dist/` → deploy). Vite `base` must be `/fp-shapes/`. Update this file with the real commands once they exist.
+## Planned architecture (layers depend only downward; enforce with a lint rule)
 
-## Prototype architecture (what you are porting)
+- `src/semantics/` contains receivers (Option, Either, Validation, List, ZipList, Tuple, and a simulated Async) and reference operations. Each run returns its result plus a trace of the calls made and skipped. Behavior that differs by ecosystem is modeled as named **variants**, e.g. traverse: `stop-at-first`, `call-all-first-wins`, `accumulate`. This layer must never import React or any other layer.
+- `src/scenes/` holds pure builders that map (operation, receiver, variant, inputs) to a `Scene` plus a text summary. `ShapeDiagram` renders Scenes and never branches on operation names.
+- `src/catalog/` holds `EcosystemEntry` records: API name, the ecosystem's own signature order, `status` (`equivalent` | `library` | `partial` | `analogy` | `none`), a `variant` link, version and verification data, aliases with name history, and optional snippet refs. It also holds abstraction records describing how each ecosystem represents Functor, Monad and so on: first-class, encoded, library-only, duck-typed or absent.
+- Derived, never hand-maintained: the alias index, the glossary and navigation. An ambiguous alias (`SelectMany`, `fold`, `join`, `Do`) returns several qualified candidates.
 
-- **Operations catalog**: the `operations` array at the top of `app.js` holds 12 operations (map, flatMap, mapError, match, traverse, sequence, bimap, recover, getOrElse, tap, flatten, zip). Each one has `aliases`, a per-ecosystem `ecosystem` name map, `theory`/`law`, `neighbors` (the composition neighborhood), a default `concrete` triple `[input, function, output]`, and optional per-ecosystem `examples` whose `kind` (`either` | `sequence` | `pair` | `value`) picks how the concrete shapes are drawn.
-- **Ecosystem keys**: the prototype uses PascalCase keys (`CsharpLinq`, `CsharpLanguageExt`, `Fsharp`, `Haskell`, `TypeScriptArray`, `TypeScriptFpTs`), while the filter `<select>` uses kebab-case ids (`csharp-linq`, …). `preferredEcosystem` maps between them. The target model uses the kebab-case `EcosystemId` plus `canonical`.
-- **Search**: `rankOperations` scores the canonical name and aliases case-insensitively (exact 100, prefix 70, substring 50, description match 25). Port this behavior as is into a pure `rankOperations(catalog, query, ecosystemId)` and cover it with tests before tuning relevance.
-- **Explore rendering**: `render()` fills fixed DOM ids from the selected operation and example. The success/failure case switch only appears for `either` shapes. The operation-to-concept-page mapping (`conceptRoute` inside `render`) is currently hard-coded and should become catalog data (`conceptIds`).
-- **Content routes**: `renderRoute()` switches on `location.hash`. Routes: `explore`, `learn`, `concepts`, `concept/<id>` (from `conceptDefinitions`), `glossary`, `validation`, `parsing`, `async` (from `pageTemplates`). Unknown routes fall back to Explore. The three example pages share `examplePage()` and the `runLab()` logic.
-- **Glossary**: `operationForGlossaryTerm` derives the "Explore example" badge by matching the term against operation id, canonical name and aliases. Keep it derived from the catalog. Never add a manual list or a boolean flag.
-- `data-query` buttons (aliases, neighbors, chips, glossary badges) re-run search and navigate to Explore. If nothing matches, they fall through to the glossary.
+## Pinned ecosystems
+
+- Effect 4.0.5. v3 names are indexed only as legacy aliases.
+- fp-ts 2.16.11 (in maintenance).
+- F#: FSharp.Core 10.1.402, FsToolkit.ErrorHandling 5.2.0, FSharpPlus 1.9.1. Tag each entry with its library.
+- Haskell: base 4.22.0.0, mtl 2.3.2, `either` 5.0.3 (`Data.Either.Validation`), async 2.2.6.
+- C# BCL/LINQ for .NET 10.
+- LanguageExt has **two documented version tracks**: `v4` (4.4.9, stable, the default) and `v5` (5.0.0-beta-78, beta).
+
+An ecosystem can have several version tracks. Entries list the tracks they apply to. APIs that differ between tracks get one entry per track, linked by a `crossTrack` note (argument-order, renamed, semantics or removed). Snippets are compiled once per track, and the UI shows a version switcher whose choice is kept in the URL. Catalog validation flags any entry whose verified version differs from its track's pin.
 
 ## Rules that are easy to violate
 
-- This is a structural migration, not a redesign. Keep the existing CSS, content, lavender palette, Manrope/DM Mono fonts, the three-column layout and the high-contrast toggle. Don't mix redesign, catalog expansion and migration in one commit.
-- **Receiver type is part of the answer.** LINQ `Select`/`SelectMany` work on `IEnumerable`, LanguageExt on `Either`, TS `Array.map`/`flatMap` on arrays, and fp-ts on `Either`. An alias like `SelectMany` or `flatMap` must not resolve without ecosystem context where that matters. Ecosystem analogues must never be presented as exactly equivalent. Preserving an abstract `F` does not imply the same object identity, collection class, evaluation strategy, cardinality or error behavior.
-- Treat the typed catalog as the single source of truth. Adding an ordinary operation should only mean adding a catalog module. `ShapeDiagram` must render from declarative shape data, with no conditionals on operation names.
-- Out of scope: backend, accounts, database, CMS, SSR, hosted telemetry, AI search.
-- Use `HashRouter`. Old `#concept/monad`-style links must keep working, and Explore state should be encoded in the URL (`#/explore?operation=flatMap&ecosystem=csharp-linq`).
-- Whenever you fix a catalog-resolution or ecosystem-selection bug, add a regression test.
+- Keep abstraction, instance and API name separate. `Select` is a method on `IEnumerable` that happens to satisfy the functor laws, so it's an instance method, not LINQ's "Functor".
+- The receiver type is part of the answer. Keep these distinctions visible:
+  - short-circuit vs accumulate
+  - positional vs cartesian `zip`
+  - each ecosystem's own parameter order (F#/Effect put success first; Haskell/fp-ts put the error first)
+  - Validation is not a Monad
+  - concurrency and cancellation behavior
+- Use HashRouter. Old prototype hashes redirect: `#explore` → `#/`, `#concept/<id>` → `#/abstraction/<id>`.
+- Add a regression test whenever you fix a catalog-resolution, ecosystem-selection or variant bug.
