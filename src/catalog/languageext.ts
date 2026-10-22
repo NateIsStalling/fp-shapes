@@ -11,6 +11,19 @@ export interface LanguageExtEntry {
 export const LANGUAGEEXT_VERSION = "4.4.9";
 
 export const languageExt: Readonly<Record<string, LanguageExtEntry>> = {
+  "pure:option": { api: "Some(a)", status: "equivalent" },
+  "pure:either": { api: "Right(a)", status: "equivalent" },
+  "pure:validation": { api: "Success<E, A>(a)", status: "equivalent" },
+  "pure:list": { api: "Seq1(a)", status: "equivalent" },
+  "fail:either": { api: "Left<E, A>(e)", status: "equivalent" },
+  "fail:option": { api: "None", status: "equivalent" },
+  "fail:validation": { api: "Fail<E, A>(e)", status: "equivalent" },
+  "fromNullable:option": { api: "Optional(a)", status: "equivalent" },
+  "fromNullable:either": { api: "Optional(a).ToEither(e)", status: "partial", note: "No direct constructor; go through Option." },
+  "fromPredicate:option": { api: "Some(a).Filter(p)", status: "partial", note: "No direct constructor; filter a `Some`." },
+  "fromPredicate:either": { api: "Some(a).Filter(p).ToEither(e)", status: "partial", note: "No direct constructor; filter a `Some`, then convert." },
+  "tryCatch:option": { api: "Try(f).ToOption()", status: "partial", note: "`Try` is lazy; `ToOption` runs it." },
+  "tryCatch:either": { api: "Try(f).ToEither()", status: "partial", note: "`Try` is lazy; `ToEither` runs it and gives `Either<Exception, A>`." },
   "map:either": { api: "Map", status: "equivalent", },
   "map:option": { api: "Map", status: "equivalent", },
   "map:list": { api: "Seq.Map", status: "equivalent", },

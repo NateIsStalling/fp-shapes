@@ -10,6 +10,88 @@ import * as RNEA from "fp-ts/ReadonlyNonEmptyArray";
 import * as TE from "fp-ts/TaskEither";
 
 export const fpts: Record<string, () => unknown> = {
+  "pure:option": () => {
+    // <sample pure:option>
+    const result = O.of(2);
+    // </sample>
+    return result;
+  },
+  "pure:either": () => {
+    // <sample pure:either>
+    const result: E.Either<string, number> = E.of(2);
+    // </sample>
+    return result;
+  },
+  "pure:validation": () => {
+    // <sample pure:validation>
+    // fp-ts Validation is an Either whose errors accumulate
+    // through E.getApplicativeValidation.
+    const result: E.Either<RNEA.ReadonlyNonEmptyArray<string>, number> = E.of(2);
+    // </sample>
+    return result;
+  },
+  "pure:list": () => {
+    // <sample pure:list>
+    const result = RA.of(2);
+    // </sample>
+    return result;
+  },
+  "fail:either": () => {
+    // <sample fail:either>
+    const result: E.Either<string, number> = E.left("oops");
+    // </sample>
+    return result;
+  },
+  "fail:option": () => {
+    // <sample fail:option>
+    const result: O.Option<number> = O.none;
+    // </sample>
+    return result;
+  },
+  "fail:validation": () => {
+    // <sample fail:validation>
+    const result: E.Either<RNEA.ReadonlyNonEmptyArray<string>, number> = E.left(["oops"]);
+    // </sample>
+    return result;
+  },
+  "fromNullable:option": () => {
+    // <sample fromNullable:option>
+    const ages: Record<string, number | undefined> = { ann: 31 };
+    const result = O.fromNullable(ages["bob"]);
+    // </sample>
+    return result;
+  },
+  "fromNullable:either": () => {
+    // <sample fromNullable:either>
+    const ages: Record<string, number | undefined> = { ann: 31 };
+    const result = pipe(ages["bob"], E.fromNullable("missing"));
+    // </sample>
+    return result;
+  },
+  "fromPredicate:option": () => {
+    // <sample fromPredicate:option>
+    const result = pipe(3, O.fromPredicate((x: number) => x > 5));
+    // </sample>
+    return result;
+  },
+  "fromPredicate:either": () => {
+    // <sample fromPredicate:either>
+    const result = pipe(3, E.fromPredicate((x: number) => x > 5, (x) => `too small: ${x}`));
+    // </sample>
+    return result;
+  },
+  "tryCatch:option": () => {
+    // <sample tryCatch:option>
+    const result = O.tryCatch(() => JSON.parse("{"));
+    // </sample>
+    return result;
+  },
+  "tryCatch:either": () => {
+    // <sample tryCatch:either>
+    const result = E.tryCatch(() => JSON.parse("{"), () => "invalid JSON");
+    // </sample>
+    return result;
+  },
   "map:either": () => {
     // <sample map:either>
     const input: E.Either<string, number> = E.right(2);

@@ -3,6 +3,7 @@
 // page's header, not in the navigation.
 
 export type OperationId =
+  | "pure" | "fail" | "fromNullable" | "fromPredicate" | "tryCatch"
   | "map" | "bimap"
   | "flatMap" | "flatten" | "tap" | "peek"
   | "zip"
@@ -26,6 +27,13 @@ export interface OperationGroup {
 }
 
 export const operationGroups: readonly OperationGroup[] = [
+  { name: "Constructors", operations: [
+    { id: "pure", name: "pure", abstraction: "Applicative", signature: "A → F<A>", receiverVar: "F" },
+    { id: "fail", name: "fail", abstraction: "MonadThrow", signature: "E → F<E, A>", receiverVar: "F" },
+    { id: "fromNullable", name: "fromNullable", abstraction: "constructor", signature: "(A | null) → F<A>", receiverVar: "F" },
+    { id: "fromPredicate", name: "fromPredicate", abstraction: "constructor", signature: "(A → bool) → A → F<A>", receiverVar: "F" },
+    { id: "tryCatch", name: "tryCatch", abstraction: "constructor", signature: "(() → A) → F<A>", receiverVar: "F" },
+  ] },
   { name: "Mapping", operations: [
     { id: "map", name: "map", abstraction: "Functor", signature: "(A → B) → F<A> → F<B>", receiverVar: "F" },
     { id: "bimap", name: "bimap", abstraction: "Bifunctor", signature: "(E → E₂) × (A → B) → P<E, A> → P<E₂, B>", receiverVar: "P" },

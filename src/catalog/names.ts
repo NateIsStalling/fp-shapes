@@ -22,6 +22,19 @@ const eq = (base: typeof FP | typeof EF, api: string, note?: string): NameEntry 
 const part = (base: typeof FP | typeof EF, api: string, note: string): NameEntry => ({ ...base, api, status: "partial", note, verifiedBy: "conformance test" });
 
 const jsNames: Readonly<Record<string, readonly NameEntry[]>> = {
+  "pure:option": [eq(FP, "O.of", "Same as `O.some`."), eq(EF, "Option.some")],
+  "pure:either": [eq(FP, "E.of", "Same as `E.right`."), eq(EF, "Result.succeed")],
+  "pure:validation": [eq(FP, "E.of", "fp-ts Validation is an `Either`; errors accumulate through `E.getApplicativeValidation`.")],
+  "pure:list": [eq(FP, "RA.of"), eq(EF, "Array.of")],
+  "fail:either": [eq(FP, "E.left"), eq(EF, "Result.fail")],
+  "fail:option": [eq(FP, "O.none"), eq(EF, "Option.none")],
+  "fail:validation": [eq(FP, "E.left", "fp-ts Validation is an `Either` with a non-empty list of errors.")],
+  "fromNullable:option": [eq(FP, "O.fromNullable"), eq(EF, "Option.fromNullishOr")],
+  "fromNullable:either": [eq(FP, "E.fromNullable(e)", "Takes the error first, then the value."), eq(EF, "Result.fromNullishOr", "Computes the error with a function.")],
+  "fromPredicate:option": [eq(FP, "O.fromPredicate"), eq(EF, "Option.liftPredicate")],
+  "fromPredicate:either": [eq(FP, "E.fromPredicate"), eq(EF, "Result.liftPredicate")],
+  "tryCatch:option": [eq(FP, "O.tryCatch"), part(EF, "Option.liftThrowable", "Lifts a function; calling the lifted function runs it.")],
+  "tryCatch:either": [eq(FP, "E.tryCatch"), eq(EF, "Result.try", "Takes `{ try, catch }`.")],
   "map:either": [eq(FP, "E.map"), eq(EF, "Result.map")],
   "map:option": [eq(FP, "O.map"), eq(EF, "Option.map")],
   "map:list": [eq(FP, "RA.map"), eq(EF, "Array.map")],

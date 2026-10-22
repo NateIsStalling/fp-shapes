@@ -6,6 +6,9 @@ import {
   bimapEither,
   bimapTuple,
   evaluationStrategies,
+  failEither,
+  failOption,
+  failValidation,
   failure,
   filterOption,
   filterOrElseEither,
@@ -15,6 +18,10 @@ import {
   flattenEither,
   flattenList,
   flattenOption,
+  fromNullableEither,
+  fromNullableOption,
+  fromPredicateEither,
+  fromPredicateOption,
   getOrElseEitherWith,
   getOrElseOption,
   left,
@@ -29,6 +36,10 @@ import {
   none,
   peek,
   peekList,
+  pureEither,
+  pureList,
+  pureOption,
+  pureValidation,
   recoverEither,
   right,
   some,
@@ -38,6 +49,8 @@ import {
   traverseEither,
   traverseOption,
   traverseValidation,
+  tryCatchEither,
+  tryCatchOption,
   zipWithEither,
   zipWithListCartesian,
   zipWithListPositional,
@@ -55,8 +68,10 @@ import {
   list,
   listOf,
   nestedSlot,
+  nullableSlot,
   optionSlot,
   sub,
+  thunkSlot,
   validationSlot,
   type OperationScenes,
   type Scene,
@@ -144,6 +159,83 @@ function traverseScene(k: Kind3, t: Toggles, strategy: EvaluationStrategy, isSeq
 const VALIDATION_NOTE = "Validation looks at every element so it can keep every failure. The accumulation comes from the receiver, not from the operation.";
 
 export const operationScenes: Readonly<Record<string, OperationScenes>> = {
+  // --- Constructors ----------------------------------------------------------
+  pure: { receivers: [
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "A", after: "Option<A>" }, defaults: {},
+      build: () => ({ inputs: [{ node: ball("a", "in") }], output: optionOut(pureOption("a").result, "in"),
+        caption: "`pure` puts `a` in the success case, `Some`. No function runs, and nothing can fail." }) },
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "A", after: "Either<E, A>", caption: "`Either` is introduced on the outside, with `a` on the success side. The error type `E` is still free." }, defaults: {},
+      build: () => ({ inputs: [{ node: ball("a", "in") }], output: eitherOut(pureEither("a").result, "in"),
+        caption: "`pure` puts `a` in the success case, `Right`. Nothing can fail." }) },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "A", after: "Validation<E, A>", caption: "`Validation` is introduced on the outside, with `a` on the success side. The error type `E` is still free." }, defaults: {},
+      build: () => {
+        const r = pureValidation("a").result;
+        return { inputs: [{ node: ball("a", "in") }], output: container("effect", "Validation", r.tag === "success" ? [ball(r.value, "in")] : []),
+          caption: "`pure` puts `a` in the success case, `Success`. Nothing can fail." };
+      } },
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "A", after: "List<A>" }, defaults: {},
+      build: () => ({ inputs: [{ node: ball("a", "in") }], output: listOf(pureList("a").result, "in"), caption: "`pure` makes a list of exactly one element." }) },
+  ] },
+
+  fail: { receivers: [
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "E", after: "Either<E, A>", caption: "`e` goes on the failure side of `Either`. The success type `A` is still free." }, defaults: {},
+      build: () => ({ inputs: [{ node: ball("e", "error") }], output: eitherOut(failEither("e").result),
+        caption: "`fail` puts `e` in the failure case, `Left`." }) },
+    { id: "option", label: "Option", binds: {F: "Option"}, signature: "() → Option<A>", ribbon: { before: "()", after: "Option<A>", caption: "Nothing goes in. The result is `Option`'s empty case." }, defaults: {},
+      build: () => ({ inputs: [{ node: ball("()", "plain") }], output: optionOut(failOption().result),
+        caption: "`Option`'s failure case holds nothing, so `none` takes no value. The result is `None`." }) },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "E", after: "Validation<E, A>", caption: "`e` goes on the failure side of `Validation`. The success type `A` is still free." }, defaults: {},
+      build: () => ({ inputs: [{ node: ball("e", "error") }], output: validationOut(failValidation("e").result),
+        caption: "`fail` makes a `Failure` with one error. Combined with other Validations, its errors accumulate." }) },
+  ] },
+
+  fromNullable: { receivers: [
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Nullable<A>", after: "Option<A>", caption: "`null` becomes `None`, and a value becomes `Some`. The payload stays `A`." }, defaults: { input: true },
+      build: (t) => {
+        const r = fromNullableOption(t.input ? null : "a");
+        return { inputs: [{ node: nullableSlot(t, "input", "a") }], output: optionOut(r.result, "in"),
+          caption: t.input ? "The value is missing, so the result is `None`. `undefined` counts as missing too." : "The value is present, so the result is `Some(a)`. Only `null` and `undefined` count as missing; `0` and the empty string are values." };
+      } },
+    { id: "either", label: "Either", binds: {F: "Either"}, signature: "E → (A | null) → Either<E, A>", ribbon: { before: "Nullable<A>", after: "Either<E, A>", caption: "`null` becomes `Left` with the error you supply, and a value becomes `Right`. The payload stays `A`." }, defaults: { input: true },
+      build: (t) => {
+        const r = fromNullableEither("e", t.input ? null : "a");
+        return { inputs: [{ node: nullableSlot(t, "input", "a") }], output: eitherOut(r.result, "in"),
+          caption: t.input ? "The value is missing, so the result is `Left(e)`, with the error given up front." : "The value is present, so the result is `Right(a)`." };
+      } },
+  ] },
+
+  fromPredicate: { receivers: [
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "A", after: "Option<A>", fn: "A → bool" }, defaults: { predicate: true },
+      build: (t) => {
+        const r = fromPredicateOption(() => !t.predicate, "a");
+        return { inputs: [{ node: ball("a", "in"), steps: [step(true, boolSlot(t, "predicate", "the predicate returns"))] }], output: optionOut(r.result, "in"),
+          caption: t.predicate ? "The predicate failed. Option has no error to report, so the result is `None`." : "The predicate passed, so the result is `Some(a)`." };
+      } },
+    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(A → bool) × (A → E) → A → Either<E, A>", ribbon: { before: "A", after: "Either<E, A>", fn: "A → bool" }, defaults: { predicate: true },
+      build: (t) => {
+        const r = fromPredicateEither(() => !t.predicate, () => "e", "a");
+        const onFalse = r.trace.calls.some((c) => c.fn === "onFalse");
+        return { inputs: [{ node: ball("a", "in"), steps: [step(true, boolSlot(t, "predicate", "the predicate returns")), step(onFalse, onFalse ? ball("e", "error") : undefined, "onFalse")] }], output: eitherOut(r.result, "in"),
+          caption: onFalse ? "The predicate failed, so `onFalse` built the error `e` from the value." : "The predicate passed, so the result is `Right(a)` and `onFalse` never runs." };
+      } },
+  ] },
+
+  tryCatch: { receivers: [
+    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(() → A) × (unknown → E) → Either<E, A>", ribbon: { before: "Lazy<A>", after: "Either<E, A>", caption: "Running the `Lazy` computation removes that layer. A throw becomes `Left`, and a returned value becomes `Right`." }, defaults: { thunk: true },
+      build: (t) => {
+        const r = tryCatchEither(() => { if (t.thunk) throw new Error("!"); return "a"; }, () => "e");
+        const onThrow = r.trace.calls.some((c) => c.fn === "onThrow");
+        return { inputs: [{ node: thunkSlot(t, "thunk", "a"), steps: [step(onThrow, onThrow ? ball("e", "error") : undefined, "onThrow")] }], output: eitherOut(r.result, "in"),
+          caption: onThrow ? "The computation threw, so `onThrow` turned what was thrown into the error `e`." : "The computation returned `a`, so the result is `Right(a)` and `onThrow` never runs." };
+      } },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Lazy<A>", after: "Option<A>", caption: "Running the `Lazy` computation removes that layer. A throw becomes `None`, and a returned value becomes `Some`." }, defaults: { thunk: true },
+      build: (t) => {
+        const r = tryCatchOption(() => { if (t.thunk) throw new Error("!"); return "a"; });
+        return { inputs: [{ node: thunkSlot(t, "thunk", "a") }], output: optionOut(r.result, "in"),
+          caption: t.thunk ? "The computation threw. Option has nowhere to keep the error, so the result is `None`." : "The computation returned `a`, so the result is `Some(a)`." };
+      } },
+  ] },
+
   // --- Mapping ---------------------------------------------------------------
   map: { receivers: [
     { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, B>", fn: "A → B", fnOut: "B" }, defaults: { input: false },

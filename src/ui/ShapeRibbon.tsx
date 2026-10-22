@@ -9,6 +9,7 @@ interface Props {
   fn?: string | undefined;
   fnIn?: string | undefined;
   fnOut?: string | undefined;
+  caption?: string | undefined;
 }
 
 // Variables on the input side are drawn as inputs; on the output side, a
@@ -40,7 +41,7 @@ function Type({ t, side, role = "value" }: { t: TypeExpr; side: Side; role?: "va
           {cases.map((c) => (
             <div key={c.name} className="case">
               <span className="case-name">{c.name}</span>
-              {c.role === "empty" ? <span className="ball ball-empty">None</span> : c.arg && <Type t={c.arg} side={side} role={c.role === "error" ? "error" : "value"} />}
+              {c.role === "empty" ? <span className="ball ball-empty">{c.name}</span> : c.arg && <Type t={c.arg} side={side} role={c.role === "error" ? "error" : "value"} />}
             </div>
           ))}
         </div>
@@ -55,13 +56,15 @@ function Type({ t, side, role = "value" }: { t: TypeExpr; side: Side; role?: "va
   );
 }
 
-export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut }: Props) {
+export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut, caption }: Props) {
   const b = parseType(before);
   const a = parseType(after);
   const inputs = vars(b);
   const diff = describeTypes(before, after);
   const signature = fn ? `${showType(b)} × (${fn}) → ${showType(a)}` : `${showType(b)} → ${showType(a)}`;
   const errorIn = fnIn.startsWith("E");
+  // A bare error type (E, E₂) is drawn as an error, wherever it appears.
+  const roleOf = (t: TypeExpr) => (t.kind === "var" && t.name.startsWith("E") ? "error" : "value");
   const arrow = (
     <svg className="ribbon-arrow" viewBox="0 0 56 14" aria-hidden="true">
       <path d="M1 7h50" /><path d="M46 2l7 5-7 5" />
@@ -71,7 +74,7 @@ export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut }: Props)
     <figure className="ribbon">
       <p className="ribbon-signature">{signature}</p>
       <div className="ribbon-grid">
-        <div className="ribbon-col"><span className="ribbon-type">{showType(b)}</span><Type t={b} side={{ inputs, output: false }} /></div>
+        <div className="ribbon-col"><span className="ribbon-type">{showType(b)}</span><Type t={b} side={{ inputs, output: false }} role={roleOf(b)} /></div>
         <div className="ribbon-col"><span className="ribbon-type" aria-hidden="true"> </span>{arrow}</div>
         {fn && (
           <>
@@ -80,7 +83,7 @@ export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut }: Props)
               <div className="ribbon-fn">
                 <span className={`ball ${errorIn ? "ball-error" : "ball-in"}`}>{fnIn}</span>
                 <span aria-hidden="true">→</span>
-                {fnOut ? <Type t={parseType(fnOut)} side={{ inputs, output: true }} role={errorIn && !fnOut.includes("<") ? "error" : "value"} /> : <span>ƒ</span>}
+                {fnOut ? <Type t={parseType(fnOut)} side={{ inputs, output: true }} role={(errorIn || fnOut.startsWith("E")) && !fnOut.includes("<") ? "error" : "value"} /> : <span>ƒ</span>}
               </div>
             </div>
             <div className="ribbon-col"><span className="ribbon-type" aria-hidden="true"> </span>{arrow}</div>
@@ -88,7 +91,7 @@ export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut }: Props)
         )}
         <div className="ribbon-col"><span className="ribbon-type">{showType(a)}</span><Type t={a} side={{ inputs, output: true }} /></div>
       </div>
-      <figcaption className="ribbon-caption"><code className="tok">{op}</code>: <RichText text={diff.caption} /></figcaption>
+      <figcaption className="ribbon-caption"><code className="tok">{op}</code>: <RichText text={caption ?? diff.caption} /></figcaption>
     </figure>
   );
 }

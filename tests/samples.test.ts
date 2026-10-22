@@ -51,6 +51,19 @@ function norm(v: unknown): unknown {
 }
 
 const expected: Record<string, unknown> = {
+  "pure:option": { some: 2 },
+  "pure:either": { ok: 2 },
+  "pure:validation": { ok: 2 },
+  "pure:list": [2],
+  "fail:either": { err: "oops" },
+  "fail:option": "none",
+  "fail:validation": { err: ["oops"] },
+  "fromNullable:option": "none",
+  "fromNullable:either": { err: "missing" },
+  "fromPredicate:option": "none",
+  "fromPredicate:either": { err: "too small: 3" },
+  "tryCatch:option": "none",
+  "tryCatch:either": { err: "invalid JSON" },
   "map:either": { ok: 20 },
   "map:option": { some: 20 },
   "map:list": [10, 20, 30],

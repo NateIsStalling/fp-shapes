@@ -71,6 +71,8 @@ export interface RibbonSpec {
   readonly fn?: string;
   readonly fnIn?: string;
   readonly fnOut?: string;
+  // Replaces the generated caption when "layers moved, payload changed" would mislead.
+  readonly caption?: string;
 }
 
 export type Toggles = Readonly<Record<string, boolean>>; // true = the failing case is selected
@@ -126,6 +128,14 @@ export const validationSlot = (t: Toggles, key: string, ok: string, errs: readon
 
 export const boolSlot = (t: Toggles, key: string, label: string) =>
   slot(label, key, t, { name: "true", fails: false, content: [ball("true", "out")] }, { name: "false", fails: true, content: [ball("false", "error")] });
+
+// A possibly missing value: null or a value.
+export const nullableSlot = (t: Toggles, key: string, ok: string, label = "A | null") =>
+  slot(label, key, t, { name: "value", fails: false, content: [ball(ok, "in")] }, { name: "null", fails: true, content: [ball("null", "empty")] });
+
+// A computation that either returns a value or throws.
+export const thunkSlot = (t: Toggles, key: string, ok: string, label = "the computation") =>
+  slot(label, key, t, { name: "returns", fails: false, content: [ball(ok, "in")] }, { name: "throws", fails: true, content: [ball("!", "error")] });
 
 // A slot whose success case holds another node, e.g. the outer layer of a
 // nested Either.

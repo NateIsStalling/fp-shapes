@@ -47,6 +47,7 @@ export function casesOf(t: TypeExpr): readonly Case[] | undefined {
   switch (t.ctor) {
     case "Option": return [{ name: "None", role: "empty" }, { name: "Some", arg: first as TypeExpr, role: "value" }];
     case "Either": return [{ name: "Left", arg: first as TypeExpr, role: "error" }, { name: "Right", arg: second as TypeExpr, role: "value" }];
+    case "Nullable": return [{ name: "null", role: "empty" }, { name: "value", arg: first as TypeExpr, role: "value" }];
     case "Validation": return [{ name: "Failure", arg: first as TypeExpr, role: "error" }, { name: "Success", arg: second as TypeExpr, role: "value" }];
     default: return undefined;
   }

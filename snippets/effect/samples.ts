@@ -4,6 +4,78 @@
 import { Array as Arr, Effect, Option, Result } from "effect";
 
 export const effect: Record<string, () => unknown> = {
+  "pure:option": () => {
+    // <sample pure:option>
+    const result = Option.some(2);
+    // </sample>
+    return result;
+  },
+  "pure:either": () => {
+    // <sample pure:either>
+    const result = Result.succeed(2);
+    // </sample>
+    return result;
+  },
+  "pure:list": () => {
+    // <sample pure:list>
+    const result = Arr.of(2);
+    // </sample>
+    return result;
+  },
+  "fail:either": () => {
+    // <sample fail:either>
+    const result = Result.fail("oops");
+    // </sample>
+    return result;
+  },
+  "fail:option": () => {
+    // <sample fail:option>
+    const result = Option.none<number>();
+    // </sample>
+    return result;
+  },
+  "fromNullable:option": () => {
+    // <sample fromNullable:option>
+    const ages: Record<string, number | undefined> = { ann: 31 };
+    const result = Option.fromNullishOr(ages["bob"]);
+    // </sample>
+    return result;
+  },
+  "fromNullable:either": () => {
+    // <sample fromNullable:either>
+    const ages: Record<string, number | undefined> = { ann: 31 };
+    const result = Result.fromNullishOr(ages["bob"], () => "missing");
+    // </sample>
+    return result;
+  },
+  "fromPredicate:option": () => {
+    // <sample fromPredicate:option>
+    const result = Option.liftPredicate((x: number) => x > 5)(3);
+    // </sample>
+    return result;
+  },
+  "fromPredicate:either": () => {
+    // <sample fromPredicate:either>
+    const result = Result.liftPredicate((x: number) => x > 5, (x) => `too small: ${x}`)(3);
+    // </sample>
+    return result;
+  },
+  "tryCatch:option": () => {
+    // <sample tryCatch:option>
+    const parse = Option.liftThrowable(JSON.parse);
+    const result = parse("{");
+    // </sample>
+    return result;
+  },
+  "tryCatch:either": () => {
+    // <sample tryCatch:either>
+    const result = Result.try({
+      try: () => JSON.parse("{"),
+      catch: () => "invalid JSON",
+    });
+    // </sample>
+    return result;
+  },
   "map:either": () => {
     // <sample map:either>
     const result = Result.map(Result.succeed(2), (x) => x * 10);

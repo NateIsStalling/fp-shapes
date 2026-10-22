@@ -15,6 +15,89 @@ string ShowE<L, R>(Either<L, R> e) => e.Match(Right: r => $"Right({r})", Left: l
 string ShowO<A>(Option<A> o) => o.Match(Some: a => $"Some({a})", None: () => "None");
 string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
 
+// --- Constructors ------------------------------------------------------------
+{
+    // <sample pure:option>
+    Option<int> result = Some(2);
+    // </sample>
+    Check("pure:option", ShowO(result) == "Some(2)", ShowO(result));
+}
+{
+    // <sample pure:either>
+    Either<string, int> result = Right(2);
+    // </sample>
+    Check("pure:either", ShowE(result) == "Right(2)", ShowE(result));
+}
+{
+    // <sample pure:validation>
+    Validation<string, int> result = Success<string, int>(2);
+    // </sample>
+    Check("pure:validation", ShowV(result) == "Success(2)", ShowV(result));
+}
+{
+    // <sample pure:list>
+    Seq<int> result = Seq1(2);
+    // </sample>
+    Check("pure:list", ShowS(result) == "[2]", ShowS(result));
+}
+{
+    // <sample fail:either>
+    Either<string, int> result = Left<string, int>("oops");
+    // </sample>
+    Check("fail:either", ShowE(result) == "Left(oops)", ShowE(result));
+}
+{
+    // <sample fail:option>
+    Option<int> result = None;
+    // </sample>
+    Check("fail:option", ShowO(result) == "None", ShowO(result));
+}
+{
+    // <sample fail:validation>
+    Validation<string, int> result = Fail<string, int>("oops");
+    // </sample>
+    Check("fail:validation", ShowV(result) == "Failure([oops])", ShowV(result));
+}
+{
+    // <sample fromNullable:option>
+    string? input = null;
+    Option<string> result = Optional(input);
+    // </sample>
+    Check("fromNullable:option", ShowO(result) == "None", ShowO(result));
+}
+{
+    // <sample fromNullable:either>
+    string? input = null;
+    Either<string, string> result = Optional(input).ToEither("missing");
+    // </sample>
+    Check("fromNullable:either", ShowE(result) == "Left(missing)", ShowE(result));
+}
+{
+    // <sample fromPredicate:option>
+    Option<int> result = Some(3).Filter(x => x > 5);
+    // </sample>
+    Check("fromPredicate:option", ShowO(result) == "None", ShowO(result));
+}
+{
+    // <sample fromPredicate:either>
+    int input = 3;
+    Either<string, int> result = Some(input).Filter(x => x > 5).ToEither($"too small: {input}");
+    // </sample>
+    Check("fromPredicate:either", ShowE(result) == "Left(too small: 3)", ShowE(result));
+}
+{
+    // <sample tryCatch:option>
+    Option<int> result = Try(() => int.Parse("x")).ToOption();
+    // </sample>
+    Check("tryCatch:option", ShowO(result) == "None", ShowO(result));
+}
+{
+    // <sample tryCatch:either>
+    Either<Exception, int> result = Try(() => int.Parse("x")).ToEither();
+    // </sample>
+    Check("tryCatch:either", result.IsLeft, ShowE(result));
+}
+
 // --- Mapping -----------------------------------------------------------------
 {
     // <sample map:either>
