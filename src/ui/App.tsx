@@ -12,7 +12,7 @@ function Sidebar() {
         </svg>
         FP Shapes
       </NavLink>
-      <p className="tagline">Types define possibilities.<br />Shapes make them visible.</p>
+      <p className="tagline">Interactive diagrams of functional programming operations</p>
       {operationGroups.map((g) => (
         <div key={g.name} className="nav-group">
           <p className="eyebrow">{g.name}</p>
@@ -21,7 +21,6 @@ function Sidebar() {
           ))}
         </div>
       ))}
-      <p className="sidebar-foot">Diagrams are computed by running the operation on your inputs.</p>
     </nav>
   );
 }

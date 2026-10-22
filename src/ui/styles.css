@@ -46,7 +46,6 @@ a { color: var(--purple-dark); }
 .oplink { display: block; padding: 6px 12px; border-radius: 8px; color: var(--soft-ink); text-decoration: none; font-family: var(--mono); font-size: 14px; }
 .oplink:hover { background: #ffffffb3; color: var(--ink); }
 .oplink.on { background: #e9e2ff; color: var(--purple-dark); font-weight: 500; }
-.sidebar-foot { margin: auto 8px 0; color: var(--muted); font-size: 12px; }
 .page-with-aside { flex: 999 1 720px; min-width: 0; display: flex; flex-wrap: wrap; }
 .main { flex: 999 1 560px; min-width: 0; padding: 36px clamp(20px, 4vw, 56px) 64px; display: flex; flex-direction: column; gap: 26px; }
 .aside { flex: 1 1 300px; max-width: 380px; padding: 36px 24px; background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
