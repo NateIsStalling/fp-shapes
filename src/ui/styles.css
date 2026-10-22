@@ -56,6 +56,8 @@ a { color: var(--purple-dark); }
 .eco-row { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
 .eco-head { display: flex; justify-content: space-between; gap: 8px; }
 .version { font: 400 12px var(--mono); color: var(--muted); }
+.sample { margin: 2px 0 0; padding: 10px 12px; border-radius: 10px; background: #17182c; color: #ece9fb; font: 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.verified { font-size: 12px; color: var(--muted); }
 
 /* Operation header and controls */
 .op-header { display: flex; flex-direction: column; gap: 6px; }

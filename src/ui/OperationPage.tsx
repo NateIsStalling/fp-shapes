@@ -97,9 +97,11 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <span className="mono">{n.api}</span>
             {n.status === "partial" && <span className="status-partial">partial</span>}
             {n.note && <span className="muted">{n.note}</span>}
+            {n.sample && <pre className="sample"><code>{n.sample}</code></pre>}
+            <span className="verified">Verified by a {n.verifiedBy}</span>
           </div>
         ))}
-        <p className="muted small">Only entries confirmed by a conformance test are shown. LanguageExt, C#, F# and Haskell come with the catalog.</p>
+        <p className="muted small">Only verified entries are shown: fp-ts and Effect by conformance tests, LanguageExt by compiled samples. C#, F# and Haskell come next.</p>
       </aside>
     </div>
   );

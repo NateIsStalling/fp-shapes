@@ -1,21 +1,26 @@
-// Ecosystem names shown in an operation page's names panel. Every entry
-// here is backed by a conformance test in tests/conformance/ at the pinned
-// version. Keys are "operation:receiver" or "operation:receiver:strategy".
+// Ecosystem names shown in an operation page's names panel. Every entry is
+// verified at its pinned version: fp-ts and Effect by conformance tests in
+// tests/conformance/, LanguageExt by compiled samples in snippets/. Keys are
+// "operation:receiver" or "operation:receiver:strategy".
+
+import { LANGUAGEEXT_VERSION, languageExt } from "./languageext";
 
 export interface NameEntry {
-  readonly eco: "fp-ts" | "Effect";
+  readonly eco: "fp-ts" | "Effect" | "LanguageExt";
   readonly version: string;
   readonly api: string;
   readonly status: "equivalent" | "partial";
   readonly note?: string;
+  readonly sample?: string;
+  readonly verifiedBy: "conformance test" | "compiled sample";
 }
 
 const FP = { eco: "fp-ts", version: "2.16.11" } as const;
 const EF = { eco: "Effect", version: "4.0.5" } as const;
-const eq = (base: typeof FP | typeof EF, api: string, note?: string): NameEntry => ({ ...base, api, status: "equivalent", ...(note ? { note } : {}) });
-const part = (base: typeof FP | typeof EF, api: string, note: string): NameEntry => ({ ...base, api, status: "partial", note });
+const eq = (base: typeof FP | typeof EF, api: string, note?: string): NameEntry => ({ ...base, api, status: "equivalent", verifiedBy: "conformance test", ...(note ? { note } : {}) });
+const part = (base: typeof FP | typeof EF, api: string, note: string): NameEntry => ({ ...base, api, status: "partial", note, verifiedBy: "conformance test" });
 
-export const names: Readonly<Record<string, readonly NameEntry[]>> = {
+const jsNames: Readonly<Record<string, readonly NameEntry[]>> = {
   "map:either": [eq(FP, "E.map"), eq(EF, "Result.map")],
   "map:option": [eq(FP, "O.map"), eq(EF, "Option.map")],
   "map:list": [eq(FP, "RA.map"), eq(EF, "Array.map")],
@@ -51,6 +56,17 @@ export const names: Readonly<Record<string, readonly NameEntry[]>> = {
   "filterOrElse:option": [eq(FP, "O.filter"), eq(EF, "Option.filter")],
 };
 
+// LanguageExt first, matching the column order of the ecosystem index.
+export const names: Readonly<Record<string, readonly NameEntry[]>> = (() => {
+  const all: Record<string, NameEntry[]> = {};
+  for (const [key, e] of Object.entries(languageExt)) {
+    (all[key] ??= []).push({ eco: "LanguageExt", version: LANGUAGEEXT_VERSION, api: e.api, status: e.status, sample: e.sample, verifiedBy: "compiled sample", ...(e.note ? { note: e.note } : {}) });
+  }
+  for (const [key, list] of Object.entries(jsNames)) (all[key] ??= []).push(...list);
+  return all;
+})();
+
+// Entries that hold for the chosen strategy, plus entries that hold for any.
 export function namesFor(operation: string, receiver: string, strategy?: string): readonly NameEntry[] {
-  return (strategy ? names[`${operation}:${receiver}:${strategy}`] : undefined) ?? names[`${operation}:${receiver}`] ?? [];
+  return [...((strategy && names[`${operation}:${receiver}:${strategy}`]) || []), ...(names[`${operation}:${receiver}`] ?? [])];
 }

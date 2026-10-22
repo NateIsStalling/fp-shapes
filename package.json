@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "samples:languageext": "dotnet run --project snippets/languageext/v4"
   },
   "dependencies": {
     "react": "^19.3.1",

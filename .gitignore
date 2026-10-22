@@ -35,3 +35,7 @@ playwright-report
 *.njsproj
 *.sln
 *.sw?
+
+# .NET snippet builds
+snippets/**/bin
+snippets/**/obj

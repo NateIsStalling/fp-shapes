@@ -369,7 +369,8 @@ Accessibility requirements:
   - stale-version report
   - no alias resolves ambiguously without returning several candidates
 - **Search:** exact beats prefix, prefix beats substring. For signatures: alpha-equivalence, currying, argument reordering and concrete-to-abstract unification each have tests, plus a golden query list. `SelectMany`, `fold` and `join` return several qualified candidates.
-- **Snippets:** compiled in CI against the pinned versions.
+- **Snippets:** compiled in CI against the pinned versions. LanguageExt 4.4.9 samples live in `snippets/languageext/v4` (a .NET console project). Every sample carries a runtime check, and `npm run samples:languageext` must pass. This is also how ecosystem facts without a JavaScript runtime get verified: for example, v4's `Seq.Sequence(f)` (traverse) is eager.
+- **In-browser C# (later, optional):** to let visitors run samples, precompile them to WebAssembly (the .NET `wasmbrowser` target, exported with `[JSExport]`) and lazy-load them on demand. Avoid shipping Roslyn for editable C#. It adds tens of MB and edges into pasted-code analysis, which is a non-goal.
 - **Routes:** every route renders, old hashes redirect, and URL state restores the selection.
 - **Smoke:** one Playwright test that loads an operation, edits an input, switches receiver, strategy and ecosystem, opens the index, and checks that a mobile viewport doesn't overflow.
 

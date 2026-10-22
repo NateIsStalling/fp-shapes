@@ -19,6 +19,7 @@ npx vitest run -t "stop at first"          # tests whose name matches
 npm run typecheck                          # tsc (strict, noEmit)
 npm run dev                                # Vite dev server at http://localhost:5173/ (base / in dev)
 npm run build                              # typecheck + static build to dist/ (base /fp-shapes/)
+npm run samples:languageext                # compile and check the LanguageExt 4.4.9 samples (needs the .NET SDK)
 ```
 
 Stack: Vite 8, React 19, TypeScript 7 (strict, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`), Vitest 5, fast-check 4. In fast-check properties, use `void expect(...)` or a block body. This Vitest's matchers return a value that fast-check reads as a failed property.
@@ -41,7 +42,9 @@ To view the prototype, open `prototype/index.html` directly.
 Every operation page is rendered by one generic `src/ui/OperationPage.tsx` and `SceneView.tsx`. To add an operation:
 1. **Semantics:** implement it in `src/semantics/` so that it returns a `Run` with a trace. Add law and trap tests.
 2. **Scenes:** add a builder for each receiver in `src/scenes/registry.ts`. Each builder supplies the ribbon spec, the default toggles (true means that input fails), the evaluation strategies, and a `build` that runs the semantics and returns a `Scene`.
-3. **Catalog:** add the navigation entry to `src/catalog/operations.ts`. Names go in `src/catalog/names.ts`, and only when a conformance test backs them.
+3. **Catalog:** add the navigation entry to `src/catalog/operations.ts`. Ecosystem names are shown only when verified:
+   - fp-ts and Effect: entries in `src/catalog/names.ts`, each backed by a conformance test.
+   - LanguageExt 4.4.9: a sample in `snippets/languageext/v4/Program.cs` between `// <sample op:receiver>` markers, with a runtime check. Then add an entry in `src/catalog/languageext.ts` whose `sample` is that code verbatim. `tests/samples.test.ts` enforces the match, and `npm run samples:languageext` must print ALL PASS.
 
 `tests/registry.test.ts` checks that the navigation, registry and names agree, that every receiver builds for every strategy, and that every toggle can be clicked in the default state.
 
