@@ -124,3 +124,35 @@ describe("LanguageExt coverage", () => {
     }
   });
 });
+
+// Regression: the ribbon and the behavior slots once listed cases in
+// different orders (Left | Right vs Right | Left).
+import { casesOf, parseType } from "../src/scenes/types";
+import type { SlotNode } from "../src/scenes/scene";
+
+describe("case order", () => {
+  const slots = (n: SceneNode): SlotNode[] =>
+    n.type === "slot" ? [n, ...n.options.flatMap((o) => o.content.flatMap(slots))] : n.type === "container" ? n.children.flatMap(slots) : [];
+  const ribbonOrder = new Map(["Either<E, A>", "Option<A>", "Validation<E, A>"].map((s) => {
+    const cases = casesOf(parseType(s)) ?? [];
+    return [cases.map((c) => c.name).sort().join(), cases.map((c) => c.name).join()] as const;
+  }));
+
+  it("every slot lists its cases in the Shape Ribbon's order", () => {
+    let checked = 0;
+    for (const { receivers } of Object.values(operationScenes)) {
+      for (const r of receivers) {
+        for (const strategy of r.strategies ?? ["short-circuit" as const]) {
+          const scene = r.build(r.defaults, strategy);
+          const nodes = scene.inputs.flatMap((i) => [i.node, ...(i.steps ?? []).flatMap((s) => (s.result ? [s.result] : []))]);
+          for (const s of nodes.flatMap(slots)) {
+            const names = s.options.map((o) => o.name);
+            const expected = ribbonOrder.get([...names].sort().join());
+            if (expected) { expect(names.join()).toBe(expected); checked++; }
+          }
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(20);
+  });
+});

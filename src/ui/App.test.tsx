@@ -199,10 +199,10 @@ describe("shape ribbon draws sum types as their cases", () => {
     expect(caseBalls(sums[0] as Element)).toEqual([["Left", "E"], ["Right", "A"]]);
     expect(caseBalls(sums[1] as Element)).toEqual([["Left", "E"], ["Right", "B"]]);
   });
-  it("Option shows Some and None", () => {
+  it("Option shows None and Some, failure first like the other sum types", () => {
     const { container } = renderAt("/op/map");
     fireEvent.click(screen.getByRole("button", { name: "Option" }));
     const names = [...container.querySelectorAll(".ribbon-grid .sum")[0]?.querySelectorAll(".case-name") ?? []].map((n) => n.textContent);
-    expect(names).toEqual(["Some", "None"]);
+    expect(names).toEqual(["None", "Some"]);
   });
 });

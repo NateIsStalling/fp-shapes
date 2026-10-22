@@ -36,7 +36,8 @@ export function parseType(source: string): TypeExpr {
 
 export const showType = (t: TypeExpr): string => (t.kind === "var" ? t.name : `${t.ctor}<${t.args.map(showType).join(", ")}>`);
 
-// Sum types are drawn as their cases. The payload is always the last case's
+// Sum types are drawn as their cases, failure first (the behavior slots use
+// the same order). The payload is always the last case's
 // argument; the error side, when there is one, is the first argument.
 export interface Case { readonly name: string; readonly arg?: TypeExpr; readonly role: "value" | "error" | "empty" }
 
@@ -44,7 +45,7 @@ export function casesOf(t: TypeExpr): readonly Case[] | undefined {
   if (t.kind !== "app") return undefined;
   const [first, second] = t.args;
   switch (t.ctor) {
-    case "Option": return [{ name: "Some", arg: first as TypeExpr, role: "value" }, { name: "None", role: "empty" }];
+    case "Option": return [{ name: "None", role: "empty" }, { name: "Some", arg: first as TypeExpr, role: "value" }];
     case "Either": return [{ name: "Left", arg: first as TypeExpr, role: "error" }, { name: "Right", arg: second as TypeExpr, role: "value" }];
     case "Validation": return [{ name: "Failure", arg: first as TypeExpr, role: "error" }, { name: "Success", arg: second as TypeExpr, role: "value" }];
     default: return undefined;

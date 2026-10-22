@@ -107,8 +107,10 @@ export const container = (kind: ContainerNode["kind"], label: string, children: 
 export const list = (children: readonly SceneNode[]) => container("collection", "List", children);
 export const listOf = (labels: readonly string[], tone: Tone) => list(labels.map((l) => ball(l, tone)));
 
+// Cases follow the type's parameter order, failure first: Left | Right,
+// Failure | Success, None | Some (the Shape Ribbon uses the same order).
 function slot(label: string, key: string, t: Toggles, ok: SlotOption, bad: SlotOption): SlotNode {
-  return { type: "slot", label, key, options: [ok, bad], selected: t[key] ? 1 : 0 };
+  return { type: "slot", label, key, options: [bad, ok], selected: t[key] ? 0 : 1 };
 }
 
 // Slots for each sum type. `tone` is "in" for inputs and "out" for values a
