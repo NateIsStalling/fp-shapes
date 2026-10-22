@@ -7,6 +7,9 @@ import type { Scene, SceneInput, SceneNode, SlotNode, Step } from "../scenes/sce
 
 type SetInput = (key: string, fails: boolean) => void;
 
+// Short spoken form of a node, for radio labels: "Right b₂", "Left e₁".
+const text = (n: SceneNode): string => n.label;
+
 const kindClass = (kind: string) => (kind === "collection" ? "layer-collection" : kind === "tuple" ? "layer-tuple" : "layer-effect");
 
 function Node({ node, onSet, ghost = false }: { node: SceneNode; onSet: SetInput; ghost?: boolean }) {
@@ -30,7 +33,7 @@ function Slot({ slot, onSet }: { slot: SlotNode; onSet: SetInput }) {
           const filled = i === slot.selected;
           return (
             <label key={o.name} className={`hole ${filled ? "hole-filled" : "hole-empty"}`}>
-              <input type="radio" className="sr-only" name={name} checked={filled} onChange={() => onSet(slot.key, o.fails)} />
+              <input type="radio" className="sr-only" name={name} checked={filled} aria-label={`${o.name} ${o.content.map(text).join(" ")}`.trim()} onChange={() => onSet(slot.key, o.fails)} />
               <span className="hole-name">{o.name}</span>
               <span className="hole-content">{o.content.map((c, j) => <Node key={j} node={c} onSet={onSet} ghost={!filled} />)}</span>
             </label>
