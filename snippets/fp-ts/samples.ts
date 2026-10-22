@@ -302,8 +302,34 @@ export const fpts: Record<string, () => unknown> = {
     // </sample>
     return result;
   },
-  "filterOrElse:option": () => {
-    // <sample filterOrElse:option>
+  "filter:list": () => {
+    // <sample filter:list>
+    const result = pipe([1, 2, 3, 4], RA.filter((x) => x % 2 === 0));
+    // </sample>
+    return result;
+  },
+  "filterMap:list": () => {
+    // <sample filterMap:list>
+    const result = pipe([1, 2, 3, 4], RA.filterMap((x) => (x % 2 === 0 ? O.some(x * 10) : O.none)));
+    // </sample>
+    return result;
+  },
+  "filterMap:option": () => {
+    // <sample filterMap:option>
+    const half = (x: number) => (x % 2 === 0 ? O.some(x / 2) : O.none);
+    const result = pipe(O.some(4), O.filterMap(half));
+    // </sample>
+    return result;
+  },
+  "partition:list": () => {
+    // <sample partition:list>
+    const { left: fails, right: passes } = pipe([1, 2, 3, 4], RA.partition((x) => x % 2 === 0));
+    const result = [passes, fails];
+    // </sample>
+    return result;
+  },
+  "filter:option": () => {
+    // <sample filter:option>
     const result = pipe(O.some(3), O.filter((x) => x > 5));
     // </sample>
     return result;

@@ -1,7 +1,7 @@
 // effect 4.0.5 samples shown on FP Shapes. Code between "// <sample KEY>"
 // and "// </sample>" is shown on the site verbatim. Each sample ends with a
 // `result`, which tests/samples.test.ts checks.
-import { Array as Arr, Effect, Option, Result } from "effect";
+import { Array as Arr, Effect, Filter, Option, Result } from "effect";
 
 export const effect: Record<string, () => unknown> = {
   "pure:option": () => {
@@ -209,8 +209,36 @@ export const effect: Record<string, () => unknown> = {
     // </sample>
     return result;
   },
-  "filterOrElse:option": () => {
-    // <sample filterOrElse:option>
+  "filter:list": () => {
+    // <sample filter:list>
+    const result = Arr.filter([1, 2, 3, 4], (x) => x % 2 === 0);
+    // </sample>
+    return result;
+  },
+  "filterMap:list": () => {
+    // <sample filterMap:list>
+    // filterMap takes a Filter (a function returning a Result).
+    const result = Arr.filterMap([1, 2, 3, 4], Filter.fromPredicateOption((x: number) =>
+      x % 2 === 0 ? Option.some(x * 10) : Option.none()));
+    // </sample>
+    return result;
+  },
+  "filterMap:option": () => {
+    // <sample filterMap:option>
+    const half = (x: number) => (x % 2 === 0 ? Option.some(x / 2) : Option.none());
+    const result = Option.filterMap(Option.some(4), Filter.fromPredicateOption(half));
+    // </sample>
+    return result;
+  },
+  "partition:list": () => {
+    // <sample partition:list>
+    const [passes, fails] = Arr.partition([1, 2, 3, 4], Filter.fromPredicate((x: number) => x % 2 === 0));
+    const result = [passes, fails];
+    // </sample>
+    return result;
+  },
+  "filter:option": () => {
+    // <sample filter:option>
     const result = Option.filter(Option.some(3), (x) => x > 5);
     // </sample>
     return result;

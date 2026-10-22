@@ -10,7 +10,7 @@ export type OperationId =
   | "traverse" | "sequence"
   | "mapError" | "recover" | "alt" | "getOrElse"
   | "match"
-  | "filterOrElse";
+  | "filter" | "filterMap" | "partition" | "filterOrElse";
 
 export interface OperationInfo {
   readonly id: OperationId;
@@ -61,7 +61,10 @@ export const operationGroups: readonly OperationGroup[] = [
     { id: "match", name: "match", abstraction: "eliminator", signature: "(cases → R) → F<A> → R", receiverVar: "F" },
   ] },
   { name: "Filtering", operations: [
-    { id: "filterOrElse", name: "filterOrElse", abstraction: "derived", signature: "(A → bool) → F<A> → F<A>", receiverVar: "F" },
+    { id: "filter", name: "filter", abstraction: "Filterable", signature: "(A → bool) → F<A> → F<A>", receiverVar: "F" },
+    { id: "filterMap", name: "filterMap", abstraction: "Filterable", signature: "(A → Option<B>) → F<A> → F<B>", receiverVar: "F" },
+    { id: "partition", name: "partition", abstraction: "Filterable", signature: "(A → bool) → F<A> → (F<A>, F<A>)", receiverVar: "F" },
+    { id: "filterOrElse", name: "filterOrElse", abstraction: "derived", signature: "(A → bool) × (A → E) → F<E, A> → F<E, A>", receiverVar: "F" },
   ] },
 ];
 

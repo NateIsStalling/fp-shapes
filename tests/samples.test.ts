@@ -96,7 +96,11 @@ const expected: Record<string, unknown> = {
   "match:either": "error oops",
   "match:option": "value 2",
   "filterOrElse:either": { err: "too small: 3" },
-  "filterOrElse:option": "none",
+  "filter:option": "none",
+  "filter:list": [2, 4],
+  "filterMap:list": [20, 40],
+  "filterMap:option": { some: 2 },
+  "partition:list": [[2, 4], [1, 3]],
 };
 
 for (const [lib, table] of [["fp-ts 2.16.11", fpts], ["effect 4.0.5", effect]] as const) {

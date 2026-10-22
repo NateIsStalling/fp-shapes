@@ -182,7 +182,9 @@ a { color: var(--purple-dark); }
 }
 .main { flex: 999 1 560px; min-width: 0; padding: 28px var(--content-pad) 64px; display: flex; flex-direction: column; gap: 26px; }
 .aside { flex: 1 1 300px; max-width: 380px; padding: 28px 24px; background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
-.aside-title { margin: 0; font-size: 20px; letter-spacing: -.02em; color: var(--purple-dark); }
+.aside-head { display: grid; gap: 4px; }
+.aside-title { margin: 0; font-size: 18px; letter-spacing: -.02em; }
+.aside-context { margin: 0; font-size: 14px; color: var(--muted); }
 .eco-row { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
 .eco-head { display: flex; justify-content: space-between; gap: 8px; }
 .version { font: 400 12px var(--mono); color: var(--muted); }
@@ -241,11 +243,17 @@ a { color: var(--purple-dark); }
 .ribbon-compact .ball { font-size: 13px; }
 .ribbon-compact .layer { padding: 6px 10px 10px; border-radius: 12px; row-gap: 6px; }
 .ribbon-compact .layer-label { font-size: 12px; }
-.ribbon-signature { margin: 0; font: 500 22px var(--mono); text-align: center; }
+.nowrap { white-space: nowrap; }
+.ribbon-signature { margin: 0; text-wrap: balance; font: 500 22px var(--mono); text-align: center; }
 .ribbon-grid { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; grid-auto-columns: max-content; column-gap: 14px; row-gap: 10px; align-items: center; max-width: 100%; overflow-x: auto; }
 .ribbon-col { display: grid; grid-row: span 2; grid-template-rows: subgrid; justify-items: center; align-items: center; }
 .ribbon-type { align-self: end; font: 500 14px var(--mono); color: var(--soft-ink); white-space: nowrap; min-height: 1.2em; }
 .ribbon-fn { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 18px; border: 1.5px dashed var(--effect-bd); background: var(--fn-bg); font-size: 20px; }
+/* Too wide for the card: stack the columns top to bottom, arrows pointing down. */
+.ribbon-stacked { display: flex; flex-direction: column; align-items: center; row-gap: 6px; }
+.ribbon-stacked .ribbon-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ribbon-stacked .ribbon-type[aria-hidden="true"] { display: none; }
+.ribbon-stacked .ribbon-arrow { transform: rotate(90deg); margin: 12px 0; }
 .ribbon-arrow { width: 40px; height: 14px; fill: none; stroke: var(--faint-2); stroke-width: 1.5; }
 /* A sum type in the ribbon: its cases side by side, like a slot with every hole shown. */
 .sum { display: grid; justify-items: start; row-gap: 8px; padding: 10px 12px 12px; border-radius: 18px; border: 1.5px solid var(--effect-bd); background: var(--effect-bg); }

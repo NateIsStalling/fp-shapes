@@ -1,6 +1,7 @@
 import { describeTypes, layerKind } from "../scenes/ribbon";
 import { casesOf, parseType, showType, type TypeExpr } from "../scenes/types";
 import { RichText } from "./RichText";
+import { useStackWhenTooWide } from "./useStackWhenTooWide";
 
 interface Props {
   before: string;
@@ -61,6 +62,7 @@ export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut, caption 
   const a = parseType(after);
   const inputs = vars(b);
   const diff = describeTypes(before, after);
+  const gridRef = useStackWhenTooWide<HTMLDivElement>("ribbon-stacked", `${before}|${after}|${fn ?? ""}`);
   const signature = fn ? `${showType(b)} × (${fn}) → ${showType(a)}` : `${showType(b)} → ${showType(a)}`;
   const errorIn = fnIn.startsWith("E");
   // A bare error type (E, E₂) is drawn as an error, wherever it appears.
@@ -72,8 +74,9 @@ export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut, caption 
   );
   return (
     <figure className="ribbon">
-      <p className="ribbon-signature">{signature}</p>
-      <div className="ribbon-grid">
+      {/* Break lines only between types, never inside one. */}
+      <p className="ribbon-signature">{signature.split(/( → | × )/).map((part, i) => (i % 2 ? part : <span key={i} className="nowrap">{part}</span>))}</p>
+      <div className="ribbon-grid" ref={gridRef}>
         <div className="ribbon-col"><span className="ribbon-type">{showType(b)}</span><Type t={b} side={{ inputs, output: false }} role={roleOf(b)} /></div>
         <div className="ribbon-col"><span className="ribbon-type" aria-hidden="true"> </span>{arrow}</div>
         {fn && (

@@ -36,7 +36,11 @@ export const samples: Readonly<Record<string, Readonly<Record<string, string>>>>
     "getOrElse:option": "Option<int> input = None;\nint result = input.IfNone(0);",
     "match:either": "Either<string, int> input = Left(\"oops\");\nstring result = input.Match(\n    Right: x => $\"value {x}\",\n    Left: e => $\"error {e}\");",
     "match:option": "Option<int> input = Some(2);\nstring result = input.Match(\n    Some: x => $\"value {x}\",\n    None: () => \"nothing\");",
-    "filterOrElse:option": "Option<int> input = Some(3);\nOption<int> result = input.Filter(x => x > 5);",
+    "filter:list": "Seq<int> result = Seq(1, 2, 3, 4).Filter(x => x % 2 == 0);",
+    "filterMap:list": "Seq<int> result = Seq(1, 2, 3, 4).Choose(x => x % 2 == 0 ? Some(x * 10) : None);",
+    "filterMap:option": "Option<int> result = Some(4).Bind(x => x % 2 == 0 ? Some(x / 2) : None);",
+    "partition:list": "Seq<int> input = Seq(1, 2, 3, 4);\nFunc<int, bool> even = x => x % 2 == 0;\nvar (passes, fails) = (input.Filter(even), input.Filter(x => !even(x)));",
+    "filter:option": "Option<int> input = Some(3);\nOption<int> result = input.Filter(x => x > 5);",
     "bimap:tuple": "(string, int) input = (\"a\", 1);\n(int, string) result = input.BiMap(a => a.Length, n => $\"#{n}\");",
     "flatten:either": "Either<string, Either<string, int>> input = Right<string, Either<string, int>>(Right<string, int>(1));\nEither<string, int> result = input.Flatten();",
     "flatten:list": "Seq<Seq<int>> input = Seq(Seq(1, 2), Seq1(3));\nSeq<int> result = input.Flatten();",
@@ -102,7 +106,11 @@ export const samples: Readonly<Record<string, Readonly<Record<string, string>>>>
     "match:either": "const input: E.Either<string, number> = E.left(\"oops\");\nconst result = pipe(input, E.match((e) => `error ${e}`, (x) => `value ${x}`));",
     "match:option": "const result = pipe(O.some(2), O.match(() => \"nothing\", (x) => `value ${x}`));",
     "filterOrElse:either": "const result = pipe(E.right(3), E.filterOrElse((x) => x > 5, (x) => `too small: ${x}`));",
-    "filterOrElse:option": "const result = pipe(O.some(3), O.filter((x) => x > 5));"
+    "filter:list": "const result = pipe([1, 2, 3, 4], RA.filter((x) => x % 2 === 0));",
+    "filterMap:list": "const result = pipe([1, 2, 3, 4], RA.filterMap((x) => (x % 2 === 0 ? O.some(x * 10) : O.none)));",
+    "filterMap:option": "const half = (x: number) => (x % 2 === 0 ? O.some(x / 2) : O.none);\nconst result = pipe(O.some(4), O.filterMap(half));",
+    "partition:list": "const { left: fails, right: passes } = pipe([1, 2, 3, 4], RA.partition((x) => x % 2 === 0));\nconst result = [passes, fails];",
+    "filter:option": "const result = pipe(O.some(3), O.filter((x) => x > 5));"
   },
   "Effect": {
     "pure:option": "const result = Option.some(2);",
@@ -136,6 +144,10 @@ export const samples: Readonly<Record<string, Readonly<Record<string, string>>>>
     "match:either": "const result = Result.match(Result.fail(\"oops\"), {\n  onFailure: (e) => `error ${e}`,\n  onSuccess: (x: number) => `value ${x}`,\n});",
     "match:option": "const result = Option.match(Option.some(2), {\n  onNone: () => \"nothing\",\n  onSome: (x) => `value ${x}`,\n});",
     "filterOrElse:either": "const result = Result.filterOrFail(Result.succeed(3), (x) => x > 5, (x) => `too small: ${x}`);",
-    "filterOrElse:option": "const result = Option.filter(Option.some(3), (x) => x > 5);"
+    "filter:list": "const result = Arr.filter([1, 2, 3, 4], (x) => x % 2 === 0);",
+    "filterMap:list": "// filterMap takes a Filter (a function returning a Result).\nconst result = Arr.filterMap([1, 2, 3, 4], Filter.fromPredicateOption((x: number) =>\n  x % 2 === 0 ? Option.some(x * 10) : Option.none()));",
+    "filterMap:option": "const half = (x: number) => (x % 2 === 0 ? Option.some(x / 2) : Option.none());\nconst result = Option.filterMap(Option.some(4), Filter.fromPredicateOption(half));",
+    "partition:list": "const [passes, fails] = Arr.partition([1, 2, 3, 4], Filter.fromPredicate((x: number) => x % 2 === 0));\nconst result = [passes, fails];",
+    "filter:option": "const result = Option.filter(Option.some(3), (x) => x > 5);"
   }
 };

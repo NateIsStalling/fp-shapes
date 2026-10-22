@@ -67,7 +67,11 @@ const jsNames: Readonly<Record<string, readonly NameEntry[]>> = {
   "match:either": [eq(FP, "E.match", "Legacy alias: `fold`."), eq(EF, "Result.match")],
   "match:option": [eq(FP, "O.match"), eq(EF, "Option.match")],
   "filterOrElse:either": [eq(FP, "E.filterOrElse"), eq(EF, "Result.filterOrFail")],
-  "filterOrElse:option": [eq(FP, "O.filter"), eq(EF, "Option.filter")],
+  "filter:list": [eq(FP, "RA.filter"), eq(EF, "Array.filter")],
+  "filter:option": [eq(FP, "O.filter"), eq(EF, "Option.filter")],
+  "filterMap:list": [eq(FP, "RA.filterMap"), eq(EF, "Array.filterMap", "Takes a `Filter`, a function that returns a `Result`. `Filter.fromPredicateOption` adapts an Option-returning function.")],
+  "filterMap:option": [eq(FP, "O.filterMap"), eq(EF, "Option.filterMap", "Takes a `Filter`; `Filter.fromPredicateOption` adapts an Option-returning function.")],
+  "partition:list": [eq(FP, "RA.partition", "Returns `Separated`: `right` holds the passes, `left` the fails."), eq(EF, "Array.partition", "Takes a `Filter`; `Filter.fromPredicate` adapts a predicate. Returns `[passes, fails]`.")],
 };
 
 // LanguageExt first, matching the column order of the ecosystem index.

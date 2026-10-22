@@ -10,6 +10,9 @@ import {
   failOption,
   failValidation,
   failure,
+  filterList,
+  filterMapList,
+  filterMapOption,
   filterOption,
   filterOrElseEither,
   flatMapEither,
@@ -35,6 +38,7 @@ import {
   matchValidation,
   none,
   peek,
+  partitionList,
   peekList,
   pureEither,
   pureList,
@@ -506,6 +510,50 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   ] },
 
   // --- Filtering -------------------------------------------------------------
+  filter: { receivers: [
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<A>", fn: "A → bool", caption: "`List` stays the same, but it may get shorter. The payload stays `A`." }, defaults: { a1: false, a2: true, a3: false, a4: true },
+      build: (t) => {
+        const r = filterList(idx, (i) => !t[key(i)]);
+        const kept = r.result.map((i) => `a${sub(i)}`);
+        return { inputs: [{ node: listOf(elems(4, "a"), "in"), steps: idx.map((i) => step(true, boolSlot(t, key(i), `p(a${sub(i)})`))) }], output: listOf(kept, "in"),
+          caption: `The predicate \`p\` ran once per element. ${kept.length} of 4 passed and are kept, in order.` };
+      } },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<A>", fn: "A → bool", caption: "`Option` stays the same. A `Some` that fails the predicate becomes `None`." }, defaults: { input: false, predicate: true },
+      build: (t) => {
+        const r = filterOption(optionIn(t, "input"), () => !t.predicate);
+        const called = r.trace.calls.length > 0;
+        return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, boolSlot(t, "predicate", "the predicate returns"))] }], output: optionOut(r.result),
+          caption: !called ? "The input is `None`, so the predicate never runs." : t.predicate ? "The predicate failed. Option has no error to report, so the result is `None`." : "The predicate passed, so the value is kept." };
+      } },
+  ] },
+
+  filterMap: { receivers: [
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<B>", fn: "A → Option<B>", fnOut: "Option<B>", caption: "`f` returns an `Option` for each element. `None`s are dropped and `Some`s unwrapped, so no `Option` layer is left. The list may get shorter, and the payload changes from `A` to `B`." }, defaults: { a1: false, a2: true, a3: false, a4: true },
+      build: (t) => {
+        const r = filterMapList(idx, (i) => (t[key(i)] ? none : some(`b${sub(i)}`)));
+        return { inputs: [{ node: listOf(elems(4, "a"), "in"), steps: idx.map((i) => step(true, optionSlot(t, key(i), `b${sub(i)}`, "out", `f(a${sub(i)})`))) }], output: listOf(r.result, "out"),
+          caption: `\`f\` ran once per element. ${4 - r.result.length} returned \`None\` and were dropped; the \`Some\` values are unwrapped.` };
+      } },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<B>", fn: "A → Option<B>", fnOut: "Option<B>" }, defaults: { input: false, f: true },
+      build: (t) => {
+        const r = filterMapOption(optionIn(t, "input"), () => optionIn(t, "f", "b"));
+        const called = r.trace.calls.length > 0;
+        return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, optionSlot(t, "f", "b", "out", "f returns"))] }], output: optionOut(r.result),
+          caption: !called ? "The input is `None`, so `f` never runs." : t.f ? "`f` returned `None`, so the value is dropped. For Option, filterMap is the same as flatMap." : "`f` returned `Some(b)`, so `b` is kept." };
+      } },
+  ] },
+
+  partition: { receivers: [
+    { id: "list", label: "List", binds: {F: "List"}, signature: "(A → bool) → List<A> → (List<A>, List<A>)", ribbon: { before: "List<A>", after: "Tuple<List<A>, List<A>>", fn: "A → bool", caption: "One `List` becomes a `Tuple` of two: the elements that pass, then the ones that fail. The payload stays `A`." }, defaults: { a1: false, a2: true, a3: false, a4: true },
+      build: (t) => {
+        const r = partitionList(idx, (i) => !t[key(i)]);
+        const [pass, fail] = r.result.map((side) => side.map((i) => `a${sub(i)}`));
+        return { inputs: [{ node: listOf(elems(4, "a"), "in"), steps: idx.map((i) => step(true, boolSlot(t, key(i), `p(a${sub(i)})`))) }],
+          output: container("tuple", "Tuple", [listOf(pass ?? [], "in"), listOf(fail ?? [], "in")]),
+          caption: `Every element lands on exactly one side, in order: ${pass?.length ?? 0} passed, ${fail?.length ?? 0} failed. Passes come first, as in Haskell and Effect.` };
+      } },
+  ] },
+
   filterOrElse: { receivers: [
     { id: "either", label: "Either", binds: {F: "Either"}, signature: "(A → bool) × (A → E) → Either<E, A> → Either<E, A>", ribbon: { before: "Either<E, A>", after: "Either<E, A>", fn: "A → bool" }, defaults: { input: false, predicate: true },
       build: (t) => {
@@ -513,13 +561,6 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const called = r.trace.calls.some((c) => c.fn === "predicate");
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, boolSlot(t, "predicate", "the predicate returns"))] }], output: eitherOut(r.result as Either<string, string>),
           caption: !called ? "The input is a `Left`, so the predicate never runs." : t.predicate ? "The predicate failed, so the success becomes a `Left` built from the value." : "The predicate passed, so the value is kept." };
-      } },
-    { id: "option", label: "Option · filter", binds: {F: "Option"}, signature: "(A → bool) → Option<A> → Option<A>", ribbon: { before: "Option<A>", after: "Option<A>", fn: "A → bool" }, defaults: { input: false, predicate: true },
-      build: (t) => {
-        const r = filterOption(optionIn(t, "input"), () => !t.predicate);
-        const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, boolSlot(t, "predicate", "the predicate returns"))] }], output: optionOut(r.result),
-          caption: !called ? "The input is `None`, so the predicate never runs." : t.predicate ? "The predicate failed. Option has no error to report, so the result is `None`." : "The predicate passed, so the value is kept." };
       } },
   ] },
 };

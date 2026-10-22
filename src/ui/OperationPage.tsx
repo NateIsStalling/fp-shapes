@@ -68,14 +68,14 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
       <main className="main">
 
         <section aria-labelledby="shape-h" className="section">
-          <h2 id="shape-h">Shape: which layers move?</h2>
+          <h2 id="shape-h">Shape</h2>
           <div className="card">
             <ShapeRibbon op={op.name} {...receiver.ribbon} />
           </div>
         </section>
 
         <section aria-labelledby="behavior-h" className="section">
-          <h2 id="behavior-h">Behavior: what runs, and what comes out?</h2>
+          <h2 id="behavior-h">Behavior</h2>
           <div className="control-row">
             {strategies.length > 1 && (
               <>
@@ -99,8 +99,12 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
       </main>
 
       <aside className="aside" aria-labelledby="eco-h">
-        <p className="eyebrow">Ecosystems: what is it called here?</p>
-        <h2 id="eco-h" className="aside-title">{op.name} · {receiver.label}{strategies.length > 1 ? ` · ${STRATEGY_LABEL[activeStrategy].toLowerCase()}` : ""}</h2>
+        <div className="aside-head">
+          <h2 id="eco-h" className="aside-title">Ecosystems</h2>
+          <p className="aside-context">
+            For <span className="bound-type">{receiver.label}</span>{strategies.length > 1 ? `, ${STRATEGY_LABEL[activeStrategy].toLowerCase()}` : ""}
+          </p>
+        </div>
         {entries.length === 0 && <p className="muted">Under construction.</p>}
         {entries.map((n) => (
           <div key={n.eco + n.api} className="eco-row">

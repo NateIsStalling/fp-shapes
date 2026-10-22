@@ -1,6 +1,7 @@
-import { useId, useLayoutEffect, useRef } from "react";
+import { useId } from "react";
 import type { Scene, SceneInput, SceneNode, SlotNode, Step } from "../scenes/scene";
 import { RichText } from "./RichText";
+import { useStackWhenTooWide } from "./useStackWhenTooWide";
 
 // Draws any Scene. Knows nothing about which operation produced it.
 // Editable inputs are shape-sorter slots: real radio groups, one hole per
@@ -89,29 +90,8 @@ function Input({ input, onSet }: { input: SceneInput; onSet: SetInput }) {
 // Inputs (with their calls hanging underneath) sit left of the result when
 // they fit. When they don't, the lane stacks and a "result" divider replaces
 // the arrow, so the calls never read as a stage that feeds the result.
-function useStackWhenTooWide(dep: unknown) {
-  const ref = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const row = ref.current;
-    if (!row) return;
-    let width = -1;
-    const fit = () => {
-      if (row.clientWidth === width) return;
-      width = row.clientWidth;
-      row.classList.remove("lane-stacked");
-      if (row.scrollWidth > row.clientWidth + 1) row.classList.add("lane-stacked");
-    };
-    fit();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(fit);
-    observer.observe(row);
-    return () => observer.disconnect();
-  }, [dep]);
-  return ref;
-}
-
 export function SceneView({ scene, onSet }: { scene: Scene; onSet: SetInput }) {
-  const rowRef = useStackWhenTooWide(scene);
+  const rowRef = useStackWhenTooWide<HTMLDivElement>("lane-stacked", scene);
   return (
     <figure className="card lane">
       <div className="lane-row" ref={rowRef}>

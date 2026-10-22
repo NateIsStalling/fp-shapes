@@ -273,11 +273,37 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
     Check("match:option", result == "value 2", result);
 }
 {
-    // <sample filterOrElse:option>
+    // <sample filter:list>
+    Seq<int> result = Seq(1, 2, 3, 4).Filter(x => x % 2 == 0);
+    // </sample>
+    Check("filter:list", ShowS(result) == "[2, 4]", ShowS(result));
+}
+{
+    // <sample filterMap:list>
+    Seq<int> result = Seq(1, 2, 3, 4).Choose(x => x % 2 == 0 ? Some(x * 10) : None);
+    // </sample>
+    Check("filterMap:list", ShowS(result) == "[20, 40]", ShowS(result));
+}
+{
+    // <sample filterMap:option>
+    Option<int> result = Some(4).Bind(x => x % 2 == 0 ? Some(x / 2) : None);
+    // </sample>
+    Check("filterMap:option", ShowO(result) == "Some(2)", ShowO(result));
+}
+{
+    // <sample partition:list>
+    Seq<int> input = Seq(1, 2, 3, 4);
+    Func<int, bool> even = x => x % 2 == 0;
+    var (passes, fails) = (input.Filter(even), input.Filter(x => !even(x)));
+    // </sample>
+    Check("partition:list", ShowS(passes) == "[2, 4]" && ShowS(fails) == "[1, 3]", $"{ShowS(passes)} {ShowS(fails)}");
+}
+{
+    // <sample filter:option>
     Option<int> input = Some(3);
     Option<int> result = input.Filter(x => x > 5);
     // </sample>
-    Check("filterOrElse:option", ShowO(result) == "None", ShowO(result));
+    Check("filter:option", ShowO(result) == "None", ShowO(result));
 }
 
 // --- Remaining receivers ------------------------------------------------------

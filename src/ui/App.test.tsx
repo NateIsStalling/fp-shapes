@@ -91,9 +91,9 @@ describe("navigation", () => {
 describe("section headings", () => {
   it("name the three parts of every operation page", () => {
     renderAt("/op/traverse");
-    expect(screen.getByRole("heading", { level: 2, name: "Shape: which layers move?" })).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 2, name: "Behavior: what runs, and what comes out?" })).toBeTruthy();
-    expect(screen.getByText("Ecosystems: what is it called here?")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Shape" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Behavior" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Ecosystems" })).toBeTruthy();
   });
 });
 
