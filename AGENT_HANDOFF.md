@@ -17,17 +17,19 @@ The spirit of the project is **RxMarbles plus a reverse Hoogle**: a Rosetta ston
 
 ## Product thesis
 
+**Shape is the organizing principle.** Without a repeated shape grammar, the site risks becoming just a versioned cross-ecosystem FP reference. With one, it's a versioned cross-ecosystem reference that lets you *see* the abstraction. Every primary journey passes through a canonical shape visualization, the **Shape Ribbon** (see [Shape Ribbon](#shape-ribbon)).
+
 ```text
 name (any ecosystem)  ─┐
-                       ├→ operation + abstraction + canonical signature
+                       ├→ operation
 signature / shape    ──┘
         ↓
-abstraction and canonical signature
-        ↓
-computed, interactive transformation (per receiver, per behavior variant)
-        ↓
-ecosystem expression, version, and caveats
+1. Shape      which structural layers move, change, appear or disappear   (Shape Ribbon)
+2. Behavior   which calls execute and which failures survive              (computed trace)
+3. Ecosystems what each ecosystem calls it, version, caveats              (names panel)
 ```
+
+Every operation page follows that order: shape, then behavior, then ecosystems.
 
 Keep these three levels separate in the data model and the UI:
 
@@ -48,8 +50,11 @@ Keep these three levels separate in the data model and the UI:
 | fp-ts | **Kept**, pinned to 2.16.11 and labeled "maintenance; Effect is the successor". Legacy aliases (`chain`, `chainFirst`, `fold`, …) are indexed as aliases. |
 | F# | One F# column. Each entry is tagged by library: **FSharp.Core 10.1.402**, **FsToolkit.ErrorHandling 5.2.0**, **FSharpPlus 1.9.1**. |
 | Haskell | base 4.22.0.0, mtl 2.3.2, transformers 0.6.3.0, async 2.2.6. Validation comes from **`either` 5.0.3, `Data.Either.Validation`**. |
-| LanguageExt | **Both v4 and v5 are documented** as separate version tracks: `v4` = 4.4.9 (stable, the default) and `v5` = `5.0.0-beta-78` (beta). Many APIs differ between them. `Either.Match`/`BiMap` argument order flipped, the async types were replaced, and `Traverse`/`Sequence` swapped meanings. |
-| Multiple versions | **An ecosystem can document more than one version track** (see [Versioning](#versioning)). LanguageExt uses this now. Effect stays on a single v4 track, but the model allows adding v3 later. |
+| LanguageExt | **Initial scope: v4 only** (4.4.9, stable). v5 (`5.0.0-beta-78`) is deferred. It is already researched, and many APIs differ: `Either.Match`/`BiMap` argument order flipped, the async types were replaced, and `Traverse`/`Sequence` swapped meanings. Note that the existing research is mostly about v5, so the v4 entries need their own verification pass. |
+| Multiple versions | **The model supports several version tracks per ecosystem** (see [Versioning](#versioning)), so LanguageExt v5 or Effect v3 can be added later without schema changes. The initial scope ships **one track per ecosystem**, and the version switcher stays hidden until an ecosystem has two. |
+| Initial scope cuts | **Concurrent traverse and the async timeline marbles are deferred**, along with LanguageExt v5. |
+| Shape Ribbon | **Required.** One reusable primitive shows the structural transformation everywhere: at the top of every operation page, beside every search result, in the matrix cell detail, and in abstraction instance examples. |
+| Navigation | **Operations are grouped by shape family**, the way RxMarbles groups operators (see [Topics](#topics)). The same families drive the Shape Ribbon's visual vocabulary. |
 | C# BCL / LINQ | **Proposed:** a "C# · BCL" column covering `IEnumerable`, `Nullable` and `Task`, filled only where an equivalent exists. Mark analogies as `analogy`. |
 
 ## Explicit non-goals
@@ -119,27 +124,28 @@ Distinctions the site must keep visible:
 
 ## Topics
 
-**Tier 1 (launch):**
-- `map`, `flatMap`, `flatten`
-- `zip`/`map2`
-- `traverse`, with variants: stop-at-first, call-all/first-wins, accumulate
-- `sequence`
-- `mapError`, `bimap`
-- `match`
-- `getOrElse`, in two variants: a constant default, and a default computed from the error
-- `recover`, `alt`
-- `tap` (effectful), `peek` (side effect only)
-- `filterOrElse`
+**Tier 1 (launch)**, grouped by shape family. These groups are the navigation sections.
+
+| Family | What happens to the shape | Operations |
+|---|---|---|
+| Transform | The container stays; the payload changes | `map`, `mapError`, `bimap` |
+| Flatten | One nested layer is removed | `flatMap`, `flatten` |
+| Combine | Two containers merge into one | `zip`/`map2` |
+| Flip layers | The outer and inner layers swap | `traverse` (variants: stop-at-first, call-all/first-wins, accumulate), `sequence` |
+| Recover | The failure branch is replaced or gated | `recover`, `alt`, `filterOrElse` |
+| Leave the context | The container disappears | `match`, `getOrElse` (two variants: a constant default, and a default computed from the error) |
+| Observe | The shape is unchanged | `tap` (effectful), `peek` (side effect only) |
 
 **Tier 2:**
-- concurrent traverse (timeline marbles)
 - `ap`, `pure`
 - `fold`/`reduce` (Foldable, distinct from `match`)
 - Kleisli composition
 - comprehension syntax
 - from-nullable
 
-**Receivers:** Option, Either, Validation, List, ZipList, Tuple (for `bimap`), and a simulated Async on a virtual clock.
+**Deferred (not in the initial scope):** concurrent traverse and async timeline marbles. The simulated Async receiver and the virtual clock are deferred along with them.
+
+**Receivers:** Option, Either, Validation, List, ZipList, Tuple (for `bimap`).
 
 **Abstractions:** Functor, Applicative, Monad, Foldable, Traversable, Bifunctor, Alternative, Semigroup/Monoid, MonadError.
 
@@ -188,6 +194,38 @@ interface Item  { id: ItemId; kind: "value" | "error" | "none" | "nested"; label
 ```
 
 Item IDs are stable, so the renderer can animate continuity between scenes. The text summary is generated from the same Scene.
+
+### Shape Ribbon
+
+The Shape Ribbon is the one visual primitive that appears on every primary journey. It draws the **structural** change, separately from the runtime behavior shown by the call trace:
+
+```text
+[List [Option A]]                    [List A]  +  (A → Option<B>)
+        │ sequence                           │ traverse
+        ▼                                    ▼
+[Option [List A]]                    [Option [List B]]
+```
+
+- It is **derived from the operation's canonical `TypeExpression`**, never drawn by hand. The input and output types are flattened into layer stacks (outer → inner → payload) and diffed.
+- It always shows:
+  - the outer structure, the inner structure and the payload
+  - what **moved** (the same layer in a different position)
+  - what **remained** (the same layer in the same position)
+  - what was **introduced** or **removed** (a layer present on only one side)
+  - whether the payload changed (A → B)
+- Each layer kind has a fixed color everywhere, so a layer can be followed across the arrow. For example, List/T layers are blue, Option/Either/Validation/F layers are purple, and the payload is green.
+- It's concrete when a receiver is chosen (`List`, `Option`) and abstract otherwise (`T`, `F`).
+- There is a compact size for search results and matrix cells, and a full size for operation pages.
+- In abstraction pages, the container boundary stays fixed while only the payload animates, so "preserves F, transforms A" reads at a glance.
+
+```ts
+interface ShapeRibbon {
+  before: Layer[]; after: Layer[]          // outermost first; payload last
+  fn?: TypeExpression                       // e.g. A → Option<B> for traverse
+  changes: { moved: string[]; unchanged: string[]; introduced: string[]; removed: string[]; payload?: [string, string] }
+}
+interface Layer { name: string; kind: "collection" | "effect" | "payload"; abstractName?: "T" | "F" }
+```
 
 ### Catalog
 
@@ -339,12 +377,12 @@ Grant only the permissions Pages needs. No secrets are required.
 1. **Decisions and research.** Done (2026-10-21). The research reports are kept in the "FP Shapes Research" artifact (https://claude.ai/artifact/SA8MMv26fNWtq1wSuXWKPX) for now. It is private to the repo owner.
 2. **Scaffold.** Vite/React/TS strict, Vitest, fast-check, `HashRouter`, the Pages workflow, the ported CSS, and the layer-boundary lint rule. *Exit:* the empty shell deploys, and importing React from `src/semantics` fails lint.
 3. **Semantics core.** Receivers, the Tier 1 operations with variants and traces, and the law and trap tests. *Exit:* all laws pass for every receiver that claims them.
-4. **Scenes.** Builders for each visual family (preserve, flatten, both branches, eliminate, flip nesting, combine) and the text summaries. *Exit:* every Tier 1 topic has scenes for all of its receivers.
+4. **Scenes and the Shape Ribbon.** Derive ribbons from canonical `TypeExpression`s (layer stacks plus their diff). Builders for each visual family (preserve, flatten, both branches, eliminate, flip nesting, combine) and the text summaries. *Exit:* every Tier 1 topic has scenes for all of its receivers.
 5. **Rendering and input editing.** `ShapeDiagram`, `InputEditor`, ghosted skipped calls, reduced motion. *Exit:* switching traverse variants visibly changes which calls happened.
 6. **Catalog, versioning and search.** Fill entries from the research with their verification records, derive the alias index and the glossary, and add catalog validation and the stale report. *Exit:* every matrix cell is a typed entry, including `none`.
-7. **Pages and the index.** Operation pages with the names panel, abstraction pages that lead with how each ecosystem represents the abstraction and show laws as pairs of equal diagrams, the matrix index with glossary terms and versioned snippets, and the snippet CI.
+7. **Pages and the index.** Operation pages in the order Shape Ribbon → behavior → names panel, the navigation grouped by shape family, abstraction pages that lead with how each ecosystem represents the abstraction and show laws as pairs of equal diagrams, the matrix index with glossary terms and versioned snippets, and the snippet CI.
 8. **Signature search.** Parse queries in the neutral notation and the common ecosystem spellings, normalize them, and match and rank them against catalog signatures. *Exit:* `List<Option<A>> -> Option<List<A>>`, `a -> m b` style bind, `F<F<A>> -> F<A>`, and `(A -> B) -> List<A> -> List<B>` each return the expected operation as the top result, together with its ecosystem entries.
-9. **Async marbles.** A timeline renderer for concurrent vs sequential traverse, cancellation, and async `zip`.
+9. **Deferred: async marbles.** A timeline renderer for concurrent vs sequential traverse, cancellation, and async `zip`. Not in the initial scope.
 10. **Optional.** Static HTML pages for each operation, generated at build time for search-engine discoverability.
 
 ## Definition of done (launch)

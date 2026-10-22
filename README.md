@@ -38,13 +38,13 @@ The prototype is **not** authoritative for semantics. Its signatures, laws, alia
 
 ## Intended target
 
-RxMarbles plus a reverse Hoogle: a Rosetta stone for functional programming. You find an operation by its name in any ecosystem or by its type signature. Each operation page shows a diagram computed by running a reference implementation on inputs you can manipulate. A matrix index shows how each target ecosystem spells the operation, with versioned snippets and glossary terms. "No equivalent" is a valid answer in the matrix.
+RxMarbles plus a reverse Hoogle: a Rosetta stone for functional programming. You find an operation by its name in any ecosystem or by its type signature. Shape is the organizing principle. One reusable **Shape Ribbon** shows which structural layers move, stay, appear or disappear, and it appears on every operation page, search result, matrix cell and abstraction example. Each operation page shows a diagram computed by running a reference implementation on inputs you can manipulate. A matrix index shows how each target ecosystem spells the operation, with versioned snippets and glossary terms. "No equivalent" is a valid answer in the matrix.
 
 The prototype's Learn paths, concept essays and example labs are out of scope.
 
 Target ecosystems (pinned versions):
 
-- C# LanguageExt: both 4.4.9 (stable) and 5.0.0-beta-78 (beta), as separate version tracks
+- C# LanguageExt 4.4.9 (v5 deferred; the model supports multiple version tracks)
 - C# BCL/LINQ
 - F#: FSharp.Core 10.1.402, FsToolkit.ErrorHandling 5.2.0, FSharpPlus 1.9.1
 - fp-ts 2.16.11
