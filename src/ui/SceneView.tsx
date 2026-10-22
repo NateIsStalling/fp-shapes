@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import type { Scene, SceneInput, SceneNode, SlotNode, Step } from "../scenes/scene";
 import { RichText } from "./RichText";
 
@@ -86,10 +86,35 @@ function Input({ input, onSet }: { input: SceneInput; onSet: SetInput }) {
   );
 }
 
+// Inputs (with their calls hanging underneath) sit left of the result when
+// they fit. When they don't, the lane stacks and a "result" divider replaces
+// the arrow, so the calls never read as a stage that feeds the result.
+function useStackWhenTooWide(dep: unknown) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    let width = -1;
+    const fit = () => {
+      if (row.clientWidth === width) return;
+      width = row.clientWidth;
+      row.classList.remove("lane-stacked");
+      if (row.scrollWidth > row.clientWidth + 1) row.classList.add("lane-stacked");
+    };
+    fit();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(fit);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [dep]);
+  return ref;
+}
+
 export function SceneView({ scene, onSet }: { scene: Scene; onSet: SetInput }) {
+  const rowRef = useStackWhenTooWide(scene);
   return (
     <figure className="card lane">
-      <div className="lane-row">
+      <div className="lane-row" ref={rowRef}>
         {scene.inputsAs === "tuple" ? (
           <div className="lane-inputs">
             <div className="layer layer-tuple tuple-inputs" role="group" aria-label="Tuple">
@@ -100,7 +125,8 @@ export function SceneView({ scene, onSet }: { scene: Scene; onSet: SetInput }) {
         ) : (
           <div className="lane-inputs">{scene.inputs.map((input, i) => <Input key={i} input={input} onSet={onSet} />)}</div>
         )}
-        <svg className="lane-arrow" viewBox="0 0 14 36" aria-hidden="true"><path d="M7 1v30" /><path d="M2 26l5 7 5-7" /></svg>
+        <svg className="lane-arrow" viewBox="0 0 56 14" aria-hidden="true"><path d="M1 7h50" /><path d="M46 2l7 5-7 5" /></svg>
+        <span className="lane-divider" aria-hidden="true">result</span>
         <div className="lane-output" aria-label="Result"><Node node={scene.output} onSet={() => undefined} /></div>
       </div>
       <figcaption aria-live="polite" className="lane-caption"><RichText text={scene.caption} /></figcaption>

@@ -303,14 +303,21 @@ a { color: var(--purple-dark); }
 .effect-tag svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }
 
 /* Behavior lane */
-/* Inputs on top, the result below (like RxMarbles), so a wide input never
-   pushes the result onto a stray line beside the arrow. */
+/* Inputs (calls hanging underneath) → result, side by side. Too wide to fit:
+   SceneView adds .lane-stacked, and a "result" divider replaces the arrow. */
 .lane { container: lane / inline-size; margin: 0; padding: 28px clamp(16px, 3vw, 32px); display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.lane-row { display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 100%; }
-.lane-inputs { max-width: 100%; overflow-x: auto; padding: 4px; }
+.lane-row { display: flex; align-items: center; justify-content: safe center; gap: 22px; width: 100%; }
+.lane-row > * { flex: none; }
+.lane-inputs { padding: 4px; }
+.lane-divider { display: none; }
+.lane-stacked { flex-direction: column; gap: 10px; }
+.lane-stacked > .lane-inputs { max-width: 100%; overflow-x: auto; }
+.lane-stacked > .lane-arrow { display: none; }
+.lane-stacked > .lane-divider { display: flex; align-items: center; gap: 10px; align-self: stretch; font: 500 12px var(--mono); color: var(--muted); }
+.lane-stacked > .lane-divider::before, .lane-stacked > .lane-divider::after { content: ""; flex: 1; border-top: 1px dashed var(--line); }
 /* A tuple argument: its parts side by side in one box, as in the Shape Ribbon. */
 .tuple-items { display: flex; gap: 14px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
-.lane-arrow { width: 14px; height: 36px; fill: none; stroke: var(--faint-2); stroke-width: 1.5; }
+.lane-arrow { width: 56px; height: 14px; fill: none; stroke: var(--faint-2); stroke-width: 1.5; }
 /* One slot per element: when the lane is narrow, each slot stacks its holes
    so the elements stay in one row. */
 @container lane (max-width: 760px) { .aligned-step .slot-holes { flex-direction: column; } }
