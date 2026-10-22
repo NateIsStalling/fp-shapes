@@ -45,6 +45,9 @@ export interface Step {
   readonly called: boolean;
   readonly label?: string;
   readonly result?: SceneNode;
+  // A side effect the call performed (e.g. "saw a"). It is not a value and
+  // never reaches the output.
+  readonly effect?: string;
 }
 
 export interface SceneInput {

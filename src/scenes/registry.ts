@@ -74,8 +74,9 @@ const optionIn = (t: Toggles, key: string, ok = "a"): Option<string> => (t[key] 
 const step = (called: boolean, result?: SceneNode, label?: string): Step => ({ called, ...(result ? { result } : {}), ...(label ? { label } : {}) });
 
 // Output nodes (not editable).
-const eitherOut = (e: Either<string, string>) => container("effect", "Either", [e.tag === "right" ? ball(e.value, "out") : ball(e.error, "error")]);
-const optionOut = (o: Option<string>) => container("effect", "Option", [o.tag === "some" ? ball(o.value, "out") : ball("None", "empty")]);
+// `tone` is "out" for a new value, "in" when the input value passes through unchanged.
+const eitherOut = (e: Either<string, string>, tone: "in" | "out" = "out") => container("effect", "Either", [e.tag === "right" ? ball(e.value, tone) : ball(e.error, "error")]);
+const optionOut = (o: Option<string>, tone: "in" | "out" = "out") => container("effect", "Option", [o.tag === "some" ? ball(o.value, tone) : ball("None", "empty")]);
 const validationOut = (v: Validation<string, string>) => container("effect", "Validation", v.tag === "success" ? [ball(v.value, "out")] : v.errors.map((e) => ball(e, "error")));
 const plain = (label: string) => ball(label, "out");
 const elems = (n: number, prefix: string) => Array.from({ length: n }, (_, i) => `${prefix}${sub(i)}`);
@@ -234,17 +235,17 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   tap: { receivers: [
     { id: "either", label: "Either", ribbon: { before: ["Either", "A"], after: ["Either", "A"], fn: "A → Either<_>" }, defaults: { input: false, step: false },
       build: (t) => {
-        const r = tapEither(eitherIn(t, "input", "a", "e₁"), () => eitherIn(t, "step", "ok", "e₂"));
+        const r = tapEither(eitherIn(t, "input", "a", "e₁"), () => eitherIn(t, "step", "_", "e₂"));
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, eitherSlot(t, "step", "ok", "e₂", "out", "the step returns"))] }], output: eitherOut(r.result),
-          caption: !called ? "The input is a Left, so the step never runs." : t.step ? "The step failed, and its Left replaces the result. A tap can fail." : "The step succeeded, and the original value a is kept." };
+        return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, eitherSlot(t, "step", "_", "e₂", "out", "the step returns"))] }], output: eitherOut(r.result, "in"),
+          caption: !called ? "The input is a Left, so the step never runs." : t.step ? "The step failed, and its Left replaces the result. A tap can fail." : "The step succeeded. Its own value (_) is discarded, and the original value a is kept." };
       } },
     { id: "option", label: "Option", ribbon: { before: ["Option", "A"], after: ["Option", "A"], fn: "A → Option<_>" }, defaults: { input: false, step: false },
       build: (t) => {
-        const r = tapOption(optionIn(t, "input"), () => optionIn(t, "step", "ok"));
+        const r = tapOption(optionIn(t, "input"), () => optionIn(t, "step", "_"));
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, optionSlot(t, "step", "ok", "out", "the step returns"))] }], output: optionOut(r.result),
-          caption: !called ? "The input is None, so the step never runs." : t.step ? "The step returned None, so the result is None." : "The step succeeded, and a is kept." };
+        return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, optionSlot(t, "step", "_", "out", "the step returns"))] }], output: optionOut(r.result, "in"),
+          caption: !called ? "The input is None, so the step never runs." : t.step ? "The step returned None, so the result is None." : "The step succeeded. Its value (_) is discarded, and a is kept." };
       } },
   ] },
 
@@ -253,14 +254,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
       build: (t) => {
         const r = peek(eitherIn(t, "input"), () => undefined);
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, called ? ball("log", "plain") : undefined)] }], output: eitherOut(r.result),
-          caption: called ? "The side effect saw a. The result is the input, unchanged: peek cannot fail or replace anything." : "The input is a Left, so the side effect never runs." };
+        return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [{ called, label: "returns void", ...(called ? { effect: "saw a" } : {}) }] }], output: eitherOut(r.result, "in"),
+          caption: called ? "f saw a and returned nothing. Its side effect (logging, metrics) stays outside the result, so the same Right a comes out: peek cannot fail or replace anything." : "The input is a Left, so f never runs and nothing is observed. The Left passes through." };
       } },
     { id: "list", label: "List", ribbon: { before: ["List", "A"], after: ["List", "A"], fn: "A → void" }, defaults: {},
       build: () => {
         const as = elems(3, "a");
         const r = peekList(as, () => undefined);
-        return { inputs: [{ node: listOf(as, "in"), steps: r.trace.calls.map(() => step(true, ball("log", "plain"))) }], output: listOf(r.result, "in"), caption: "The side effect ran once per element. The list comes out unchanged." };
+        return { inputs: [{ node: listOf(as, "in"), steps: r.trace.calls.map((c) => ({ called: true, effect: `saw ${c.input}` })) }], output: listOf(r.result, "in"), caption: "f saw each element once and returned nothing. The same list comes out, unchanged." };
       } },
   ] },
 

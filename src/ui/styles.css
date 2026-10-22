@@ -146,6 +146,9 @@ a { color: var(--purple-dark); }
 .hole-empty:hover { background: rgba(255, 255, 255, .7); }
 .hole:has(input:focus-visible) { outline: 2px solid var(--purple); outline-offset: 2px; }
 .step-not-called { opacity: .55; }
+/* Side effects are not values: a dashed tag, never a ball, never in the output. */
+.effect-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1.5px dashed #a3a4b8; border-radius: 999px; font: 500 12px var(--mono); color: var(--soft-ink); background: var(--surface); white-space: nowrap; }
+.effect-tag svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; }
 
 /* Behavior lane */
 .lane { margin: 0; padding: 28px clamp(16px, 3vw, 32px); display: flex; flex-direction: column; align-items: center; gap: 20px; }

@@ -94,3 +94,18 @@ describe("scenes show the traps", () => {
     expect(find("bimap", "tuple").build({}, "short-circuit").inputs[0]?.steps?.map((s) => s.label)).toEqual(["f", "g"]);
   });
 });
+
+describe("side effects are not values", () => {
+  const peek = operationScenes.peek?.receivers ?? [];
+  it("peek's steps carry an effect and no result, and the output keeps the input's tone", () => {
+    for (const r of peek) {
+      const scene = r.build(r.defaults, "short-circuit");
+      for (const s of scene.inputs[0]?.steps ?? []) {
+        expect(s.result).toBeUndefined();
+        if (s.called) expect(s.effect).toMatch(/^saw /);
+      }
+      const tones = (n: SceneNode): string[] => (n.type === "ball" ? [n.tone] : n.type === "container" ? n.children.flatMap(tones) : []);
+      expect(tones(scene.output).every((t) => t === "in")).toBe(true);
+    }
+  });
+});

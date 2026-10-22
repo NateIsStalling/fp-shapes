@@ -50,7 +50,13 @@ function StepCell({ step, onSet }: { step: Step; onSet: SetInput }) {
       <span className={step.called ? "connector" : "connector connector-skipped"} aria-hidden="true" />
       {step.label && <span className="step-label">{step.label}</span>}
       {!step.called && <span className="step-text step-text-skipped">not called</span>}
-      {step.result ? <Node node={step.result} onSet={onSet} /> : step.called && <span className="step-text">called</span>}
+      {step.effect && (
+        <span className="effect-tag" title="A side effect: not a value, and not part of the result">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" /><circle cx="8" cy="8" r="2" /></svg>
+          <span><span className="sr-only">side effect: </span>{step.effect}</span>
+        </span>
+      )}
+      {step.result ? <Node node={step.result} onSet={onSet} /> : step.called && !step.effect && <span className="step-text">called</span>}
     </div>
   );
 }
