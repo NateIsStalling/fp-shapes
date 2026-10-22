@@ -10,7 +10,8 @@
     "typecheck": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "samples:languageext": "dotnet run --project snippets/languageext/v4"
+    "samples:languageext": "dotnet run --project snippets/languageext/v4",
+    "samples:extract": "node scripts/extract-samples.mjs"
   },
   "dependencies": {
     "react": "^19.3.1",

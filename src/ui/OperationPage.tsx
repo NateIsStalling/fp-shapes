@@ -3,6 +3,7 @@ import { namesFor } from "../catalog/names";
 import type { OperationInfo } from "../catalog/operations";
 import { operationScenes } from "../scenes/registry";
 import type { EvaluationStrategy } from "../semantics";
+import { SampleBlock } from "./SampleBlock";
 import { SceneView } from "./SceneView";
 import { ShapeRibbon } from "./ShapeRibbon";
 
@@ -97,7 +98,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <span className="mono">{n.api}</span>
             {n.status === "partial" && <span className="status-partial">partial</span>}
             {n.note && <span className="muted">{n.note}</span>}
-            {n.sample && <pre className="sample"><code>{n.sample}</code></pre>}
+            {n.sample && <SampleBlock code={n.sample} language={n.eco === "LanguageExt" ? "C#" : "TypeScript"} />}
           </div>
         ))}
       </aside>

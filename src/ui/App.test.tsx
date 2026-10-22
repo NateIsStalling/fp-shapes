@@ -98,3 +98,16 @@ describe("shape ribbon", () => {
     expect([...(before?.querySelectorAll(".ball") ?? [])].map((b) => b.textContent)).toEqual(["A", "X"]);
   });
 });
+
+describe("samples in the names panel", () => {
+  it("show a language chip and copy the code", async () => {
+    const writes: string[] = [];
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async (s: string) => void writes.push(s) } });
+    const { container } = renderAt("/op/map");
+    const chips = [...container.querySelectorAll(".lang-chip")].map((c) => c.textContent);
+    expect(chips).toEqual(expect.arrayContaining(["C#", "TypeScript"]));
+    fireEvent.click(screen.getByRole("button", { name: "Copy C# sample" }));
+    await screen.findByText("Copied");
+    expect(writes[0]).toContain("input.Map(x => x * 10)");
+  });
+});

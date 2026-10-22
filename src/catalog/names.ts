@@ -4,6 +4,7 @@
 // "operation:receiver" or "operation:receiver:strategy".
 
 import { LANGUAGEEXT_VERSION, languageExt } from "./languageext";
+import { samples } from "./samples.generated";
 
 export interface NameEntry {
   readonly eco: "fp-ts" | "Effect" | "LanguageExt";
@@ -60,9 +61,16 @@ const jsNames: Readonly<Record<string, readonly NameEntry[]>> = {
 export const names: Readonly<Record<string, readonly NameEntry[]>> = (() => {
   const all: Record<string, NameEntry[]> = {};
   for (const [key, e] of Object.entries(languageExt)) {
-    (all[key] ??= []).push({ eco: "LanguageExt", version: LANGUAGEEXT_VERSION, api: e.api, status: e.status, sample: e.sample, verifiedBy: "compiled sample", ...(e.note ? { note: e.note } : {}) });
+    (all[key] ??= []).push({ eco: "LanguageExt", version: LANGUAGEEXT_VERSION, api: e.api, status: e.status, verifiedBy: "compiled sample", ...(e.note ? { note: e.note } : {}) });
   }
   for (const [key, list] of Object.entries(jsNames)) (all[key] ??= []).push(...list);
+  // Attach each entry's compiled sample: by full key, else by operation:receiver.
+  for (const [key, list] of Object.entries(all)) {
+    all[key] = list.map((e) => {
+      const sample = samples[e.eco]?.[key] ?? samples[e.eco]?.[key.split(":").slice(0, 2).join(":")];
+      return sample ? { ...e, sample } : e;
+    });
+  }
   return all;
 })();
 

@@ -56,7 +56,12 @@ a { color: var(--purple-dark); }
 .eco-row { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
 .eco-head { display: flex; justify-content: space-between; gap: 8px; }
 .version { font: 400 12px var(--mono); color: var(--muted); }
-.sample { margin: 2px 0 0; padding: 10px 12px; border-radius: 10px; background: #17182c; color: #ece9fb; font: 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.sample-block { margin-top: 4px; border-radius: 10px; background: #17182c; overflow: hidden; }
+.sample-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px 0 12px; }
+.lang-chip { font: 500 12px var(--mono); color: #c9c3f0; background: rgba(255, 255, 255, .08); padding: 1px 8px; border-radius: 999px; }
+.copy-button { border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: #ece9fb; font: 600 12px var(--sans); padding: 3px 10px; border-radius: 7px; min-height: 26px; }
+.copy-button:hover { background: rgba(255, 255, 255, .08); }
+.sample { margin: 0; padding: 8px 12px 12px; color: #ece9fb; font: 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
 
 /* Operation header and controls */
 .op-header { display: flex; flex-direction: column; gap: 6px; }

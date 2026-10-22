@@ -38,14 +38,17 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
     Check("map:list", ShowS(result) == "[10, 20, 30]", ShowS(result));
 }
 {
-    var calls = 0;
     // <sample bimap:either>
     Either<string, int> input = Left("oops");
     Either<int, int> result = input.BiMap<int, int>(
-        Right: x => { calls++; return x * 10; },
-        Left: e => { calls++; return e.Length; });
+        Right: x => x * 10,
+        Left: e => e.Length);
     // </sample>
-    Check("bimap:either", ShowE(result) == "Left(4)" && calls == 1, $"{ShowE(result)}, {calls} call(s)");
+    Check("bimap:either", ShowE(result) == "Left(4)", ShowE(result));
+    // Only one side runs (not shown on the site).
+    var calls = 0;
+    input.BiMap<int, int>(Right: x => { calls++; return x; }, Left: e => { calls++; return 0; });
+    Check("bimap:either calls", calls == 1, $"{calls} call(s)");
 }
 
 // --- Sequencing --------------------------------------------------------------
@@ -110,19 +113,17 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
 
 // --- Traversing (v4 names are swapped relative to Haskell) -------------------
 {
-    var called = new List<int>();
     // <sample traverse:either>
     Seq<int> input = Seq(1, -2, 3, -4);
     Either<string, Seq<int>> result = input.Sequence(x =>
-    {
-        called.Add(x);
-        return x < 0 ? Left<string, int>($"e{x}") : Right<string, int>(x * 10);
-    });
+        x < 0 ? Left<string, int>($"e{x}") : Right<string, int>(x * 10));
     // </sample>
-    // Which strategy does v4 use? The trace says.
+    Check("traverse:either", ShowE(result) == "Left(e-2)", ShowE(result));
+    // Which evaluation strategy does v4 use? Count the calls (not shown on the site).
+    var called = new List<int>();
+    input.Sequence(x => { called.Add(x); return x < 0 ? Left<string, int>("e") : Right<string, int>(x); });
     var strategy = called.Count == 2 ? "short-circuit" : called.Count == 4 ? "eager" : "unknown";
-    Check("traverse:either", ShowE(result) == "Left(e-2)", $"{ShowE(result)}, called on [{string.Join(", ", called)}] => {strategy}");
-    Console.WriteLine($"STRATEGY traverse:either {strategy}");
+    Check("traverse:either strategy", strategy == "eager", $"called on [{string.Join(", ", called)}] => {strategy}");
 }
 {
     // <sample sequence:either>
