@@ -112,3 +112,15 @@ describe("side effects are not values", () => {
     }
   });
 });
+
+describe("LanguageExt coverage", () => {
+  it("every receiver of every operation has a LanguageExt entry", async () => {
+    const { languageExt } = await import("../src/catalog/languageext");
+    const keys = Object.keys(languageExt);
+    for (const op of allOps) {
+      for (const r of operationScenes[op.id]?.receivers ?? []) {
+        expect(keys.some((k) => k === `${op.id}:${r.id}` || k.startsWith(`${op.id}:${r.id}:`)), `${op.id}:${r.id}`).toBe(true);
+      }
+    }
+  });
+});

@@ -197,5 +197,152 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
     Check("filterOrElse:option", ShowO(result) == "None", ShowO(result));
 }
 
+// --- Remaining receivers ------------------------------------------------------
+string ShowV<E, A>(Validation<E, A> v) => v.Match(Succ: a => $"Success({a})", Fail: es => $"Failure([{string.Join(", ", es)}])");
+{
+    // <sample bimap:tuple>
+    (string, int) input = ("a", 1);
+    (int, string) result = input.BiMap(a => a.Length, n => $"#{n}");
+    // </sample>
+    Check("bimap:tuple", result == (1, "#1"), result.ToString());
+}
+{
+    // <sample flatten:either>
+    Either<string, Either<string, int>> input = Right<string, Either<string, int>>(Right<string, int>(1));
+    Either<string, int> result = input.Flatten();
+    // </sample>
+    Check("flatten:either", ShowE(result) == "Right(1)", ShowE(result));
+}
+{
+    // <sample flatten:list>
+    Seq<Seq<int>> input = Seq(Seq(1, 2), Seq1(3));
+    Seq<int> result = input.Flatten();
+    // </sample>
+    Check("flatten:list", ShowS(result) == "[1, 2, 3]", ShowS(result));
+}
+{
+    // <sample tap:either>
+    Either<string, int> Audit(int x) => x > 0 ? Right<string, int>(x) : Left<string, int>("audit failed");
+    Either<string, int> input = Right(2);
+    Either<string, int> result =
+        from x in input
+        from _ in Audit(x)
+        select x;
+    // </sample>
+    Check("tap:either", ShowE(result) == "Right(2)", ShowE(result));
+    var failed = from x in Right<string, int>(-1) from _ in Audit(x) select x;
+    Check("tap:either fails", ShowE(failed) == "Left(audit failed)", ShowE(failed));
+}
+{
+    // <sample tap:option>
+    Option<int> Check2(int x) => x > 0 ? Some(x) : None;
+    Option<int> input = Some(2);
+    Option<int> result =
+        from x in input
+        from _ in Check2(x)
+        select x;
+    // </sample>
+    Check("tap:option", ShowO(result) == "Some(2)", ShowO(result));
+}
+{
+    var seen = new List<int>();
+    // <sample peek:list>
+    Seq<int> input = Seq(1, 2, 3);
+    Seq<int> result = input.Do(x => seen.Add(x));
+    // </sample>
+    Check("peek:list", ShowS(result) == "[1, 2, 3]" && seen.SequenceEqual(new[] { 1, 2, 3 }), $"{ShowS(result)}, saw [{string.Join(", ", seen)}]");
+}
+{
+    // <sample zip:list>
+    Seq<string> result =
+        from n in Seq(1, 2, 3)
+        from s in Seq("a", "b")
+        select $"{n}{s}";
+    // </sample>
+    Check("zip:list", ShowS(result) == "[1a, 1b, 2a, 2b, 3a, 3b]", ShowS(result));
+}
+{
+    // <sample zip:ziplist>
+    Seq<string> result = Seq(1, 2, 3).Zip(Seq("a", "b"), (n, s) => $"{n}{s}");
+    // </sample>
+    Check("zip:ziplist", ShowS(result) == "[1a, 2b]", ShowS(result));
+}
+{
+    // <sample traverse:option>
+    Seq<int> input = Seq(1, -2, 3);
+    Option<Seq<int>> result = input.Sequence(x => x < 0 ? None : Some(x * 10));
+    // </sample>
+    Check("traverse:option", ShowO(result.Map(ShowS)) == "None", ShowO(result.Map(ShowS)));
+    var called = new List<int>();
+    input.Sequence(x => { called.Add(x); return x < 0 ? Option<int>.None : Some(x); });
+    Console.WriteLine($"STRATEGY traverse:option {(called.Count == 2 ? "short-circuit" : called.Count == 3 ? "eager" : "unknown")}");
+}
+{
+    // <sample traverse:validation>
+    Seq<int> input = Seq(1, -2, 3, -4);
+    Validation<string, Seq<int>> result = input.Sequence(x =>
+        x < 0 ? Fail<string, int>($"e{x}") : Success<string, int>(x * 10));
+    // </sample>
+    Check("traverse:validation", ShowV(result.Map(ShowS)) == "Failure([e-2, e-4])", ShowV(result.Map(ShowS)));
+}
+{
+    // <sample sequence:option>
+    Seq<Option<int>> input = Seq(Some(1), None, Some(3));
+    Option<Seq<int>> result = input.Sequence();
+    // </sample>
+    Check("sequence:option", ShowO(result.Map(ShowS)) == "None", ShowO(result.Map(ShowS)));
+}
+{
+    // <sample sequence:validation>
+    Seq<Validation<string, int>> input = Seq(Success<string, int>(1), Fail<string, int>("e2"), Fail<string, int>("e3"));
+    Validation<string, Seq<int>> result = input.Sequence();
+    // </sample>
+    Check("sequence:validation", ShowV(result.Map(ShowS)) == "Failure([e2, e3])", ShowV(result.Map(ShowS)));
+}
+{
+    // <sample mapError:validation>
+    Validation<string, int> input = Fail<string, int>("e1") | Fail<string, int>("e2");
+    Validation<string, int> result = input.MapFail(e => e.ToUpper());
+    // </sample>
+    Check("mapError:validation", ShowV(result) == "Failure([E1, E2])", ShowV(result));
+}
+{
+    // <sample alt:either>
+    Either<string, int> first = Left("e1");
+    Either<string, int> result = first || Left<string, int>("e2");
+    // </sample>
+    Check("alt:either", ShowE(result) == "Left(e2)", ShowE(result));
+}
+{
+    // <sample alt:validation>
+    Validation<string, int> first = Fail<string, int>("e1");
+    Validation<string, int> result = first | Fail<string, int>("e2");
+    // </sample>
+    Check("alt:validation", ShowV(result) == "Failure([e1, e2])", ShowV(result));
+}
+{
+    // <sample alt:list>
+    Seq<int> result = Seq(1, 2) + Seq1(3);
+    // </sample>
+    Check("alt:list", ShowS(result) == "[1, 2, 3]", ShowS(result));
+}
+{
+    // <sample match:validation>
+    Validation<string, int> input = Fail<string, int>("e1") | Fail<string, int>("e2");
+    string result = input.Match(
+        Succ: x => $"value {x}",
+        Fail: errors => $"{errors.Count} errors");
+    // </sample>
+    Check("match:validation", result == "2 errors", result);
+}
+{
+    // <sample filterOrElse:either>
+    Either<string, int> input = Right(3);
+    Either<string, int> result = input.Bind(x =>
+        x > 5 ? Right<string, int>(x) : Left<string, int>($"too small: {x}"));
+    // </sample>
+    Check("filterOrElse:either", ShowE(result) == "Left(too small: 3)", ShowE(result));
+}
+
 Console.WriteLine(failures == 0 ? "ALL PASS" : $"{failures} FAILED");
 return failures == 0 ? 0 : 1;

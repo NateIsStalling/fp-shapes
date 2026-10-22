@@ -88,7 +88,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
               </>
             )}
             {receiver.note && <span className="note">{receiver.note}</span>}
-            {hasToggles && <span className="note">Each slot holds one of its cases. Move a piece into another hole to change that input.</span>}
+            {hasToggles && <span className="note">Each slot holds one of its cases. Choose a different case to change that input.</span>}
           </div>
           <SceneView scene={scene} onSet={setInput} />
           {hasToggles && (
