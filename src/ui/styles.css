@@ -43,6 +43,8 @@
   --mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   --ball: 48px;
+  --sidebar-w: 248px;
+  --content-pad: clamp(20px, 4vw, 56px);
 }
 
 /* Dark: follow the system until the viewer chooses; an explicit choice wins. */
@@ -145,11 +147,12 @@ a { color: var(--purple-dark); }
 
 /* Shell */
 .app-shell { min-height: 100vh; display: flex; flex-direction: column; }
-.app-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px clamp(16px, 2vw, 24px); background: var(--sidebar); border-bottom: 1px solid var(--line); }
-.app-bar .tagline { margin: 0; color: var(--muted); font-size: 14px; }
+.app-bar { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); align-items: center; background: var(--sidebar); border-bottom: 1px solid var(--line); }
+.app-bar .brand { padding: 16px 24px; }
+.app-bar .tagline { margin: 0; padding: 16px var(--content-pad); color: var(--muted); font-size: 14px; }
 .app-body { flex: 1; display: flex; flex-wrap: wrap; min-width: 0; }
 .sidebar-foot { margin-top: auto; padding: 0 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.sidebar { flex: 1 1 232px; max-width: 260px; padding: 28px 16px; background: var(--sidebar); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+.sidebar { flex: 0 0 var(--sidebar-w); width: var(--sidebar-w); padding: 28px 16px; background: var(--sidebar); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 20px; letter-spacing: -.03em; }
 .nav-group { display: grid; gap: 1px; }
 .github-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
@@ -161,11 +164,21 @@ a { color: var(--purple-dark); }
 .oplink.on { background: var(--nav-on); color: var(--purple-dark); font-weight: 500; }
 .op-page { flex: 999 1 720px; min-width: 0; display: flex; flex-direction: column; }
 .page-with-aside { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; }
-.title-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 28px clamp(20px, 4vw, 56px) 22px; background: var(--surface); border-bottom: 1px solid var(--line); }
-.theme-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; min-height: 34px; flex: none; }
-.theme-toggle:hover { border-color: var(--purple); }
-.theme-toggle svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; }
-.main { flex: 999 1 560px; min-width: 0; padding: 28px clamp(20px, 4vw, 56px) 64px; display: flex; flex-direction: column; gap: 26px; }
+.title-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 28px var(--content-pad) 22px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.theme-switch { display: inline-flex; gap: 2px; margin: 0; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.theme-option { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; color: var(--soft-ink); font-size: 12px; font-weight: 600; cursor: pointer; min-height: 28px; }
+.theme-option:hover { color: var(--ink); }
+.theme-option.on { background: var(--purple); color: var(--on-accent); }
+.theme-option:has(input:focus-visible) { outline: 2px solid var(--purple); outline-offset: 2px; }
+.theme-option svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+/* Narrow screens: the sidebar stacks above the content, so the app bar stacks too. */
+@media (max-width: 760px) {
+  .app-bar { grid-template-columns: 1fr; }
+  .app-bar .brand { padding-bottom: 4px; }
+  .app-bar .tagline { padding: 0 24px 14px; }
+  .sidebar { flex: 1 1 100%; width: auto; }
+}
+.main { flex: 999 1 560px; min-width: 0; padding: 28px var(--content-pad) 64px; display: flex; flex-direction: column; gap: 26px; }
 .aside { flex: 1 1 300px; max-width: 380px; padding: 28px 24px; background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
 .aside-title { margin: 0; font-size: 20px; letter-spacing: -.02em; color: var(--purple-dark); }
 .eco-row { display: flex; flex-direction: column; gap: 4px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }

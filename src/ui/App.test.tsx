@@ -119,17 +119,22 @@ describe("title bar and theme", () => {
     expect(bar?.closest("main")).toBeNull();
   });
 
-  it("the theme toggle switches and remembers dark mode", () => {
+  it("the theme control shows its state and remembers the choice", () => {
     document.documentElement.removeAttribute("data-theme");
+    localStorage.clear();
     renderAt("/op/map");
-    const toggle = screen.getByRole("button", { name: "Dark theme" });
-    expect(toggle.getAttribute("aria-pressed")).toBe("false");
-    fireEvent.click(toggle);
+    const group = screen.getByRole("group", { name: "Theme" });
+    const radio = (name: string) => within(group).getByRole("radio", { name }) as HTMLInputElement;
+    expect(radio("Auto").checked).toBe(true);
+    fireEvent.click(radio("Dark"));
+    expect(radio("Dark").checked).toBe(true);
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem("fp-shapes-theme")).toBe("dark");
-    expect(toggle.getAttribute("aria-pressed")).toBe("true");
-    fireEvent.click(toggle);
+    fireEvent.click(radio("Light"));
     expect(document.documentElement.dataset.theme).toBe("light");
+    fireEvent.click(radio("Auto"));
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+    expect(localStorage.getItem("fp-shapes-theme")).toBeNull();
   });
 });
 
@@ -142,6 +147,6 @@ describe("app chrome", () => {
     expect(bar?.closest("nav")).toBeNull();
     const foot = container.querySelector(".sidebar-foot");
     expect(foot?.querySelector(".github-badge")).toBeTruthy();
-    expect(foot?.querySelector(".theme-toggle")).toBeTruthy();
+    expect(foot?.querySelector(".theme-switch")).toBeTruthy();
   });
 });
