@@ -1,7 +1,9 @@
-// Ecosystem names shown in an operation page's names panel. Every entry is
-// verified at its pinned version: fp-ts and Effect by conformance tests in
-// tests/conformance/, LanguageExt by compiled samples in snippets/. Keys are
-// "operation:receiver" or "operation:receiver:strategy".
+// Ecosystem names shown in an operation page's names panel. Reviewed entries
+// are checked at their pinned version: fp-ts and Effect by conformance tests
+// in tests/conformance/, LanguageExt by compiled samples in snippets/. An
+// entry marked `preview` is still under review and shows only when the viewer
+// turns on Preview. Keys are "operation:receiver" or
+// "operation:receiver:strategy".
 
 import { LANGUAGEEXT_VERSION, languageExt } from "./languageext";
 import { samples } from "./samples.generated";
@@ -13,13 +15,14 @@ export interface NameEntry {
   readonly status: "equivalent" | "partial";
   readonly note?: string;
   readonly sample?: string;
-  readonly verifiedBy: "conformance test" | "compiled sample";
+  // Under review: shown only when Preview is on.
+  readonly preview?: true;
 }
 
 const FP = { eco: "fp-ts", version: "2.16.11" } as const;
 const EF = { eco: "Effect", version: "4.0.5" } as const;
-const eq = (base: typeof FP | typeof EF, api: string, note?: string): NameEntry => ({ ...base, api, status: "equivalent", verifiedBy: "conformance test", ...(note ? { note } : {}) });
-const part = (base: typeof FP | typeof EF, api: string, note: string): NameEntry => ({ ...base, api, status: "partial", note, verifiedBy: "conformance test" });
+const eq = (base: typeof FP | typeof EF, api: string, note?: string): NameEntry => ({ ...base, api, status: "equivalent", ...(note ? { note } : {}) });
+const part = (base: typeof FP | typeof EF, api: string, note: string): NameEntry => ({ ...base, api, status: "partial", note });
 
 const jsNames: Readonly<Record<string, readonly NameEntry[]>> = {
   "pure:option": [eq(FP, "O.of", "Same as `O.some`."), eq(EF, "Option.some")],
@@ -78,7 +81,7 @@ const jsNames: Readonly<Record<string, readonly NameEntry[]>> = {
 export const names: Readonly<Record<string, readonly NameEntry[]>> = (() => {
   const all: Record<string, NameEntry[]> = {};
   for (const [key, e] of Object.entries(languageExt)) {
-    (all[key] ??= []).push({ eco: "LanguageExt", version: LANGUAGEEXT_VERSION, api: e.api, status: e.status, verifiedBy: "compiled sample", ...(e.note ? { note: e.note } : {}) });
+    (all[key] ??= []).push({ eco: "LanguageExt", version: LANGUAGEEXT_VERSION, api: e.api, status: e.status, ...(e.note ? { note: e.note } : {}), ...(e.preview ? { preview: true } : {}) });
   }
   for (const [key, list] of Object.entries(jsNames)) (all[key] ??= []).push(...list);
   // Attach each entry's compiled sample: by full key, else by operation:receiver.
@@ -92,6 +95,8 @@ export const names: Readonly<Record<string, readonly NameEntry[]>> = (() => {
 })();
 
 // Entries that hold for the chosen strategy, plus entries that hold for any.
-export function namesFor(operation: string, receiver: string, strategy?: string): readonly NameEntry[] {
-  return [...((strategy && names[`${operation}:${receiver}:${strategy}`]) || []), ...(names[`${operation}:${receiver}`] ?? [])];
+// Preview entries are left out unless the viewer turned Preview on.
+export function namesFor(operation: string, receiver: string, strategy?: string, preview = false): readonly NameEntry[] {
+  const all = [...((strategy && names[`${operation}:${receiver}:${strategy}`]) || []), ...(names[`${operation}:${receiver}`] ?? [])];
+  return preview ? all : all.filter((e) => !e.preview);
 }

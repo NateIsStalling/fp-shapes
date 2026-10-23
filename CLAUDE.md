@@ -40,7 +40,7 @@ Stack: Vite 8, React 19, TypeScript 7 (strict, `noUncheckedIndexedAccess`, `exac
 Every operation page is rendered by one generic `src/ui/OperationPage.tsx` and `SceneView.tsx`. To add an operation:
 1. **Semantics:** implement it in `src/semantics/` so that it returns a `Run` with a trace. Add law and trap tests.
 2. **Scenes:** add a builder for each receiver in `src/scenes/registry.ts`. Each builder supplies the ribbon spec, the default toggles (true means that input fails), the evaluation strategies, and a `build` that runs the semantics and returns a `Scene`.
-3. **Catalog:** add the navigation entry to `src/catalog/operations.ts`. Ecosystem names are shown only when verified. fp-ts and Effect entries go in `src/catalog/names.ts`, each backed by a conformance test; LanguageExt 4.4.9 entries go in `src/catalog/languageext.ts`.
+3. **Catalog:** add the navigation entry to `src/catalog/operations.ts`. Reviewed ecosystem names are always shown. An entry still under review gets `preview: true` and shows only when the viewer turns on the Preview switch, which warns that preview content may not be accurate. fp-ts and Effect entries go in `src/catalog/names.ts`, each backed by a conformance test; LanguageExt 4.4.9 entries go in `src/catalog/languageext.ts`.
 4. **Samples:** every entry shows a sample, and every sample is code that runs:
    - fp-ts: `snippets/fp-ts/samples.ts`
    - Effect: `snippets/effect/samples.ts`

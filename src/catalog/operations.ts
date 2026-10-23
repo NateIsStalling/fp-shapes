@@ -24,10 +24,12 @@ export interface OperationInfo {
 export interface OperationGroup {
   readonly name: string;
   readonly operations: readonly OperationInfo[];
+  // Under review: shown only when the viewer turns on Preview.
+  readonly preview?: true;
 }
 
 export const operationGroups: readonly OperationGroup[] = [
-  { name: "Constructors", operations: [
+  { name: "Constructors", preview: true, operations: [
     { id: "pure", name: "pure", abstraction: "Applicative", signature: "A → F<A>", receiverVar: "F" },
     { id: "fail", name: "fail", abstraction: "MonadThrow", signature: "E → F<E, A>", receiverVar: "F" },
     { id: "fromNullable", name: "fromNullable", abstraction: "constructor", signature: "(A | null) → F<A>", receiverVar: "F" },
@@ -68,6 +70,10 @@ export const operationGroups: readonly OperationGroup[] = [
   ] },
 ];
 
-export const operationsById: ReadonlyMap<OperationId, OperationInfo & { group: string }> = new Map(
-  operationGroups.flatMap((g) => g.operations.map((o) => [o.id, { ...o, group: g.name }] as const)),
+export const operationsById: ReadonlyMap<OperationId, OperationInfo & { group: string; preview?: true }> = new Map(
+  operationGroups.flatMap((g) => g.operations.map((o) => [o.id, { ...o, group: g.name, ...(g.preview ? { preview: true as const } : {}) }] as const)),
 );
+
+// The groups a viewer sees: preview groups only when Preview is on.
+export const visibleGroups = (preview: boolean): readonly OperationGroup[] =>
+  preview ? operationGroups : operationGroups.filter((g) => !g.preview);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { names } from "../src/catalog/names";
+import { names, namesFor } from "../src/catalog/names";
 import { operationGroups } from "../src/catalog/operations";
 import { operationScenes } from "../src/scenes/registry";
 import type { Scene, SceneNode } from "../src/scenes/scene";
@@ -64,6 +64,16 @@ describe("names panel", () => {
       const [op, receiver] = key.split(":");
       const receivers = operationScenes[op as string]?.receivers.map((r) => r.id) ?? [];
       expect(receivers, key).toContain(receiver);
+    }
+  });
+
+  it("hides preview entries unless Preview is on", () => {
+    for (const key of Object.keys(names)) {
+      const [op = "", receiver = "", strategy] = key.split(":");
+      const off = namesFor(op, receiver, strategy, false);
+      const on = namesFor(op, receiver, strategy, true);
+      expect(off.some((e) => e.preview), key).toBe(false);
+      expect(on.filter((e) => !e.preview), key).toEqual(off);
     }
   });
 });

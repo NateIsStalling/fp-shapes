@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import { operationGroups } from "../catalog/operations";
+import { operationGroups, operationsById } from "../catalog/operations";
 import { App } from "./App";
 
 afterEach(cleanup);
@@ -10,8 +10,10 @@ afterEach(cleanup);
 const renderAt = (path: string) => render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
 
 describe("every operation page renders from data", () => {
+  afterEach(() => localStorage.clear());
   for (const op of operationGroups.flatMap((g) => g.operations)) {
     it(`${op.id}: header, shape ribbon and behavior lane`, () => {
+      if (operationsById.get(op.id)?.preview) localStorage.setItem("fp-shapes-preview", "on");
       const { container } = renderAt(`/op/${op.id}`);
       expect(screen.getByRole("heading", { level: 1, name: op.name })).toBeTruthy();
       expect(container.querySelector(".ribbon-caption")?.textContent).toMatch(new RegExp(`^${op.name}: `));
@@ -204,5 +206,79 @@ describe("shape ribbon draws sum types as their cases", () => {
     fireEvent.click(screen.getByRole("button", { name: "Option" }));
     const names = [...container.querySelectorAll(".ribbon-grid .sum")[0]?.querySelectorAll(".case-name") ?? []].map((n) => n.textContent);
     expect(names).toEqual(["None", "Some"]);
+  });
+});
+
+describe("preview", () => {
+  afterEach(() => localStorage.clear());
+  const toggle = () => screen.getByRole("switch", { name: "Preview" });
+
+  it("is off by default, with no banner", () => {
+    renderAt("/");
+    expect(toggle().getAttribute("aria-checked")).toBe("false");
+    expect(screen.queryByText(/under review and may not be accurate/)).toBeNull();
+  });
+
+  it("asks for confirmation; cancel leaves it off", () => {
+    renderAt("/");
+    fireEvent.click(toggle());
+    const dialog = screen.getByRole("alertdialog", { name: "Show preview content?" });
+    expect(dialog.textContent).toMatch(/under review and may not be accurate/);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(toggle().getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("Escape cancels the confirmation", () => {
+    renderAt("/");
+    fireEvent.click(toggle());
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(toggle().getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("confirming turns it on, shows the banner and remembers the choice; turning off needs no confirmation", () => {
+    renderAt("/");
+    fireEvent.click(toggle());
+    fireEvent.click(screen.getByRole("button", { name: "Show preview" }));
+    expect(toggle().getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("status").textContent).toMatch(/Preview on\. Preview content is under review and may not be accurate\./);
+    cleanup();
+    renderAt("/");
+    expect(toggle().getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(toggle());
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("preview operations", () => {
+  afterEach(() => localStorage.clear());
+  const nav = () => screen.getByRole("navigation", { name: "Primary" });
+
+  it("Constructors is a preview group", () => {
+    expect(operationGroups.find((g) => g.name === "Constructors")?.preview).toBe(true);
+  });
+
+  it("are hidden from the sidebar and their routes fall back to the default when Preview is off", () => {
+    renderAt("/op/pure");
+    expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
+    expect(within(nav()).queryByText("Constructors")).toBeNull();
+    expect(within(nav()).queryByRole("link", { name: "pure" })).toBeNull();
+  });
+
+  it("appear in the sidebar, tagged preview, and render when Preview is on", () => {
+    localStorage.setItem("fp-shapes-preview", "on");
+    renderAt("/op/pure");
+    expect(screen.getByRole("heading", { level: 1, name: "pure" })).toBeTruthy();
+    expect(within(nav()).getByText("Constructors").textContent).toBe("Constructorspreview");
+    expect(within(nav()).getByRole("link", { name: "pure" })).toBeTruthy();
+  });
+
+  it("turning Preview off on a preview page falls back to the default", () => {
+    localStorage.setItem("fp-shapes-preview", "on");
+    renderAt("/op/pure");
+    fireEvent.click(screen.getByRole("switch", { name: "Preview" }));
+    expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
   });
 });

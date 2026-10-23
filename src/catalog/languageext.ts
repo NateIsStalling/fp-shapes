@@ -6,6 +6,8 @@ export interface LanguageExtEntry {
   readonly api: string;
   readonly status: "equivalent" | "partial";
   readonly note?: string;
+  // Under review: shown only when Preview is on.
+  readonly preview?: true;
 }
 
 export const LANGUAGEEXT_VERSION = "4.4.9";

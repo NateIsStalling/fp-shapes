@@ -54,7 +54,7 @@ Keep these three levels separate in the data model and the UI:
 | Multiple versions | **The model supports several version tracks per ecosystem** (see [Versioning](#versioning)), so LanguageExt v5 or Effect v3 can be added later without schema changes. The initial scope ships **one track per ecosystem**, and the version switcher stays hidden until an ecosystem has two. |
 | Initial scope cuts | **Concurrent traverse and the async timeline marbles are deferred**, along with LanguageExt v5. |
 | Shape Ribbon | **Required.** One reusable primitive shows the structural transformation everywhere: at the top of every operation page, beside every search result, in the matrix cell detail, and in abstraction instance examples. |
-| Verification on the site | **Not shown as copy.** The names panel shows only verified entries, but the site doesn't explain how they were verified. That lives in the project docs: fp-ts and Effect entries are backed by conformance tests, LanguageExt entries by compiled samples (`snippets/`). The `verifiedBy` field stays in the catalog data. |
+| Verification on the site | **Reviewed or preview.** The names panel shows reviewed entries by default. Entries still under review carry `preview: true` and appear, tagged "preview", only after the viewer turns on the Preview switch and confirms a warning that preview content may not be accurate; a banner under the app bar stays up while it is on. How reviewed entries were checked lives in the project docs: fp-ts and Effect entries are backed by conformance tests, LanguageExt entries by compiled samples (`snippets/`). |
 | Laws on the site | **Not shown as copy.** Laws are documented in the project docs and enforced by property tests. Abstraction pages may still *draw* a law as a pair of diagrams that give the same result, but the site doesn't carry law statements or claims about testing. |
 | Library conformance | fp-ts and Effect are **devDependencies used in tests, not at runtime.** The diagrams stay ecosystem-neutral, and conformance tests prove the reference semantics match each library's results and call behavior at the pinned versions. |
 | Navigation | **Hybrid.** Navigation groups use the vocabulary fp-ts and Effect share in their `@category` tags (Constructors, Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering), so TypeScript developers recognize them. The navigation shows operation names only. Each operation page shows its canonical abstraction (Functor, Monad, Traversable, …) as a tag in the description header, next to the title, linking to the abstraction page. The Shape Ribbon shows what happens to the shape; family names are not used in the navigation. |
@@ -87,7 +87,7 @@ Rules:
 
 - The authority for each semantic claim is the primary documentation for the pinned library version, recorded alongside the claim.
 - Diagrams are computed by reference implementations, never hand-authored. Laws are verified against those implementations with property-based tests.
-- When a claim can't be verified, mark it `unverified` in the catalog rather than asserting it.
+- When a claim can't be verified yet, mark the entry `preview` in the catalog rather than asserting it.
 
 ## Semantic guardrails
 

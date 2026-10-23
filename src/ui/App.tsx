@@ -1,14 +1,16 @@
 import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
-import { operationGroups, operationsById, type OperationId } from "../catalog/operations";
+import { operationsById, visibleGroups, type OperationId } from "../catalog/operations";
 import { OperationPage } from "./OperationPage";
+import { PreviewBanner, PreviewProvider, PreviewToggle, usePreview } from "./preview";
 import { ThemeToggle } from "./ThemeToggle";
 
 function Sidebar() {
+  const preview = usePreview().on;
   return (
     <nav className="sidebar" aria-label="Primary">
-      {operationGroups.map((g) => (
+      {visibleGroups(preview).map((g) => (
         <div key={g.name} className="nav-group">
-          <p className="eyebrow">{g.name}</p>
+          <p className="eyebrow">{g.name}{g.preview && <span className="status-preview nav-tag">preview</span>}</p>
           {g.operations.map((o) => (
             <NavLink key={o.id} to={`/op/${o.id}`} className={({ isActive }) => `oplink${isActive ? " on" : ""}`}>{o.name}</NavLink>
           ))}
@@ -22,6 +24,7 @@ function Sidebar() {
           <span>GitHub</span>
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
+        <PreviewToggle />
         <ThemeToggle />
       </div>
     </nav>
@@ -30,8 +33,10 @@ function Sidebar() {
 
 function OperationRoute() {
   const { operationId } = useParams();
+  const preview = usePreview().on;
   const op = operationsById.get(operationId as OperationId);
-  if (!op) return <Navigate to="/" replace />;
+  // Unknown and hidden preview operations fall back to the default operation.
+  if (!op || (op.preview && !preview)) return <Navigate to="/" replace />;
   return <OperationPage key={op.id} op={op} />;
 }
 
@@ -52,8 +57,10 @@ function AppBar() {
 
 export function App() {
   return (
+    <PreviewProvider>
     <div className="app-shell">
       <AppBar />
+      <PreviewBanner />
       <div className="app-body">
         <Sidebar />
         <Routes>
@@ -64,5 +71,6 @@ export function App() {
         </Routes>
       </div>
     </div>
+    </PreviewProvider>
   );
 }

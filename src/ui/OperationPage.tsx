@@ -8,6 +8,7 @@ import { SampleBlock } from "./SampleBlock";
 import { RichText } from "./RichText";
 import { SceneView } from "./SceneView";
 import { ShapeRibbon } from "./ShapeRibbon";
+import { usePreview } from "./preview";
 
 const STRATEGY_LABEL: Record<EvaluationStrategy, string> = { "short-circuit": "Short-circuiting", eager: "Eager" };
 const STRATEGY_NOTE: Record<EvaluationStrategy, string> = {
@@ -24,13 +25,14 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
   const receiver = receivers.find((r) => r.id === receiverId) ?? receivers[0];
   const [toggleState, setToggleState] = useState<Record<string, Record<string, boolean>>>({});
   const [strategy, setStrategy] = useState<EvaluationStrategy>("short-circuit");
+  const preview = usePreview().on;
 
   if (!receiver) return null;
   const toggles = toggleState[receiver.id] ?? receiver.defaults;
   const strategies = receiver.strategies ?? [];
   const activeStrategy: EvaluationStrategy = strategies.includes(strategy) ? strategy : (strategies[0] ?? "short-circuit");
   const scene = receiver.build(toggles, activeStrategy);
-  const entries = namesFor(op.id, receiver.id, strategies.length ? activeStrategy : undefined);
+  const entries = namesFor(op.id, receiver.id, strategies.length ? activeStrategy : undefined, preview);
   const setInput = (key: string, fails: boolean) => setToggleState((s) => ({ ...s, [receiver.id]: { ...toggles, [key]: fails } }));
   const hasToggles = Object.keys(receiver.defaults).length > 0;
 
@@ -110,7 +112,12 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
           <div key={n.eco + n.api} className="eco-row">
             <div className="eco-head"><strong>{n.eco}</strong><span className="version">{n.version}</span></div>
             <span className="mono">{n.api}</span>
-            {n.status === "partial" && <span className="status-partial">partial</span>}
+            {(n.status === "partial" || n.preview) && (
+              <span className="status-tags">
+                {n.status === "partial" && <span className="status-partial">partial</span>}
+                {n.preview && <span className="status-preview">preview</span>}
+              </span>
+            )}
             {n.note && <span className="muted"><RichText text={n.note} /></span>}
             {n.sample && <SampleBlock code={n.sample} language={n.eco === "LanguageExt" ? "C#" : "TypeScript"} />}
           </div>
