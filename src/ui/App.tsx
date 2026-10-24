@@ -62,8 +62,10 @@ function AppBar() {
     <header className="app-bar">
       <NavLink to="/" className="brand" aria-label="FP Shapes home">
         <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-          <rect x="6" y="6" width="14" height="14" rx="3" transform="rotate(45 13 13)" fill="#6f4bd8" opacity=".9" />
-          <rect x="12" y="6" width="14" height="14" rx="3" transform="rotate(45 19 13)" fill="#6f4bd8" opacity=".45" />
+          <rect x="2" y="2" width="11" height="11" rx="2.5" fill="#6f4bd8" opacity=".9" />
+          <circle cx="20.5" cy="7.5" r="5.5" fill="#6f4bd8" opacity=".45" />
+          <circle cx="7.5" cy="20.5" r="5.5" fill="#6f4bd8" opacity=".45" />
+          <rect x="15" y="15" width="11" height="11" rx="2.5" fill="#6f4bd8" opacity=".9" />
         </svg>
         FP Shapes
       </NavLink>
