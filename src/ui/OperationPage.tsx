@@ -108,6 +108,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
           </p>
         </div>
         {entries.length === 0 && <p className="muted">Under construction.</p>}
+        <div className="eco-list">
         {entries.map((n) => (
           <div key={n.eco + n.api} className="eco-row">
             <div className="eco-head"><strong>{n.eco}</strong><span className="version">{n.version}</span></div>
@@ -122,6 +123,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             {n.sample && <SampleBlock code={n.sample} language={n.eco === "LanguageExt" ? "C#" : "TypeScript"} />}
           </div>
         ))}
+        </div>
       </aside>
     </div>
     </div>

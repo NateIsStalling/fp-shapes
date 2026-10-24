@@ -1,13 +1,28 @@
-import { NavLink, Navigate, Route, Routes, useParams } from "react-router-dom";
+import { useEffect, useId, useState } from "react";
+import { NavLink, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { operationsById, visibleGroups, type OperationId } from "../catalog/operations";
 import { OperationPage } from "./OperationPage";
 import { PreviewBanner, PreviewProvider, PreviewToggle, usePreview } from "./preview";
 import { ThemeToggle } from "./ThemeToggle";
 
+// On small screens the navigation collapses behind a menu button that names
+// the current operation; it closes again after each navigation.
 function Sidebar() {
   const preview = usePreview().on;
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  const menuId = useId();
+  useEffect(() => setOpen(false), [pathname]);
+  const current = operationsById.get(pathname.replace(/^\/op\//, "") as OperationId);
   return (
-    <nav className="sidebar" aria-label="Primary">
+    <nav className={`sidebar${open ? " open" : ""}`} aria-label="Primary">
+      <button type="button" className="menu-button" aria-expanded={open} aria-controls={menuId} onClick={() => setOpen((o) => !o)}>
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h12M2 12h12" /></svg>
+        <span>Operations</span>
+        {current && <span className="menu-current">{current.name}</span>}
+      </button>
+      <div className="sidebar-menu" id={menuId}>
+      <div className="nav-groups">
       {visibleGroups(preview).map((g) => (
         <div key={g.name} className="nav-group">
           <p className="eyebrow">{g.name}{g.preview && <span className="status-preview nav-tag">preview</span>}</p>
@@ -16,6 +31,7 @@ function Sidebar() {
           ))}
         </div>
       ))}
+      </div>
       <div className="sidebar-foot">
         <a className="github-badge" href="https://github.com/NateIsStalling/fp-shapes" target="_blank" rel="noreferrer">
           <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -26,6 +42,7 @@ function Sidebar() {
         </a>
         <PreviewToggle />
         <ThemeToggle />
+      </div>
       </div>
     </nav>
   );

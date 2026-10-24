@@ -282,3 +282,19 @@ describe("preview operations", () => {
     expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
   });
 });
+
+describe("small-screen menu", () => {
+  it("names the current operation, toggles open, and closes after navigating", () => {
+    renderAt("/op/map");
+    const button = screen.getByRole("button", { name: /Operations/ });
+    expect(button.textContent).toContain("map");
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(button);
+    expect(button.getAttribute("aria-expanded")).toBe("true");
+    expect(document.getElementById(button.getAttribute("aria-controls") ?? "")?.contains(screen.getByRole("link", { name: "flatMap" }))).toBe(true);
+    fireEvent.click(screen.getByRole("link", { name: "flatMap" }));
+    expect(screen.getByRole("heading", { level: 1, name: "flatMap" })).toBeTruthy();
+    expect(button.getAttribute("aria-expanded")).toBe("false");
+    expect(button.textContent).toContain("flatMap");
+  });
+});
