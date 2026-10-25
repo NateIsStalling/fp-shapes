@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { namesFor } from "../catalog/names";
+import { namesFor, type NameEntry } from "../catalog/names";
 import type { OperationInfo } from "../catalog/operations";
 import { operationScenes } from "../scenes/registry";
 import { instantiate, markType, tokenize } from "../scenes/signature";
@@ -11,7 +11,13 @@ import { ShapeRibbon } from "./ShapeRibbon";
 import { usePreview } from "./preview";
 
 const LANGUAGE = { LanguageExt: "C#", "fp-ts": "TypeScript", Effect: "TypeScript", Haskell: "Haskell" } as const;
-const STATUS_LABEL = { equivalent: "equivalent", library: "library", partial: "partial", analogy: "analogy", none: "no equivalent" } as const;
+// Plain words for the catalog's status, shown as a chip on examples that
+// aren't a direct match. "none" needs no chip: its api already says so.
+const STATUS_CHIP: Partial<Record<NameEntry["status"], { label: string; title: string }>> = {
+  library: { label: "extra package", title: "Not in the standard library; it comes from the package named above." },
+  partial: { label: "not exact", title: "Close, but it differs from this page; the note says how." },
+  analogy: { label: "workaround", title: "No direct counterpart; this is the usual way to get the same result." },
+};
 
 // Which calls run after a failure. The receiver decides the result; this only
 // decides how many calls happen. ("Evaluation strategy" would mean lazy vs
@@ -125,10 +131,9 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
           <div key={n.eco + n.api} className="eco-row">
             <div className="eco-head"><strong>{n.eco}</strong><span className="version">{n.version}</span></div>
             <span className="mono">{n.api}</span>
-            {(n.status !== "equivalent" || n.preview) && (
+            {STATUS_CHIP[n.status] && (
               <span className="status-tags">
-                {n.status !== "equivalent" && <span className={`status-pill status-${n.status}`}>{STATUS_LABEL[n.status]}</span>}
-                {n.preview && <span className="status-preview">preview</span>}
+                <span className={`status-pill status-${n.status}`} title={STATUS_CHIP[n.status]?.title}>{STATUS_CHIP[n.status]?.label}</span>
               </span>
             )}
             {n.note && <span className="muted"><RichText text={n.note} /></span>}

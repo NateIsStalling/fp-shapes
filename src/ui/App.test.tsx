@@ -338,3 +338,17 @@ describe("free type variables", () => {
     expect(container.querySelectorAll(".ribbon-grid .ball-free")).toHaveLength(0);
   });
 });
+
+describe("example chips", () => {
+  it("say what a non-direct match means in plain words, and hide preview and no-equivalent chips", () => {
+    const { container } = renderAt("/op/getOrElse");
+    fireEvent.click(screen.getByRole("button", { name: "Option · constant" }));
+    const chips = [...container.querySelectorAll(".eco-list .status-pill")].map((c) => c.textContent);
+    expect(chips).toContain("not exact");
+    expect(chips).not.toContain("partial");
+    expect(container.querySelector(".eco-list .status-preview")).toBeNull();
+    cleanup();
+    const peek = renderAt("/op/peek");
+    expect([...peek.container.querySelectorAll(".eco-list .status-pill")].map((c) => c.textContent)).not.toContain("no equivalent");
+  });
+});

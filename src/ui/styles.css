@@ -358,7 +358,6 @@ a { color: var(--purple-dark); }
 .step-text { font: 500 12px var(--mono); color: var(--soft-ink); white-space: nowrap; }
 .step-text-skipped { color: var(--faint-2); }
 .status-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.status-preview { align-self: flex-start; font: 500 12px var(--mono); padding: 1px 8px; border-radius: 999px; background: var(--purple-soft); color: var(--purple-dark); }
 .status-pill { align-self: flex-start; font: 500 12px var(--mono); padding: 1px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-fg); }
 .status-pill.status-library, .status-pill.status-analogy { background: var(--purple-soft); color: var(--purple-dark); }
 .status-pill.status-none { background: var(--plain-bg); color: var(--soft-ink); }
