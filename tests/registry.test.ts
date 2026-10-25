@@ -88,7 +88,7 @@ describe("scenes show the traps", () => {
 
   it("zip: cartesian gives 6 results, positional gives 2", () => {
     expect(balls(find("zip", "list").build({}, "short-circuit").output)).toHaveLength(6);
-    expect(balls(find("zip", "ziplist").build({}, "short-circuit").output)).toEqual(["1a", "2b"]);
+    expect(balls(find("zip", "ziplist").build({}, "short-circuit").output)).toEqual(["1A", "2B"]);
   });
   it("traverse: strategies change the calls, never the output", () => {
     const r = find("traverse", "either");
@@ -99,8 +99,8 @@ describe("scenes show the traps", () => {
     expect(eager.inputs[0]?.steps?.filter((s) => s.called)).toHaveLength(4);
   });
   it("Validation keeps both errors where Either keeps one", () => {
-    expect(balls(find("zip", "validation").build({ a: true, b: true }, "short-circuit").output)).toEqual(["e₁", "e₂"]);
-    expect(balls(find("zip", "either").build({ a: true, b: true }, "short-circuit").output)).toEqual(["e₁"]);
+    expect(balls(find("zip", "validation").build({ a: true, b: true }, "short-circuit").output)).toEqual(["E₁", "E₂"]);
+    expect(balls(find("zip", "either").build({ a: true, b: true }, "short-circuit").output)).toEqual(["E₁"]);
   });
   it("bimap runs one function for Either and both for a Tuple", () => {
     expect(find("bimap", "either").build({ input: false }, "short-circuit").inputs[0]?.steps).toHaveLength(1);

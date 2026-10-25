@@ -1,6 +1,7 @@
-import { useId } from "react";
+import { Fragment, useId } from "react";
 import type { Scene, SceneInput, SceneNode, SlotNode, Step } from "../scenes/scene";
 import { RichText } from "./RichText";
+import { Times } from "./ShapeRibbon";
 import { useStackWhenTooWide } from "./useStackWhenTooWide";
 
 // Draws any Scene. Knows nothing about which operation produced it.
@@ -103,7 +104,13 @@ export function SceneView({ scene, onSet }: { scene: Scene; onSet: SetInput }) {
             </div>
           </div>
         ) : (
-          <div className="lane-inputs">{scene.inputs.map((input, i) => <Input key={i} input={input} onSet={onSet} />)}</div>
+          // Separate arguments are joined by ×, as in the signature.
+          <div className="lane-inputs">{scene.inputs.map((input, i) => (
+            <Fragment key={i}>
+              {i > 0 && <Times className="lane-times" />}
+              <Input input={input} onSet={onSet} />
+            </Fragment>
+          ))}</div>
         )}
         <svg className="lane-arrow" viewBox="0 0 56 14" aria-hidden="true"><path d="M1 7h50" /><path d="M46 2l7 5-7 5" /></svg>
         <span className="lane-divider" aria-hidden="true">result</span>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { namesFor } from "../catalog/names";
 import type { OperationInfo } from "../catalog/operations";
 import { operationScenes } from "../scenes/registry";
@@ -26,6 +26,10 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
   const [toggleState, setToggleState] = useState<Record<string, Record<string, boolean>>>({});
   const [strategy, setStrategy] = useState<EvaluationStrategy>("short-circuit");
   const preview = usePreview().on;
+  useEffect(() => {
+    document.title = `${op.name} · FP Shapes`;
+    return () => { document.title = "FP Shapes"; };
+  }, [op.name]);
 
   if (!receiver) return null;
   const toggles = toggleState[receiver.id] ?? receiver.defaults;

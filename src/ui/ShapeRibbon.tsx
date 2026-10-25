@@ -57,6 +57,15 @@ function Type({ t, side, role = "value" }: { t: TypeExpr; side: Side; role?: "va
   );
 }
 
+// A product joint, drawn in the arrow's stroke so the two read as a pair.
+export function Times({ className }: { className: string }) {
+  return (
+    <svg className={className} viewBox="0 0 14 14" aria-hidden="true">
+      <path d="M3 3l8 8M11 3l-8 8" />
+    </svg>
+  );
+}
+
 export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut, caption }: Props) {
   const b = parseType(before);
   const a = parseType(after);
@@ -72,13 +81,15 @@ export function ShapeRibbon({ before, after, op, fn, fnIn = "A", fnOut, caption 
       <path d="M1 7h50" /><path d="M46 2l7 5-7 5" />
     </svg>
   );
+  // The joints read like the signature: × between the arguments, → to the result.
+  const joint = fn ? <Times className="ribbon-times" /> : arrow;
   return (
     <figure className="ribbon">
       {/* Break lines only between types, never inside one. */}
       <p className="ribbon-signature">{signature.split(/( → | × )/).map((part, i) => (i % 2 ? part : <span key={i} className="nowrap">{part}</span>))}</p>
       <div className="ribbon-grid" ref={gridRef}>
         <div className="ribbon-col"><span className="ribbon-type">{showType(b)}</span><Type t={b} side={{ inputs, output: false }} role={roleOf(b)} /></div>
-        <div className="ribbon-col"><span className="ribbon-type" aria-hidden="true"> </span>{arrow}</div>
+        <div className="ribbon-col"><span className="ribbon-type" aria-hidden="true"> </span>{joint}</div>
         {fn && (
           <>
             <div className="ribbon-col">

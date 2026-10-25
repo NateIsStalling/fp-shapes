@@ -27,6 +27,7 @@
   --code-bg: #17182c;
   --code-ink: #ece9fb;
   --code-chip: #c9c3f0;
+  --code-edge: rgba(201, 195, 240, .45);
   --faint: #a3a4b8;
   --faint-2: #8f90a6;
   --faint-3: #b9bac8;
@@ -151,7 +152,16 @@ a { color: var(--purple-dark); }
 .eyebrow { margin: 0; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 
 /* Shell */
-.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.app-shell { --top-h: 0px; min-height: 100vh; display: flex; flex-direction: column; }
+/* Wide screens: the app bar stays put, and the sidebar sticks below it at
+   viewport height so its controls are always in view. */
+@media (min-width: 761px) {
+  .app-top { position: sticky; top: 0; z-index: 5; }
+  .sidebar { position: sticky; top: var(--top-h); align-self: flex-start; height: calc(100dvh - var(--top-h)); overflow-y: auto; overscroll-behavior: contain; }
+  .app-body .sidebar { padding-bottom: 0; }
+  /* The controls stay pinned at the bottom while the operation list scrolls. */
+  .sidebar .sidebar-foot { position: sticky; bottom: 0; padding: 12px 8px 16px; background: var(--sidebar); box-shadow: 0 -10px 12px -10px var(--shadow); }
+}
 .app-bar { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); align-items: center; background: var(--sidebar); border-bottom: 1px solid var(--line); }
 .app-bar .brand { padding: 16px 24px; }
 .app-bar .tagline { margin: 0; padding: 16px var(--content-pad); color: var(--muted); font-size: 14px; }
@@ -177,11 +187,18 @@ a { color: var(--purple-dark); }
 .page-with-aside { flex: 1; min-width: 0; display: flex; }
 .title-bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 28px var(--content-pad) 22px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .theme-switch { display: inline-flex; gap: 2px; margin: 0; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
-.theme-option { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; color: var(--soft-ink); font-size: 12px; font-weight: 600; cursor: pointer; min-height: 28px; }
+.theme-option { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; color: var(--soft-ink); font-size: 12px; font-weight: 600; cursor: pointer; min-height: 32px; }
 .theme-option:hover { color: var(--ink); }
 .theme-option.on { background: var(--purple); color: var(--on-accent); }
 .theme-option:has(input:focus-visible) { outline: 2px solid var(--purple); outline-offset: 2px; }
 .theme-option svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+/* Touch screens: controls get finger-sized targets (44px). */
+@media (pointer: coarse) {
+  :root .theme-option, :root .preview-switch, :root .github-badge { min-height: 44px; }
+  :root .theme-option { padding-inline: 12px; }
+  :root .copy-button { min-height: 40px; min-width: 64px; }
+  :root .sample-head { padding-top: 4px; }
+}
 /* Preview: switch, confirmation dialog and banner */
 .preview-switch { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; min-height: 32px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; }
 .preview-switch:hover { border-color: var(--purple); }
@@ -215,6 +232,9 @@ a { color: var(--purple-dark); }
 .main { flex: 999 1 560px; min-width: 0; padding: 28px var(--content-pad) 64px; display: flex; flex-direction: column; gap: 26px; }
 .aside { flex: 1 1 300px; max-width: 380px; padding: 28px 24px; background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
 .eco-list { display: flex; flex-direction: column; gap: 14px; }
+/* Plenty of room: a wider panel, so code samples need less sideways scrolling. */
+@container page (min-width: 1000px) { .aside { flex-basis: 400px; max-width: 460px; } }
+@container page (min-width: 1250px) { .aside { max-width: 540px; } }
 /* Too narrow for the diagram and the panel side by side: the panel goes
    below at full width, and its entries flow into columns when they fit. */
 @container page (max-width: 859px) {
@@ -232,9 +252,16 @@ a { color: var(--purple-dark); }
 .sample-block { margin-top: 4px; border-radius: 10px; background: var(--code-bg); overflow: hidden; }
 .sample-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px 0 12px; }
 .lang-chip { font: 500 12px var(--mono); color: var(--code-chip); background: rgba(255, 255, 255, .08); padding: 1px 8px; border-radius: 999px; }
-.copy-button { border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: var(--code-ink); font: 600 12px var(--sans); padding: 3px 10px; border-radius: 7px; min-height: 26px; }
+.copy-button { border: 1px solid rgba(255, 255, 255, .18); background: transparent; color: var(--code-ink); font: 600 12px var(--sans); padding: 3px 12px; border-radius: 7px; min-height: 32px; min-width: 56px; }
 .copy-button:hover { background: rgba(255, 255, 255, .08); }
-.sample { margin: 0; padding: 8px 12px 12px; color: var(--code-ink); font: 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre; }
+.sample { margin: 0; padding: 8px 12px 12px; color: var(--code-ink); font: 12.5px/1.6 var(--mono); overflow-x: auto; white-space: pre;
+  /* Edge shadows show that a long line continues; they fade at either end. */
+  background:
+    linear-gradient(to right, var(--code-bg) 30%, transparent) left / 24px 100% no-repeat local,
+    linear-gradient(to left, var(--code-bg) 30%, transparent) right / 24px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--code-edge), transparent) left / 14px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--code-edge), transparent) right / 14px 100% no-repeat scroll,
+    var(--code-bg); }
 
 /* Operation header and controls */
 .op-header { display: flex; flex-direction: column; gap: 6px; }
@@ -296,6 +323,9 @@ a { color: var(--purple-dark); }
 .ribbon-stacked .ribbon-type[aria-hidden="true"] { display: none; }
 .ribbon-stacked .ribbon-arrow { transform: rotate(90deg); margin: 12px 0; }
 .ribbon-arrow { width: 40px; height: 14px; fill: none; stroke: var(--faint-2); stroke-width: 1.5; }
+.ribbon-times, .lane-times { width: 14px; height: 14px; fill: none; stroke: var(--faint-2); stroke-width: 1.6; stroke-linecap: round; }
+.ribbon-times { margin: 0 13px; }
+.ribbon-stacked .ribbon-times { margin: 12px 0; }
 /* A sum type in the ribbon: its cases side by side, like a slot with every hole shown. */
 .sum { display: grid; justify-items: start; row-gap: 8px; padding: 10px 12px 12px; border-radius: 18px; border: 1.5px solid var(--effect-bd); background: var(--effect-bg); }
 .sum > .layer-label { color: var(--effect-fg); }

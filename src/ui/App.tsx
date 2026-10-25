@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { operationsById, visibleGroups, type OperationId } from "../catalog/operations";
 import { OperationPage } from "./OperationPage";
@@ -74,12 +74,33 @@ function AppBar() {
   );
 }
 
+// The app bar and Preview banner stay at the top on wide screens. Their
+// height is published as --top-h so the sticky sidebar fits below them.
+function useTopHeight() {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const top = ref.current;
+    const shell = top?.parentElement;
+    if (!top || !shell) return;
+    const update = () => shell.style.setProperty("--top-h", `${top.offsetHeight}px`);
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(update);
+    observer.observe(top);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
 export function App() {
+  const topRef = useTopHeight();
   return (
     <PreviewProvider>
     <div className="app-shell">
-      <AppBar />
-      <PreviewBanner />
+      <div className="app-top" ref={topRef}>
+        <AppBar />
+        <PreviewBanner />
+      </div>
       <div className="app-body">
         <Sidebar />
         <Routes>
