@@ -61,3 +61,25 @@ export function tryCatchEither<E, A>(f: () => A, onThrow: (error: unknown) => E)
   const e = call(onThrow, t.outcome.error, "onThrow");
   return { result: left(e.output), trace: { calls: [t.call, e.call], skipped: [] } };
 }
+
+// Validation and List versions. Validation fails with a one-error list, built
+// the same way Either builds its error; List's failure case is the empty list.
+const toValidation = <E, A, I, O>(run: Run<Either<E, A>, I, O>): Run<Validation<E, A>, I, O> => ({
+  result: run.result.tag === "right" ? success(run.result.value) : failure([run.result.error]),
+  trace: run.trace,
+});
+const toList = <A, I, O>(run: Run<Option<A>, I, O>): Run<readonly A[], I, O> => ({
+  result: run.result.tag === "some" ? [run.result.value] : [],
+  trace: run.trace,
+});
+
+export const failList = (): Run<readonly never[]> => ({ result: [], trace: noCalls });
+
+export const fromNullableValidation = <E, A>(e: E, a: A | null | undefined) => toValidation(fromNullableEither(e, a));
+export const fromNullableList = <A>(a: A | null | undefined) => toList(fromNullableOption(a));
+
+export const fromPredicateValidation = <E, A>(predicate: (a: A) => boolean, onFalse: (a: A) => E, a: A) =>
+  toValidation(fromPredicateEither(predicate, onFalse, a));
+export const fromPredicateList = <A>(predicate: (a: A) => boolean, a: A) => toList(fromPredicateOption(predicate, a));
+
+export const tryCatchValidation = <E, A>(f: () => A, onThrow: (error: unknown) => E) => toValidation(tryCatchEither(f, onThrow));

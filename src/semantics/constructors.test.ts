@@ -3,20 +3,26 @@ import { describe, expect, it } from "vitest";
 import { flatMapEither, flatMapOption } from "./sequencing";
 import {
   failEither,
+  failList,
   failOption,
   failValidation,
   fromNullableEither,
+  fromNullableList,
   fromNullableOption,
+  fromNullableValidation,
   fromPredicateEither,
+  fromPredicateList,
   fromPredicateOption,
+  fromPredicateValidation,
   pureEither,
   pureList,
   pureOption,
   pureValidation,
   tryCatchEither,
   tryCatchOption,
+  tryCatchValidation,
 } from "./constructors";
-import { left, none, right, some } from "./receivers";
+import { failure, left, none, right, some, success } from "./receivers";
 
 describe("pure and fail", () => {
   it("pure builds the success case and calls nothing", () => {
@@ -94,5 +100,30 @@ describe("tryCatch", () => {
 
   it("trap: a returned undefined is still a success", () => {
     expect(tryCatchOption(() => undefined).result).toEqual(some(undefined));
+  });
+});
+
+describe("Validation and List constructors", () => {
+  it("fail for List is the empty list", () => {
+    expect(failList().result).toEqual([]);
+  });
+
+  it("fromNullable: Validation fails with one error; List is empty or a singleton", () => {
+    expect(fromNullableValidation("e", null).result).toEqual(failure(["e"]));
+    expect(fromNullableValidation("e", 0).result).toEqual(success(0));
+    expect([undefined, null, 0, "a"].map((v) => fromNullableList(v).result)).toEqual([[], [], [0], ["a"]]);
+  });
+
+  it("fromPredicate: the same calls as Either and Option", () => {
+    const fails = fromPredicateValidation((x: number) => x > 5, (x) => `small ${x}`, 3);
+    expect(fails.result).toEqual(failure(["small 3"]));
+    expect(fails.trace.calls.map((c) => c.fn)).toEqual(["predicate", "onFalse"]);
+    expect(fromPredicateList((x: number) => x > 5, 3).result).toEqual([]);
+    expect(fromPredicateList((x: number) => x > 5, 8).result).toEqual([8]);
+  });
+
+  it("tryCatch: Validation keeps onThrow's error in a list", () => {
+    expect(tryCatchValidation(() => { throw "u"; }, (u) => `caught ${String(u)}`).result).toEqual(failure(["caught u"]));
+    expect(tryCatchValidation(() => undefined, () => "e").result).toEqual(success(undefined));
   });
 });
