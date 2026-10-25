@@ -2,6 +2,8 @@
 // (Data.Either.Validation) and semigroupoids 6.0.1 (Data.Functor.Alt).
 // Samples live in snippets/haskell/Main.hs (`npm run samples:haskell`).
 // Every entry stays in Preview until that run passes on the pinned GHC.
+// Status: all samples pass on GHC 9.10.3 (base 4.20.1.0), built with
+// `--allow-older=fp-shapes-samples:base`; not yet run on GHC 9.14.1.
 
 export const HASKELL_PACKAGES = { base: "4.22.0.0", mtl: "2.3.2", either: "5.0.3", semigroupoids: "6.0.1" } as const;
 export type HaskellPackage = keyof typeof HASKELL_PACKAGES;
@@ -55,7 +57,7 @@ export const haskell: Readonly<Record<string, HaskellEntry>> = {
   "tap:either": { api: "m >>= \\a -> a <$ f a", status: "partial", pkg: "base", note: "base has no named tap; bind the step and keep the original value. `<*` does it when the step doesn't need the value.", ...P },
   "tap:option": { api: "m >>= \\a -> a <$ f a", status: "partial", pkg: "base", note: "base has no named tap.", ...P },
   "peek:either": { api: "fmap traceShowId", status: "analogy", pkg: "base", note: "Pure code can't perform effects. `Debug.Trace` prints to stderr when the value is forced, and is for debugging only.", ...P },
-  "peek:list": { api: "map traceShowId", status: "analogy", pkg: "base", note: "For debugging only; prints when each element is forced.", ...P },
+  "peek:list": { api: "map traceShowId", status: "analogy", pkg: "base", note: "For debugging only. A trace prints when, and as often as, the value is evaluated, and GHC may share identical traces: in our run, the `2` here printed once for both peek samples.", ...P },
   // Zipping
   "zip:either": { api: "liftA2", status: "equivalent", pkg: "base", note: "The first `Left` wins.", ...P },
   "zip:validation": { api: "liftA2", status: "library", pkg: "either", note: "Errors combine with `<>`: e₁ then e₂.", ...P },
