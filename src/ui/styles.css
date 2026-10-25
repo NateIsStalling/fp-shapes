@@ -369,13 +369,13 @@ a { color: var(--purple-dark); }
 .ball-empty { background: transparent; color: var(--soft-ink); box-shadow: inset 0 0 0 2px var(--faint-2); font-size: 12px; }
 .ball-ghost { background: transparent !important; color: var(--faint-2); box-shadow: inset 0 0 0 1.5px var(--faint-3); }
 .ball-ghost.ball-error { box-shadow: inset 0 0 0 1.5px var(--error-ghost); }
-.layer-ghost { opacity: .45; }
-.ghost-box { font: 500 12px var(--mono); color: var(--faint-2); border: 1.5px dashed var(--tuple-bd); border-radius: 10px; padding: 6px 8px; }
 /* A word-length label ("undefined", "nullish") as a pill instead of a circle. */
 .ball.ball-word { width: auto; min-width: var(--ball); padding: 0 10px; border-radius: 999px; font-size: 12px; }
 /* A free type variable in the Shape Ribbon: the type exists, no value does. */
 .ball.ball-free { background: transparent; color: var(--muted); box-shadow: none; border: 1.5px dashed var(--faint-2); }
 .ball.ball-free.ball-error { border-color: var(--error-ghost); color: var(--red); }
+.layer-ghost { opacity: .45; }
+.ghost-box { font: 500 12px var(--mono); color: var(--faint-2); border: 1.5px dashed var(--tuple-bd); border-radius: 10px; padding: 6px 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Shape-sorter slots: a sum type is one of its cases. */

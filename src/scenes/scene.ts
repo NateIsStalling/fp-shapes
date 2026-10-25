@@ -24,7 +24,9 @@ export interface ContainerNode {
 // per case, and exactly one piece in place. Picking a hole sets the input.
 export interface SlotOption {
   readonly name: string; // constructor: Right, Left, Some, None, ...
-  readonly fails: boolean;
+  // What choosing this case stores for the slot's key: true/false for a
+  // two-case slot (true = the failing case), an index for a choice slot.
+  readonly value: boolean | number;
   readonly content: readonly SceneNode[];
 }
 
@@ -68,14 +70,15 @@ export interface Scene {
 export interface RibbonSpec {
   readonly before: string;
   readonly after: string;
+  // The function argument, as the signature writes it; the ribbon draws it.
   readonly fn?: string;
-  readonly fnIn?: string;
-  readonly fnOut?: string;
   // Replaces the generated caption when "layers moved, payload changed" would mislead.
   readonly caption?: string;
 }
 
-export type Toggles = Readonly<Record<string, boolean>>; // true = the failing case is selected
+// One entry per input: true = the failing case of a two-case slot is
+// selected; a number = the chosen case of a choice slot.
+export type Toggles = Readonly<Record<string, boolean | number>>;
 
 export interface ReceiverScene {
   readonly id: string;
@@ -111,36 +114,44 @@ export const listOf = (labels: readonly string[], tone: Tone) => list(labels.map
 
 // Cases follow the type's parameter order, failure first: Left | Right,
 // Failure | Success, None | Some (the Shape Ribbon uses the same order).
-function slot(label: string, key: string, t: Toggles, ok: SlotOption, bad: SlotOption): SlotNode {
-  return { type: "slot", label, key, options: [bad, ok], selected: t[key] ? 0 : 1 };
+type Case = { readonly name: string; readonly content: readonly SceneNode[] };
+
+function slot(label: string, key: string, t: Toggles, ok: Case, bad: Case): SlotNode {
+  return { type: "slot", label, key, options: [{ ...bad, value: true }, { ...ok, value: false }], selected: t[key] ? 0 : 1 };
 }
+
+// A slot with any number of cases; the toggle stores the chosen index.
+export function choiceSlot(t: Toggles, key: string, label: string, cases: readonly Case[]): SlotNode {
+  const chosen = t[key];
+  const selected = typeof chosen === "number" && chosen >= 0 && chosen < cases.length ? chosen : 0;
+  return { type: "slot", label, key, options: cases.map((c, i) => ({ ...c, value: i })), selected };
+}
+
+// The chosen index of a choice slot.
+export const choice = (t: Toggles, key: string): number => (typeof t[key] === "number" ? (t[key] as number) : 0);
 
 // Slots for each sum type. `tone` is "in" for inputs and "out" for values a
 // function returns.
 export const eitherSlot = (t: Toggles, key: string, ok: string, err: string, tone: Tone = "in", label = "Either") =>
-  slot(label, key, t, { name: "Right", fails: false, content: [ball(ok, tone)] }, { name: "Left", fails: true, content: [ball(err, "error")] });
+  slot(label, key, t, { name: "Right", content: [ball(ok, tone)] }, { name: "Left", content: [ball(err, "error")] });
 
 export const optionSlot = (t: Toggles, key: string, ok: string, tone: Tone = "in", label = "Option") =>
-  slot(label, key, t, { name: "Some", fails: false, content: [ball(ok, tone)] }, { name: "None", fails: true, content: [ball("None", "empty")] });
+  slot(label, key, t, { name: "Some", content: [ball(ok, tone)] }, { name: "None", content: [ball("None", "empty")] });
 
 export const validationSlot = (t: Toggles, key: string, ok: string, errs: readonly string[], tone: Tone = "in", label = "Validation") =>
-  slot(label, key, t, { name: "Success", fails: false, content: [ball(ok, tone)] }, { name: "Failure", fails: true, content: errs.map((e) => ball(e, "error")) });
+  slot(label, key, t, { name: "Success", content: [ball(ok, tone)] }, { name: "Failure", content: errs.map((e) => ball(e, "error")) });
 
 export const boolSlot = (t: Toggles, key: string, label: string) =>
-  slot(label, key, t, { name: "true", fails: false, content: [ball("true", "out")] }, { name: "false", fails: true, content: [ball("false", "error")] });
+  slot(label, key, t, { name: "true", content: [ball("true", "out")] }, { name: "false", content: [ball("false", "error")] });
 
 // A possibly missing value: null or a value.
 export const nullableSlot = (t: Toggles, key: string, ok: string, label = "A | null") =>
-  slot(label, key, t, { name: "value", fails: false, content: [ball(ok, "in")] }, { name: "null", fails: true, content: [ball("null", "empty")] });
-
-// A computation that either returns a value or throws.
-export const thunkSlot = (t: Toggles, key: string, ok: string, label = "the computation") =>
-  slot(label, key, t, { name: "returns", fails: false, content: [ball(ok, "in")] }, { name: "throws", fails: true, content: [ball("!", "error")] });
+  slot(label, key, t, { name: "value", content: [ball(ok, "in")] }, { name: "null", content: [ball("null", "empty")] });
 
 // A slot whose success case holds another node, e.g. the outer layer of a
 // nested Either.
 export const nestedSlot = (t: Toggles, key: string, label: string, okName: string, inner: SceneNode, badName: string, bad: BallNode) =>
-  slot(label, key, t, { name: okName, fails: false, content: [inner] }, { name: badName, fails: true, content: [bad] });
+  slot(label, key, t, { name: okName, content: [inner] }, { name: badName, content: [bad] });
 
 export const SUB = ["₁", "₂", "₃", "₄", "₅", "₆"];
 export const sub = (i: number) => SUB[i] ?? String(i + 1);

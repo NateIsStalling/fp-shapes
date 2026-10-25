@@ -30,27 +30,27 @@ describe("interaction", () => {
 
   it("traverse: each slot is a radio group; moving pieces recomputes the result", () => {
     renderAt("/");
-    expect(caption()).toMatch(/f was called on 2 of 4 elements, then it stopped at the first failure\. Result: Left\(E₂\)\./);
-    expect((within(screen.getByRole("group", { name: "f(A₂)" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
-    pick("f(A₂)", /Right/);
-    pick("f(A₄)", /Right/);
-    expect(caption()).toMatch(/f succeeded on all 4 elements\. Result: Right\(\[B₁, B₂, B₃, B₄\]\)\./);
+    expect(caption()).toMatch(/f was called on 2 of 4 elements, then it stopped at the first failure\. Result: Left\(e₂\)\./);
+    expect((within(screen.getByRole("group", { name: "f(a₂)" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
+    pick("f(a₂)", /Right/);
+    pick("f(a₄)", /Right/);
+    expect(caption()).toMatch(/f succeeded on all 4 elements\. Result: Right\(\[b₁, b₂, b₃, b₄\]\)\./);
     fireEvent.click(screen.getByRole("button", { name: "Validation" }));
-    expect(caption()).toMatch(/All 2 failures are kept\. Result: Failure\(\[E₂, E₄\]\)\./);
-    expect(screen.queryByRole("group", { name: "Evaluation" })).toBeNull();
+    expect(caption()).toMatch(/All 2 failures are kept\. Result: Failure\(\[e₂, e₄\]\)\./);
+    expect(screen.queryByRole("group", { name: "After a failure" })).toBeNull();
   });
 
   it("traverse: eager evaluation calls f everywhere but keeps the same result", () => {
     renderAt("/op/traverse");
-    fireEvent.click(screen.getByRole("button", { name: "Eager" }));
-    expect(caption()).toMatch(/f was called on all 4 elements\. 2 failed, and only the first failure survives\. Result: Left\(E₂\)\./);
+    fireEvent.click(screen.getByRole("button", { name: "Keep calling" }));
+    expect(caption()).toMatch(/f was called on all 4 elements\. 2 failed, and only the first failure survives\. Result: Left\(e₂\)\./);
   });
 
   it("flatten: the outer slot holds the inner slot, and both can be changed", () => {
     renderAt("/op/flatten");
     pick("inner Either", /Left/);
     expect(caption()).toMatch(/the inner value comes out as it is/);
-    pick("outer Either", /Left E₁/);
+    pick("outer Either", /Left e₁/);
     expect(caption()).toMatch(/The outer Left becomes the result\./);
   });
 
@@ -71,7 +71,7 @@ describe("interaction", () => {
     renderAt("/op/traverse");
     const tokens = [...document.querySelectorAll(".lane-caption code.tok")].map((c) => c.textContent);
     expect(tokens).toContain("f");
-    expect(tokens).toContain("Left(E₂)");
+    expect(tokens).toContain("Left(e₂)");
     expect(document.querySelector(".lane-caption")?.textContent).not.toContain("`");
   });
 
@@ -114,7 +114,7 @@ describe("shape ribbon", () => {
     fireEvent.click(screen.getByRole("button", { name: "Tuple" }));
     const before = container.querySelector(".ribbon-grid .ribbon-col .layer-tuple");
     expect(before).toBeTruthy();
-    expect([...(before?.querySelectorAll(".ball") ?? [])].map((b) => b.textContent)).toEqual(["A", "X"]);
+    expect([...(before?.querySelectorAll(".ball") ?? [])].map((b) => b.textContent)).toEqual(["A", "B"]);
   });
 });
 
@@ -177,7 +177,7 @@ describe("receiver fills in the type variable", () => {
     expect([...container.querySelectorAll(".op-signature .type-var")].map((n) => n.textContent)).toEqual(["F", "F"]);
     expect(container.querySelector(".receiver-label")?.textContent).toBe("F =");
     const concrete = () => container.querySelector(".op-signature-concrete")?.textContent;
-    expect(concrete()).toContain("(A → Either<B>) → List<A> → Either<List<B>>");
+    expect(concrete()).toContain("(A → Either<E, B>) → List<A> → Either<E, List<B>>");
     expect([...container.querySelectorAll(".op-signature-concrete .bound-type")].map((n) => n.textContent)).toEqual(["Either", "Either"]);
     fireEvent.click(screen.getByRole("button", { name: "Option" }));
     expect(concrete()).toContain("(A → Option<B>) → List<A> → Option<List<B>>");
@@ -314,5 +314,23 @@ describe("page title and signature joints", () => {
   it("separate behavior inputs are joined by ×, as in the signature", () => {
     const { container } = renderAt("/op/alt");
     expect(container.querySelectorAll(".lane-inputs > .lane-times")).toHaveLength(1);
+  });
+});
+
+describe("free type variables", () => {
+  it("pure draws Either's E, which nothing supplies, as a ghost; fail does the same for A", () => {
+    localStorage.setItem("fp-shapes-preview", "on");
+    const { container, unmount } = renderAt("/op/pure");
+    fireEvent.click(screen.getByRole("button", { name: "Either" }));
+    expect([...container.querySelectorAll(".ribbon-grid .ball-free")].map((b) => b.textContent)).toEqual(["E"]);
+    unmount();
+    const fail = renderAt("/op/fail");
+    expect([...fail.container.querySelectorAll(".ribbon-grid .ball-free")].map((b) => b.textContent)).toEqual(["A"]);
+    localStorage.clear();
+  });
+
+  it("map supplies every output variable, so nothing is a ghost", () => {
+    const { container } = renderAt("/op/map");
+    expect(container.querySelectorAll(".ribbon-grid .ball-free")).toHaveLength(0);
   });
 });

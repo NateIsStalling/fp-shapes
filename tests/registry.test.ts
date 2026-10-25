@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { names, namesFor } from "../src/catalog/names";
 import { operationGroups } from "../src/catalog/operations";
 import { operationScenes } from "../src/scenes/registry";
+import { parseFn } from "../src/scenes/types";
+import { instantiate } from "../src/scenes/signature";
 import type { Scene, SceneNode } from "../src/scenes/scene";
 
 // The UI renders every operation from data. These checks keep the catalog,
@@ -9,18 +11,20 @@ import type { Scene, SceneNode } from "../src/scenes/scene";
 
 const allOps = operationGroups.flatMap((g) => g.operations);
 
-function toggleKeys(scene: Scene): Set<string> {
-  const keys = new Set<string>();
+// Every slot in a scene: its key and the value each of its cases stores.
+function slotsOf(scene: Scene): Map<string, (boolean | number)[]> {
+  const slots = new Map<string, (boolean | number)[]>();
   const walk = (n: SceneNode) => {
-    if (n.type === "slot") { keys.add(n.key); n.options.forEach((o) => o.content.forEach(walk)); }
+    if (n.type === "slot") { slots.set(n.key, n.options.map((o) => o.value)); n.options.forEach((o) => o.content.forEach(walk)); }
     else if (n.type === "container") n.children.forEach(walk);
   };
   for (const input of scene.inputs) {
     walk(input.node);
     for (const s of input.steps ?? []) if (s.result) walk(s.result);
   }
-  return keys;
+  return slots;
 }
+const toggleKeys = (scene: Scene) => new Set(slotsOf(scene).keys());
 
 describe("scene registry", () => {
   it("covers every operation in the navigation, and nothing else", () => {
@@ -46,9 +50,12 @@ describe("scene registry", () => {
           }
           const visible = toggleKeys(r.build(r.defaults, r.strategies?.[0] ?? "short-circuit"));
           for (const key of Object.keys(r.defaults)) expect(visible, `toggle "${key}"`).toContain(key);
-          for (const key of Object.keys(r.defaults)) {
-            const flipped = r.build({ ...r.defaults, [key]: !r.defaults[key] }, r.strategies?.[0] ?? "short-circuit");
-            expect(flipped.caption.length).toBeGreaterThan(0);
+          // Every case of every slot can be chosen, and the scene still builds.
+          for (const [key, values] of slotsOf(r.build(r.defaults, r.strategies?.[0] ?? "short-circuit"))) {
+            for (const value of values) {
+              const chosen = r.build({ ...r.defaults, [key]: value }, r.strategies?.[0] ?? "short-circuit");
+              expect(chosen.caption.length, `${key}=${String(value)}`).toBeGreaterThan(0);
+            }
           }
           expect(r.ribbon.before.length).toBeGreaterThan(0);
           expect(r.ribbon.after.length).toBeGreaterThan(0);
@@ -88,7 +95,7 @@ describe("scenes show the traps", () => {
 
   it("zip: cartesian gives 6 results, positional gives 2", () => {
     expect(balls(find("zip", "list").build({}, "short-circuit").output)).toHaveLength(6);
-    expect(balls(find("zip", "ziplist").build({}, "short-circuit").output)).toEqual(["1A", "2B"]);
+    expect(balls(find("zip", "ziplist").build({}, "short-circuit").output)).toEqual(["1a", "2b"]);
   });
   it("traverse: strategies change the calls, never the output", () => {
     const r = find("traverse", "either");
@@ -99,12 +106,122 @@ describe("scenes show the traps", () => {
     expect(eager.inputs[0]?.steps?.filter((s) => s.called)).toHaveLength(4);
   });
   it("Validation keeps both errors where Either keeps one", () => {
-    expect(balls(find("zip", "validation").build({ a: true, b: true }, "short-circuit").output)).toEqual(["E₁", "E₂"]);
-    expect(balls(find("zip", "either").build({ a: true, b: true }, "short-circuit").output)).toEqual(["E₁"]);
+    expect(balls(find("zip", "validation").build({ a: true, b: true }, "short-circuit").output)).toEqual(["e₁", "e₂"]);
+    expect(balls(find("zip", "either").build({ a: true, b: true }, "short-circuit").output)).toEqual(["e₁"]);
   });
   it("bimap runs one function for Either and both for a Tuple", () => {
     expect(find("bimap", "either").build({ input: false }, "short-circuit").inputs[0]?.steps).toHaveLength(1);
-    expect(find("bimap", "tuple").build({}, "short-circuit").inputs[0]?.steps?.map((s) => s.label)).toEqual(["f", "g"]);
+    expect(find("bimap", "tuple").build({}, "short-circuit").inputs[0]?.steps?.map((s) => s.label)).toEqual(["f(a)", "g(b)"]);
+  });
+});
+
+// "Either<B>" reads to a Haskeller as "B is the error", and fp-ts rejects it.
+// Every Either and Validation the page shows names its error type.
+function oneArgumentErrorTypes(text: string): string[] {
+  const bad: string[] = [];
+  for (const m of text.matchAll(/\b(Either|Validation)</g)) {
+    let depth = 0;
+    let commas = 0;
+    for (let i = m.index + m[1]!.length; i < text.length; i++) {
+      const c = text[i];
+      if (c === "<" || c === "(") depth++;
+      else if (c === ">" || c === ")") { depth--; if (depth === 0) break; }
+      else if (c === "," && depth === 1) commas++;
+    }
+    if (commas === 0) bad.push(text);
+  }
+  return bad;
+}
+
+describe("signatures name the error type", () => {
+  for (const op of allOps) {
+    for (const r of operationScenes[op.id]?.receivers ?? []) {
+      it(`${op.id}:${r.id}`, () => {
+        const shown = [r.signature ?? instantiate(op.signature, r.binds), r.ribbon.before, r.ribbon.after, r.ribbon.fn ?? ""];
+        expect(shown.flatMap(oneArgumentErrorTypes)).toEqual([]);
+      });
+    }
+  }
+});
+
+// Split at the top level only (outside <> and ()).
+function splitTop(text: string, sep: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === "<" || c === "(") depth++;
+    else if (c === ">" || c === ")") depth--;
+    else if (depth === 0 && text.startsWith(sep, i)) { parts.push(text.slice(start, i)); start = i + sep.length; }
+  }
+  return [...parts, text.slice(start)];
+}
+
+describe("the Shape diagram draws every argument of the signature", () => {
+  for (const op of allOps) {
+    for (const r of operationScenes[op.id]?.receivers ?? []) {
+      it(`${op.id}:${r.id}`, () => {
+        const signature = r.signature ?? instantiate(op.signature, r.binds);
+        const args = splitTop(signature, " → ").slice(0, -1).flatMap((a) => splitTop(a, " × "));
+        const drawn = 1 + (r.ribbon.fn ? parseFn(r.ribbon.fn).length : 0);
+        expect(drawn, `${signature} vs ribbon ${r.ribbon.before} × ${r.ribbon.fn ?? "—"}`).toBe(args.length);
+      });
+    }
+  }
+});
+
+describe("shape ribbon functions", () => {
+  it("every function argument parses into something drawable", () => {
+    for (const [op, { receivers }] of Object.entries(operationScenes)) {
+      for (const r of receivers) {
+        if (!r.ribbon.fn) continue;
+        const shape = parseFn(r.ribbon.fn);
+        expect(shape.length, `${op}:${r.id}`).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe("behavior joints match the signature", () => {
+  // A function argument is drawn as a call hanging under the value it is
+  // applied to, labelled in call notation; a value argument is a separate
+  // input, joined to the others by ×.
+  const call = /^[A-Za-z]+\(.*\)$/;
+  const find = (op: string, receiver: string) => {
+    const r = operationScenes[op]?.receivers.find((x) => x.id === receiver);
+    if (!r) throw new Error(`${op}:${receiver} missing`);
+    return r;
+  };
+  // The defaults, plus every case of every slot chosen in turn.
+  const variants = (r: { defaults: Readonly<Record<string, boolean | number>>; build: (t: Readonly<Record<string, boolean | number>>, s: "short-circuit") => Scene }) =>
+    [r.defaults, ...[...slotsOf(r.build(r.defaults, "short-circuit"))].flatMap(([k, values]) => values.map((v) => ({ ...r.defaults, [k]: v })))];
+  for (const [op, { receivers }] of Object.entries(operationScenes)) {
+    for (const r of receivers) {
+      it(`${op}:${r.id}: every drawn call is labelled as a call`, () => {
+        for (const t of variants(r)) {
+          for (const strategy of r.strategies ?? ["short-circuit"]) {
+            for (const input of r.build(t, strategy).inputs) {
+              for (const s of input.steps ?? []) {
+                if (!s.result && !s.effect) continue;
+                const label = s.label ?? (s.result?.type === "slot" ? s.result.label : undefined);
+                expect(label, `${op}:${r.id}`).toMatch(call);
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+
+  it("value arguments are separate inputs", () => {
+    expect(find("fromNullable", "either").build({ input: true }, "short-circuit").inputs).toHaveLength(2);
+    expect(find("getOrElse", "option").build({ input: true }, "short-circuit").inputs).toHaveLength(2);
+  });
+
+  it("filterOrElse draws the onFalse call that builds the error", () => {
+    const steps = find("filterOrElse", "either").build({ input: false, predicate: true }, "short-circuit").inputs[0]?.steps ?? [];
+    expect(steps.map((s) => [s.label ?? (s.result?.type === "slot" ? s.result.label : ""), s.called])).toEqual([["p(a)", true], ["onFalse(a)", true]]);
   });
 });
 
@@ -164,5 +281,34 @@ describe("case order", () => {
       }
     }
     expect(checked).toBeGreaterThan(20);
+  });
+});
+
+describe("constructor scenes run the cases they teach", () => {
+  const find = (op: string, receiver: string) => {
+    const r = operationScenes[op]?.receivers.find((x) => x.id === receiver);
+    if (!r) throw new Error(`${op}:${receiver} missing`);
+    return r;
+  };
+  const out = (op: string, receiver: string, t: Record<string, boolean | number>) => {
+    const node = find(op, receiver).build(t, "short-circuit").output;
+    return node.type === "container" ? node.children.map((c) => (c.type === "ball" ? c.label : "?")) : [];
+  };
+
+  it("fromNullable: undefined and null are missing; 0 and a value are present", () => {
+    expect([0, 1, 2, 3].map((i) => out("fromNullable", "option", { input: i }))).toEqual([["None"], ["None"], ["0"], ["a"]]);
+    expect([0, 1, 2, 3].map((i) => out("fromNullable", "either", { input: i }))).toEqual([["e"], ["e"], ["0"], ["a"]]);
+  });
+
+  it("tryCatch: only a throw fails; returning undefined is a success", () => {
+    expect([0, 1, 2].map((i) => out("tryCatch", "either", { thunk: i }))).toEqual([["e"], ["a"], ["undefined"]]);
+    expect([0, 1, 2].map((i) => out("tryCatch", "option", { thunk: i }))).toEqual([["None"], ["a"], ["undefined"]]);
+    const steps = find("tryCatch", "either").build({ thunk: 0 }, "short-circuit").inputs[0]?.steps ?? [];
+    expect(steps.map((s) => [s.label, s.called])).toEqual([["onThrow(u)", true]]);
+  });
+
+  it("pure doesn't inspect its input: null goes in, Some(null) comes out", () => {
+    expect(out("pure", "option", { input: true })).toEqual(["null"]);
+    expect(out("pure", "option", { input: false })).toEqual(["a"]);
   });
 });

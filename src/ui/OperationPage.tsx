@@ -17,8 +17,8 @@ const STATUS_LABEL = { equivalent: "equivalent", library: "library", partial: "p
 // strict to a Haskeller, so the control says what it does.)
 const STRATEGY_LABEL: Record<EvaluationStrategy, string> = { "short-circuit": "Stop", eager: "Keep calling" };
 const STRATEGY_NOTE: Record<EvaluationStrategy, string> = {
-  "short-circuit": "Nothing more is evaluated after the first failure. Eager evaluation gives the same result.",
-  eager: "Every element is evaluated. Only the first failure survives, so the result matches short-circuiting.",
+  "short-circuit": "Nothing more is called after the first failure. For a finite input, calling every element gives the same result.",
+  eager: "Every element is called. Only the first failure survives, so for a finite input the result matches stopping.",
 };
 
 // One page for every operation: header, Shape Ribbon, behavior lane, names.
@@ -28,7 +28,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
   const receivers = operationScenes[op.id]?.receivers ?? [];
   const [receiverId, setReceiverId] = useState(receivers[0]?.id ?? "");
   const receiver = receivers.find((r) => r.id === receiverId) ?? receivers[0];
-  const [toggleState, setToggleState] = useState<Record<string, Record<string, boolean>>>({});
+  const [toggleState, setToggleState] = useState<Record<string, Record<string, boolean | number>>>({});
   const [strategy, setStrategy] = useState<EvaluationStrategy>("short-circuit");
   const preview = usePreview().on;
   useEffect(() => {
@@ -42,7 +42,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
   const activeStrategy: EvaluationStrategy = strategies.includes(strategy) ? strategy : (strategies[0] ?? "short-circuit");
   const scene = receiver.build(toggles, activeStrategy);
   const entries = namesFor(op.id, receiver.id, strategies.length ? activeStrategy : undefined, preview);
-  const setInput = (key: string, fails: boolean) => setToggleState((s) => ({ ...s, [receiver.id]: { ...toggles, [key]: fails } }));
+  const setInput = (key: string, value: boolean | number) => setToggleState((s) => ({ ...s, [receiver.id]: { ...toggles, [key]: value } }));
   const hasToggles = Object.keys(receiver.defaults).length > 0;
 
   return (
@@ -57,7 +57,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <p className="mono op-signature">
               {tokenize(op.signature, op.receiverVar).map((tk, i) => (tk.isVar ? <span key={i} className="type-var">{tk.text}</span> : tk.text))}
             </p>
-            <span className="abstraction-tag"><span>abstraction</span>{op.abstraction}</span>
+            {op.abstraction && <span className="abstraction-tag"><span>abstraction</span>{op.abstraction}</span>}
           </div>
           {receivers.length > 1 && (
             <div className="control-row receiver-row">
@@ -90,8 +90,8 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
           <div className="control-row">
             {strategies.length > 1 && (
               <>
-                <span className="eyebrow">Evaluation</span>
-                <div className="seg" role="group" aria-label="Evaluation">
+                <span className="eyebrow">After a failure</span>
+                <div className="seg" role="group" aria-label="After a failure">
                   {strategies.map((s) => (
                     <button key={s} type="button" className={s === activeStrategy ? "on" : ""} aria-pressed={s === activeStrategy} onClick={() => setStrategy(s)}>{STRATEGY_LABEL[s]}</button>
                   ))}
@@ -122,7 +122,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
           <div key={n.eco + n.api} className="eco-row">
             <div className="eco-head"><strong>{n.eco}</strong><span className="version">{n.version}</span></div>
             <span className="mono">{n.api}</span>
-            {(n.status === "partial" || n.preview) && (
+            {(n.status !== "equivalent" || n.preview) && (
               <span className="status-tags">
                 {n.status !== "equivalent" && <span className={`status-pill status-${n.status}`}>{STATUS_LABEL[n.status]}</span>}
                 {n.preview && <span className="status-preview">preview</span>}

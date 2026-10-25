@@ -1,14 +1,14 @@
 import { Fragment, useId } from "react";
 import type { Scene, SceneInput, SceneNode, SlotNode, Step } from "../scenes/scene";
 import { RichText } from "./RichText";
-import { Times } from "./ShapeRibbon";
+import { isWord, Times } from "./ShapeRibbon";
 import { useStackWhenTooWide } from "./useStackWhenTooWide";
 
 // Draws any Scene. Knows nothing about which operation produced it.
 // Editable inputs are shape-sorter slots: real radio groups, one hole per
 // case, with exactly one piece in place.
 
-type SetInput = (key: string, fails: boolean) => void;
+type SetInput = (key: string, value: boolean | number) => void;
 
 // Short spoken form of a node, for radio labels: "Right b₂", "Left e₁".
 const text = (n: SceneNode): string => n.label;
@@ -16,7 +16,7 @@ const text = (n: SceneNode): string => n.label;
 const kindClass = (kind: string) => (kind === "collection" ? "layer-collection" : kind === "tuple" ? "layer-tuple" : "layer-effect");
 
 function Node({ node, onSet, ghost = false }: { node: SceneNode; onSet: SetInput; ghost?: boolean }) {
-  if (node.type === "ball") return <span className={`ball ball-${node.tone}${ghost ? " ball-ghost" : ""}`}>{node.label}</span>;
+  if (node.type === "ball") return <span className={`ball ball-${node.tone}${ghost ? " ball-ghost" : ""}${isWord(node.label) ? " ball-word" : ""}`}>{node.label}</span>;
   if (node.type === "slot") return ghost ? <span className="ghost-box">{node.label}</span> : <Slot slot={node} onSet={onSet} />;
   return (
     <div className={`layer ${kindClass(node.kind)}${ghost ? " layer-ghost" : ""}`}>
@@ -36,7 +36,7 @@ function Slot({ slot, onSet }: { slot: SlotNode; onSet: SetInput }) {
           const filled = i === slot.selected;
           return (
             <label key={o.name} className={`hole ${filled ? "hole-filled" : "hole-empty"}`}>
-              <input type="radio" className="sr-only" name={name} checked={filled} aria-label={`${o.name} ${o.content.map(text).join(" ")}`.trim()} onChange={() => onSet(slot.key, o.fails)} />
+              <input type="radio" className="sr-only" name={name} checked={filled} aria-label={`${o.name} ${o.content.map(text).join(" ")}`.trim()} onChange={() => onSet(slot.key, o.value)} />
               <span className="hole-name">{o.name}</span>
               <span className="hole-content">{o.content.map((c, j) => <Node key={j} node={c} onSet={onSet} ghost={!filled} />)}</span>
             </label>
