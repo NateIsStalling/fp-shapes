@@ -71,7 +71,8 @@ export function describeTypes(before: string, after: string): RibbonDiff {
   const d = diffLayers(spine(b), spine(a));
   const eb = errorsOf(b);
   const ea = errorsOf(a);
-  const errorChanged = eb.length > 0 && ea.length > 0 && eb.join() !== ea.join();
+  // Nested layers repeat the same error (flatten's Either<E, Either<E, A>>), so compare the distinct types.
+  const errorChanged = eb.length > 0 && ea.length > 0 && [...new Set(eb)].join() !== [...new Set(ea)].join();
   if (!errorChanged) return d;
   // When only the error side changed, "the payload stays" leads; say what changed first.
   const caption = d.caption.replace(/(The payload [^.]*\.)$/, `The error changes from \`${eb[0]}\` to \`${ea[ea.length - 1]}\`. $1`);

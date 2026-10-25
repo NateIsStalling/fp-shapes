@@ -30,20 +30,20 @@ describe("interaction", () => {
 
   it("traverse: each slot is a radio group; moving pieces recomputes the result", () => {
     renderAt("/");
-    expect(caption()).toMatch(/f was called on 2 of 4 elements, then it stopped at the first failure\. Result: Left\(e₂\)\./);
+    expect(caption()).toMatch(/f ran on 2 of 4 elements, stopping at the first failure\. The result is Left\(e₂\)\./);
     expect((within(screen.getByRole("group", { name: "f(a₂)" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
     pick("f(a₂)", /Right/);
     pick("f(a₄)", /Right/);
-    expect(caption()).toMatch(/f succeeded on all 4 elements\. Result: Right\(\[b₁, b₂, b₃, b₄\]\)\./);
+    expect(caption()).toMatch(/f ran on all 4 elements, and all succeeded\. The result is Right\(\[b₁, b₂, b₃, b₄\]\)\./);
     fireEvent.click(screen.getByRole("button", { name: "Validation" }));
-    expect(caption()).toMatch(/All 2 failures are kept\. Result: Failure\(\[e₂, e₄\]\)\./);
+    expect(caption()).toMatch(/every failure was kept\. The result is Failure\(\[e₂, e₄\]\)\./);
     expect(screen.queryByRole("group", { name: "After a failure" })).toBeNull();
   });
 
   it("traverse: eager evaluation calls f everywhere but keeps the same result", () => {
     renderAt("/op/traverse");
-    fireEvent.click(screen.getByRole("button", { name: "Keep calling" }));
-    expect(caption()).toMatch(/f was called on all 4 elements\. 2 failed, and only the first failure survives\. Result: Left\(e₂\)\./);
+    fireEvent.click(screen.getByRole("button", { name: "Keep going" }));
+    expect(caption()).toMatch(/f ran on all 4 elements, and only the first failure was kept\. The result is Left\(e₂\)\./);
   });
 
   it("flatten: the outer slot holds the inner slot, and both can be changed", () => {
@@ -51,13 +51,13 @@ describe("interaction", () => {
     pick("inner Either", /Left/);
     expect(caption()).toMatch(/the inner value comes out as it is/);
     pick("outer Either", /Left e₁/);
-    expect(caption()).toMatch(/The outer Left becomes the result\./);
+    expect(caption()).toMatch(/The outer Left is the result\./);
   });
 
   it("zip: switching to the positional receiver drops the unmatched element", () => {
     renderAt("/op/zip");
     fireEvent.click(screen.getByRole("button", { name: "List (positional)" }));
-    expect(caption()).toMatch(/the extra 3 is dropped/);
+    expect(caption()).toMatch(/The extra 3 has no partner, so it was dropped/);
   });
 
   it("zip: the two inputs are one tuple argument, drawn in one Tuple box", () => {

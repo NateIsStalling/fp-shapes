@@ -16,10 +16,10 @@ const STATUS_LABEL = { equivalent: "equivalent", library: "library", partial: "p
 // Which calls run after a failure. The receiver decides the result; this only
 // decides how many calls happen. ("Evaluation strategy" would mean lazy vs
 // strict to a Haskeller, so the control says what it does.)
-const STRATEGY_LABEL: Record<EvaluationStrategy, string> = { "short-circuit": "Stop", eager: "Keep calling" };
+const STRATEGY_LABEL: Record<EvaluationStrategy, string> = { "short-circuit": "Stop", eager: "Keep going" };
 const STRATEGY_NOTE: Record<EvaluationStrategy, string> = {
-  "short-circuit": "Nothing more is called after the first failure. For a finite input, calling every element gives the same result.",
-  eager: "Every element is called. Only the first failure survives, so for a finite input the result matches stopping.",
+  "short-circuit": "Elements after the first failure are skipped. For a finite input, going through every element gives the same result.",
+  eager: "Every element is reached. Only the first failure survives, so for a finite input the result matches stopping.",
 };
 
 // One page for every operation: header, Shape Ribbon, behavior lane, names.
@@ -89,20 +89,21 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
 
         <section aria-labelledby="behavior-h" className="section">
           <h2 id="behavior-h">Behavior</h2>
-          <div className="control-row">
-            {strategies.length > 1 && (
-              <>
-                <span className="eyebrow">After a failure</span>
-                <div className="seg" role="group" aria-label="After a failure">
-                  {strategies.map((s) => (
-                    <button key={s} type="button" className={s === activeStrategy ? "on" : ""} aria-pressed={s === activeStrategy} onClick={() => setStrategy(s)}>{STRATEGY_LABEL[s]}</button>
-                  ))}
-                </div>
-                <span className="note">{STRATEGY_NOTE[activeStrategy]}</span>
-              </>
-            )}
-            {receiver.note && <span className="note"><RichText text={receiver.note} /></span>}
-            {hasToggles && <span className="note">Each slot holds one of its cases. Choose a different case to change that input.</span>}
+          {strategies.length > 1 && (
+            <div className="control-row">
+              <span className="eyebrow">After a failure</span>
+              <div className="seg" role="group" aria-label="After a failure">
+                {strategies.map((s) => (
+                  <button key={s} type="button" className={s === activeStrategy ? "on" : ""} aria-pressed={s === activeStrategy} onClick={() => setStrategy(s)}>{STRATEGY_LABEL[s]}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* One note per line, so they read as a list, not as columns. */}
+          <div className="behavior-notes">
+            {strategies.length > 1 && <p className="note">{STRATEGY_NOTE[activeStrategy]}</p>}
+            {receiver.note && <p className="note"><RichText text={receiver.note} /></p>}
+            {hasToggles && <p className="note">Each slot holds one of its cases. Choose a different case to change that input.</p>}
           </div>
           <SceneView scene={scene} onSet={setInput} />
           {hasToggles && (

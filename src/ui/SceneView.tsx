@@ -50,7 +50,7 @@ function Slot({ slot, onSet }: { slot: SlotNode; onSet: SetInput }) {
 function StepCell({ step, onSet }: { step: Step; onSet: SetInput }) {
   return (
     <div className={`step-cell${step.called ? "" : " step-not-called"}`}>
-      <span className={step.called ? "connector" : "connector connector-skipped"} aria-hidden="true" />
+      {!step.lookedAt && <span className={step.called ? "connector" : "connector connector-skipped"} aria-hidden="true" />}
       {step.label && <span className="step-label">{step.label}</span>}
       {step.effect && (
         <span className="effect-tag" title="A side effect: not a value, and not part of the result">
@@ -58,8 +58,8 @@ function StepCell({ step, onSet }: { step: Step; onSet: SetInput }) {
           <span><span className="sr-only">side effect: </span>{step.effect}</span>
         </span>
       )}
-      {step.result ? <Node node={step.result} onSet={onSet} /> : step.called && !step.effect && <span className="step-text">called</span>}
-      {!step.called && <span className="step-text step-text-skipped">not called</span>}
+      {step.result ? <Node node={step.result} onSet={onSet} /> : step.called && !step.effect && !step.lookedAt && <span className="step-text">called</span>}
+      {!step.called && <span className="step-text step-text-skipped">{step.lookedAt ? "not reached" : "not called"}</span>}
     </div>
   );
 }
@@ -75,7 +75,7 @@ function Input({ input, onSet }: { input: SceneInput; onSet: SetInput }) {
       {aligned && node.type === "container" ? (
         <div className="aligned" style={{ gridTemplateColumns: `repeat(${steps.length}, auto)` }}>
           <div className={`aligned-bg layer ${kindClass(node.kind)}`}><span className="layer-label">{node.label}</span></div>
-          {node.children.map((c, i) => <div key={`c${i}`} className="aligned-child" style={{ gridColumn: i + 1 }}><Node node={c} onSet={onSet} /></div>)}
+          {node.children.map((c, i) => <div key={`c${i}`} className={`aligned-child${steps[i]?.lookedAt && !steps[i]?.called ? " step-not-called" : ""}`} style={{ gridColumn: i + 1 }}><Node node={c} onSet={onSet} /></div>)}
           {steps.map((s, i) => <div key={`s${i}`} className="aligned-step" style={{ gridColumn: i + 1 }}><StepCell step={s} onSet={onSet} /></div>)}
         </div>
       ) : (

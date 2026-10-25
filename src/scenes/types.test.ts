@@ -23,6 +23,9 @@ describe("ribbon descriptions from types", () => {
   it("mapError: only the error side changes", () => {
     expect(describeTypes("Either<E, A>", "Either<E₂, A>").caption).toBe("`Either` stays the same. The error changes from `E` to `E₂`. The payload stays `A`.");
   });
+  it("flatten: a repeated error type is not a change", () => {
+    expect(describeTypes("Either<E, Either<E, A>>", "Either<E, A>").caption).toBe("One `Either` layer is removed. The payload stays `A`.");
+  });
 });
 
 describe("parseFn", () => {

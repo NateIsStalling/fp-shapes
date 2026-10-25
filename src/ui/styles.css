@@ -280,14 +280,17 @@ a { color: var(--purple-dark); }
 .op-signature-concrete { margin: 0; font-size: 15px; color: var(--soft-ink); }
 .control-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .note { color: var(--soft-ink); font-size: 14px; max-width: 60ch; }
+.behavior-notes { display: flex; flex-direction: column; gap: 6px; }
+.behavior-notes:empty { display: none; }
+.behavior-notes .note { margin: 0; }
 .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .seg button { border: 0; background: transparent; color: var(--soft-ink); font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 9px; min-height: 36px; }
 .seg button.on { background: var(--purple); color: var(--on-accent); }
+/* One receiver: the same chip, not a control. */
+.seg-fixed .on { display: inline-flex; align-items: center; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 9px; min-height: 36px; box-sizing: border-box; background: var(--purple-soft); color: var(--purple-dark); }
 .section { display: flex; flex-direction: column; gap: 12px; }
 .section h2 { margin: 0; font-size: 18px; letter-spacing: -.02em; display: flex; align-items: baseline; gap: 10px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 18px 48px var(--shadow); }
-/* One receiver: the same chip, not a control. */
-.seg-fixed .on { display: inline-flex; align-items: center; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 9px; min-height: 36px; box-sizing: border-box; background: var(--purple-soft); color: var(--purple-dark); }
 .link-button { border: 0; background: none; color: var(--purple-dark); font-weight: 600; font-size: 14px; text-decoration: underline; padding: 6px 8px; }
 
 /* Shared shape language: layers and balls */
@@ -419,7 +422,7 @@ a { color: var(--purple-dark); }
 .lane-arrow { width: 56px; height: 14px; fill: none; stroke: var(--faint-2); stroke-width: 1.5; }
 /* One slot per element: when the lane is narrow, each slot stacks its holes
    so the elements stay in one row. */
-@container lane (max-width: 760px) { .aligned-step .slot-holes { flex-direction: column; } }
+@container lane (max-width: 760px) { .aligned-step .slot-holes, .aligned-child .slot-holes { flex-direction: column; } }
 /* Phone widths: smaller pieces; anything still too wide scrolls sideways. */
 @container page (max-width: 480px) { .lane { padding-inline: 10px; } }
 @container lane (max-width: 480px) {

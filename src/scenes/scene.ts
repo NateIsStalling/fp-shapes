@@ -50,6 +50,9 @@ export interface Step {
   // A side effect the call performed (e.g. "saw a"). It is not a value and
   // never reaches the output.
   readonly effect?: string;
+  // No function runs: the element itself is looked at (sequence). The UI
+  // draws no call connector and says "not reached" when skipped.
+  readonly lookedAt?: boolean;
 }
 
 export interface SceneInput {

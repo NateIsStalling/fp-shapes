@@ -122,48 +122,50 @@ const idx = [0, 1, 2, 3];
 const key = (i: number) => `a${i + 1}`;
 type Kind3 = "either" | "option" | "validation";
 
-// The slot for one element: what f returns for it (traverse), or the element
-// itself (sequence).
-function elementSlot(k: Kind3, t: Toggles, i: number, label: string, tone: "in" | "out") {
-  if (k === "either") return eitherSlot(t, key(i), `b${sub(i)}`, `e${sub(i)}`, tone, label);
-  if (k === "option") return optionSlot(t, key(i), `b${sub(i)}`, tone, label);
-  return validationSlot(t, key(i), `b${sub(i)}`, [`e${sub(i)}`], tone, label);
+// The slot for one element: what f returns for it (traverse, payload b), or
+// the element itself (sequence, payload a).
+function elementSlot(k: Kind3, t: Toggles, i: number, label: string, tone: "in" | "out", payload: "a" | "b") {
+  const v = `${payload}${sub(i)}`;
+  if (k === "either") return eitherSlot(t, key(i), v, `e${sub(i)}`, tone, label);
+  if (k === "option") return optionSlot(t, key(i), v, tone, label);
+  return validationSlot(t, key(i), v, [`e${sub(i)}`], tone, label);
 }
 
 function traverseScene(k: Kind3, t: Toggles, strategy: EvaluationStrategy, isSequence: boolean): Scene {
   const fails = idx.map((i) => !!t[key(i)]);
+  // Sequence's elements hold A; traverse's f returns B.
+  const v = isSequence ? "a" : "b";
   let called: Set<number>;
   let output: SceneNode;
   let resultText: string;
   if (k === "either") {
-    const r = traverseEither(strategy, idx, (i) => (fails[i] ? left(`e${sub(i)}`) : right(`b${sub(i)}`)));
+    const r = traverseEither(strategy, idx, (i) => (fails[i] ? left(`e${sub(i)}`) : right(`${v}${sub(i)}`)));
     called = new Set(r.trace.calls.map((c) => c.input));
     output = container("effect", "Either", [r.result.tag === "right" ? listOf(r.result.value, "out") : ball(r.result.error, "error")]);
     resultText = show.either(r.result);
   } else if (k === "option") {
-    const r = traverseOption(strategy, idx, (i) => (fails[i] ? none : some(`b${sub(i)}`)));
+    const r = traverseOption(strategy, idx, (i) => (fails[i] ? none : some(`${v}${sub(i)}`)));
     called = new Set(r.trace.calls.map((c) => c.input));
     output = container("effect", "Option", [r.result.tag === "some" ? listOf(r.result.value, "out") : ball("None", "empty")]);
     resultText = show.option(r.result);
   } else {
-    const r = traverseValidation(idx, (i) => (fails[i] ? failure([`e${sub(i)}`]) : success(`b${sub(i)}`)));
+    const r = traverseValidation(idx, (i) => (fails[i] ? failure([`e${sub(i)}`]) : success(`${v}${sub(i)}`)));
     called = new Set(r.trace.calls.map((c) => c.input));
     output = container("effect", "Validation", r.result.tag === "success" ? [listOf(r.result.value, "out")] : r.result.errors.map((e) => ball(e, "error")));
     resultText = show.validation(r.result);
   }
-  const input = isSequence ? list(idx.map((i) => elementSlot(k, t, i, `element ${i + 1}`, "in"))) : listOf(elems(4, "a"), "in");
-  const steps = idx.map((i) => (isSequence ? step(called.has(i)) : step(called.has(i), elementSlot(k, t, i, `f(a${sub(i)})`, "out"))));
+  const label = k === "either" ? "Either" : k === "option" ? "Option" : "Validation";
+  const input = isSequence ? list(idx.map((i) => elementSlot(k, t, i, label, "in", "a"))) : listOf(elems(4, "a"), "in");
+  const steps = idx.map((i) => (isSequence ? { called: called.has(i), lookedAt: true } : step(called.has(i), elementSlot(k, t, i, `f(a${sub(i)})`, "out", "b"))));
   const n = fails.filter(Boolean).length;
-  const caption =
-    (n === 0
-      ? `${isSequence ? "Every element succeeded" : "`f` succeeded on all 4 elements"}.`
-      : k === "validation"
-        ? `${isSequence ? "Every element was inspected" : "`f` was called on all 4 elements"}. All ${n} failures are kept.`
-        : strategy === "short-circuit"
-          ? `${isSequence ? `${called.size} of 4 elements were inspected` : `\`f\` was called on ${called.size} of 4 elements`}, then it stopped at the first failure.`
-          : `${isSequence ? "All 4 elements were inspected" : "`f` was called on all 4 elements"}. ${n} failed, and only the first failure survives.`) +
-    ` Result: \`${resultText}\`.` +
-    (n && k !== "validation" ? " The other setting gives the same result." : "");
+  const reached = (count: number) => (isSequence ? `${count === 4 ? "All 4" : `${count} of 4`} elements ${count === 1 ? "was" : "were"} looked at` : `\`f\` ran on ${count === 4 ? "all 4" : `${count} of 4`} elements`);
+  const what =
+    n === 0 ? `${reached(4)}, and all succeeded.`
+    : k === "validation" ? `${reached(4)}, and every failure was kept.`
+    : strategy === "short-circuit" ? `${reached(called.size)}, stopping at the first failure.`
+    : `${reached(4)}, and only the first failure was kept.`;
+  const other = n && k !== "validation" ? (strategy === "short-circuit" ? " Keep going gives the same result." : " Stop gives the same result.") : "";
+  const caption = `${what} The result is \`${resultText}\`.${other}`;
   return { inputs: [{ node: input, steps }], output, caption };
 }
 
@@ -179,9 +181,9 @@ const NULLISH = [
 ] as const;
 const nullishSlot = (t: Toggles) => choiceSlot(t, "input", "A | null | undefined", NULLISH.map((c) => ({ name: c.name, content: [c.node] })));
 const nullishCaption = (i: number, missing: string, present: (v: string) => string) =>
-  [`The value is \`undefined\`, which counts as missing, so the result is ${missing}.`,
-   `The value is \`null\`, so the result is ${missing}.`,
-   `\`0\` is a value, not a missing one, so the result is ${present("0")}. The same goes for \`""\` and \`false\`.`,
+  [`\`undefined\` counts as missing, so the result is ${missing}.`,
+   `\`null\` counts as missing, so the result is ${missing}.`,
+   `\`0\` is a value, not a missing one, so the result is ${present("0")}. So are \`""\` and \`false\`.`,
    `The value is present, so the result is ${present("a")}.`][i] ?? "";
 
 // tryCatch's computation: it throws (an unknown value, u), returns a, or
@@ -208,68 +210,68 @@ function valueOut(label: "Either" | "Option" | "Validation", r: Either<unknown, 
   return container("effect", label, inner);
 }
 
-const VALIDATION_NOTE = "Validation looks at every element so it can keep every failure. The accumulation comes from the receiver, not from the operation. Its errors are a non-empty list here; any Semigroup works.";
+const VALIDATION_NOTE = "Validation keeps every failure, so it always goes through every element.";
 // Sequence's elements are already values, so whether the rest are looked at
 // is only observable when they are effects.
-const SEQUENCE_NOTE = "The elements are already values here, so stopping early only matters when they are effects, such as Effect or Task.";
+const SEQUENCE_NOTE = "The elements are already computed, so stopping early saves work only when they are effects that haven't run yet.";
 
 export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   // --- Constructors ----------------------------------------------------------
   pure: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "A", after: "Either<E, A>", caption: "`Either` is introduced on the outside, with `A` on the success side. The error type `E` is still free." }, defaults: {},
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "A", after: "Either<E, A>" }, defaults: {},
       build: () => ({ inputs: [{ node: ball("a", "in") }], output: eitherOut(pureEither("a").result, "in"),
-        caption: "`pure` puts `a` in the success case, `Right`. No function runs. Nothing can fail." }) },
+        caption: "Nothing ran. `a` went in the success case, so the result is `Right(a)`." }) },
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "A", after: "Option<A>" }, defaults: { input: true },
       build: (t) => {
         const r = pureOption(t.input ? null : "a").result;
         return { inputs: [{ node: nullableSlot(t, "input", "a") }], output: container("effect", "Option", [r.tag === "some" ? ball(shown(r.value), "in") : ball("None", "empty")]),
           caption: t.input
-            ? "`pure` doesn't look at its input: `null` goes in and `Some(null)` comes out. `fromNullable` would give `None`."
-            : "`pure` puts `a` in the success case, `Some`. No function runs. Nothing can fail." };
+            ? "`null` went in unchecked, so the result is `Some(null)`, not `None`."
+            : "Nothing ran. `a` went in the success case, so the result is `Some(a)`." };
       } },
-    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "A", after: "Validation<E, A>", caption: "`Validation` is introduced on the outside, with `A` on the success side. The error type `E` is still free." }, defaults: {},
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "A", after: "Validation<E, A>" }, defaults: {},
       build: () => ({ inputs: [{ node: ball("a", "in") }], output: valueOut("Validation", pureValidation("a").result),
-        caption: "`pure` puts `a` in the success case, `Success`. No function runs. Nothing can fail." }) },
+        caption: "Nothing ran. `a` went in the success case, so the result is `Success(a)`." }) },
     { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "A", after: "List<A>" }, defaults: {},
-      build: () => ({ inputs: [{ node: ball("a", "in") }], output: listOf(pureList("a").result, "in"), caption: "`pure` makes a list of exactly one element. No function runs. Nothing can fail." }) },
+      build: () => ({ inputs: [{ node: ball("a", "in") }], output: listOf(pureList("a").result, "in"), caption: "Nothing ran. The result is a list of one element, `[a]`." }) },
   ] },
 
   fail: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "E", after: "Either<E, A>", caption: "`E` goes on the failure side of `Either`. The success type `A` is still free." }, defaults: {},
+    { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "E", after: "Either<E, A>", caption: "`Either` is introduced on the outside. `E` goes on the error side, and the payload type `A` is open." }, defaults: {},
       build: () => ({ inputs: [{ node: ball("e", "error") }], output: eitherOut(failEither("e").result),
-        caption: "`fail` puts `e` in the failure case, `Left`." }) },
-    { id: "option", label: "Option", binds: {F: "Option"}, signature: "() → Option<A>", ribbon: { before: "()", after: "Option<A>", caption: "Nothing goes in. The result is `Option`'s empty case." }, defaults: {},
+        caption: "Nothing ran. `e` went in the failure case, so the result is `Left(e)`." }) },
+    { id: "option", label: "Option", binds: {F: "Option"}, signature: "() → Option<A>", ribbon: { before: "()", after: "Option<A>", caption: "`Option` is introduced on the outside. Nothing goes in, and the payload type `A` is open." }, defaults: {},
       build: () => ({ inputs: [{ node: ball("()", "plain") }], output: optionOut(failOption().result),
-        caption: "`Option`'s failure case holds no error, so `fail` takes nothing (`E` is `()`). The result is `None`." }) },
-    { id: "validation", label: "Validation", note: "Validation is not a Monad, so this is just its `Failure` constructor, with no MonadError behind it.", binds: {F: "Validation"}, ribbon: { before: "E", after: "Validation<E, A>", caption: "`E` goes on the failure side of `Validation`. The success type `A` is still free." }, defaults: {},
+        caption: "Nothing ran. `None` holds no error, so nothing goes in and the result is `None`." }) },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "E", after: "Validation<E, A>", caption: "`Validation` is introduced on the outside. `E` goes on the error side, and the payload type `A` is open." }, defaults: {},
       build: () => ({ inputs: [{ node: ball("e", "error") }], output: validationOut(failValidation("e").result),
-        caption: "`fail` makes a `Failure` with one error. Combined with other Validations, its errors accumulate." }) },
-    { id: "list", label: "List", binds: {F: "List"}, signature: "() → List<A>", ribbon: { before: "()", after: "List<A>", caption: "Nothing goes in. The result is the empty list, which has no room for an error." }, defaults: {},
+        caption: "Nothing ran. `e` went in the failure case, so the result is `Failure([e])`." }) },
+    { id: "list", label: "List", binds: {F: "List"}, signature: "() → List<A>", ribbon: { before: "()", after: "List<A>", caption: "`List` is introduced on the outside. Nothing goes in, and the payload type `A` is open." }, defaults: {},
       build: () => ({ inputs: [{ node: ball("()", "plain") }], output: listOf(failList().result, "in"),
-        caption: "A List's failure case is the empty list, so `fail` takes nothing. The result is `[]`." }) },
+        caption: "Nothing ran. The empty list holds no error, so nothing goes in and the result is `[]`." }) },
   ] },
 
   fromNullable: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, signature: "E → (A | null | undefined) → Either<E, A>", ribbon: { before: "Nullable<A>", after: "Either<E, A>", fn: "E", caption: "`null` and `undefined` become `Left` with the error you supply; any other value, even `0`, becomes `Right`. The payload is `A` without `null` and `undefined`." }, defaults: { input: 0 },
+    { id: "either", label: "Either", binds: {F: "Either"}, signature: "E → (A | null | undefined) → Either<E, A>", ribbon: { before: "Nullable<A>", after: "Either<E, A>", fn: "E" }, defaults: { input: 0 },
       build: (t) => {
         const i = choice(t, "input");
         const r = fromNullableEither("e", NULLISH[i]?.raw).result;
         return { inputs: [{ node: nullishSlot(t) }, { caption: "the error", node: ball("e", "error") }], output: valueOut("Either", r),
-          caption: nullishCaption(i, "`Left(e)`, with the error you supplied", (v) => `\`Right(${v})\``) };
+          caption: nullishCaption(i, "`Left(e)`", (v) => `\`Right(${v})\``) };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Nullable<A>", after: "Option<A>", caption: "`null` and `undefined` become `None`; any other value, even `0`, becomes `Some`. The payload is `A` without `null` and `undefined` (fp-ts types it `NonNullable<A>`)." }, defaults: { input: 0 },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Nullable<A>", after: "Option<A>" }, defaults: { input: 0 },
       build: (t) => {
         const i = choice(t, "input");
         return { inputs: [{ node: nullishSlot(t) }], output: valueOut("Option", fromNullableOption(NULLISH[i]?.raw).result),
           caption: nullishCaption(i, "`None`", (v) => `\`Some(${v})\``) };
       } },
-    { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "E → (A | null | undefined) → Validation<E, A>", ribbon: { before: "Nullable<A>", after: "Validation<E, A>", fn: "E", caption: "`null` and `undefined` become a `Failure` holding the error you supply; any other value becomes `Success`." }, defaults: { input: 0 },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "E → (A | null | undefined) → Validation<E, A>", ribbon: { before: "Nullable<A>", after: "Validation<E, A>", fn: "E" }, defaults: { input: 0 },
       build: (t) => {
         const i = choice(t, "input");
         return { inputs: [{ node: nullishSlot(t) }, { caption: "the error", node: ball("e", "error") }], output: valueOut("Validation", fromNullableValidation("e", NULLISH[i]?.raw).result),
-          caption: nullishCaption(i, "a `Failure` holding `e`", (v) => `\`Success(${v})\``) };
+          caption: nullishCaption(i, "`Failure([e])`", (v) => `\`Success(${v})\``) };
       } },
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "Nullable<A>", after: "List<A>", caption: "`null` and `undefined` become the empty list; any other value becomes a list of one." }, defaults: { input: 0 },
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "Nullable<A>", after: "List<A>" }, defaults: { input: 0 },
       build: (t) => {
         const i = choice(t, "input");
         return { inputs: [{ node: nullishSlot(t) }], output: listOf(fromNullableList(NULLISH[i]?.raw).result.map(shown), "in"),
@@ -283,63 +285,63 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const r = fromPredicateEither(() => !t.predicate, () => "e", "a");
         const onFalse = r.trace.calls.some((c) => c.fn === "onFalse");
         return { inputs: [{ node: ball("a", "in"), steps: [step(true, boolSlot(t, "predicate", "p(a)")), step(onFalse, onFalse ? ball("e", "error") : undefined, "onFalse(a)")] }], output: eitherOut(r.result, "in"),
-          caption: onFalse ? "The predicate failed, so `onFalse` built the error `e` from the value." : "The predicate passed, so the result is `Right(a)` and `onFalse` never runs." };
+          caption: onFalse ? "`p` failed, so `onFalse` built the error `e` from `a`. The result is `Left(e)`." : "`p` passed, so `onFalse` didn't run. The result is `Right(a)`." };
       } },
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "A", after: "Option<A>", fn: "A → bool" }, defaults: { predicate: true },
       build: (t) => {
         const r = fromPredicateOption(() => !t.predicate, "a");
         return { inputs: [{ node: ball("a", "in"), steps: [step(true, boolSlot(t, "predicate", "p(a)"))] }], output: optionOut(r.result, "in"),
-          caption: t.predicate ? "The predicate failed. Option has no error to report, so the result is `None`." : "The predicate passed, so the result is `Some(a)`." };
+          caption: t.predicate ? "`p` failed, and `None` holds no error, so the result is `None`." : "`p` passed, so the result is `Some(a)`." };
       } },
     { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "(A → bool) × (A → E) → A → Validation<E, A>", ribbon: { before: "A", after: "Validation<E, A>", fn: "(A → bool) × (A → E)" }, defaults: { predicate: true },
       build: (t) => {
         const r = fromPredicateValidation(() => !t.predicate, () => "e", "a");
         const onFalse = r.trace.calls.some((c) => c.fn === "onFalse");
         return { inputs: [{ node: ball("a", "in"), steps: [step(true, boolSlot(t, "predicate", "p(a)")), step(onFalse, onFalse ? ball("e", "error") : undefined, "onFalse(a)")] }], output: valueOut("Validation", r.result),
-          caption: onFalse ? "The predicate failed, so `onFalse` built the error `e`. It goes in a `Failure`, ready to combine with other errors." : "The predicate passed, so the result is `Success(a)` and `onFalse` never runs." };
+          caption: onFalse ? "`p` failed, so `onFalse` built the error `e` from `a`. The result is `Failure([e])`." : "`p` passed, so `onFalse` didn't run. The result is `Success(a)`." };
       } },
     { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "A", after: "List<A>", fn: "A → bool" }, defaults: { predicate: true },
       build: (t) => {
         const r = fromPredicateList(() => !t.predicate, "a");
         return { inputs: [{ node: ball("a", "in"), steps: [step(true, boolSlot(t, "predicate", "p(a)"))] }], output: listOf(r.result, "in"),
-          caption: t.predicate ? "The predicate failed, so the result is the empty list." : "The predicate passed, so the result is `[a]`." };
+          caption: t.predicate ? "`p` failed, so the result is `[]`." : "`p` passed, so the result is `[a]`." };
       } },
   ] },
 
   tryCatch: { receivers: [
-    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(() → A) × (unknown → E) → Either<E, A>", ribbon: { before: "LazyArg<A>", after: "Either<E, A>", fn: "unknown → E", caption: "`LazyArg<A>` is fp-ts's name for `() → A`. Running it removes that layer. A throw becomes `Left` through `onThrow`, and a returned value becomes `Right`." }, defaults: { thunk: 0 },
+    { id: "either", label: "Either", binds: {F: "Either"}, signature: "(() → A) × (unknown → E) → Either<E, A>", ribbon: { before: "Lazy<A>", after: "Either<E, A>", fn: "unknown → E" }, defaults: { thunk: 0 },
       build: (t) => {
         const i = choice(t, "thunk");
         const r = tryCatchEither(runComputation(i), () => "e");
         const onThrow = r.trace.calls.some((c) => c.fn === "onThrow");
         return { inputs: [{ node: computationSlot(t), steps: [step(onThrow, onThrow ? ball("e", "error") : undefined, "onThrow(u)")] }], output: valueOut("Either", r.result),
           caption: onThrow
-            ? "The computation threw `u`, whose type is `unknown`. `onThrow` turned it into the typed error `e`."
+            ? "The computation threw `u`, typed `unknown`. `onThrow` turned it into the error `e`, so the result is `Left(e)`."
             : i === 1
-              ? "The computation returned `a`, so the result is `Right(a)` and `onThrow` never runs."
-              : "The computation returned `undefined`. That is still a value, so the result is `Right(undefined)`: only a throw is a failure." };
+              ? "The computation returned `a`, so `onThrow` didn't run. The result is `Right(a)`."
+              : "The computation returned `undefined`, which is still a value. The result is `Right(undefined)`." };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "LazyArg<A>", after: "Option<A>", caption: "`LazyArg<A>` is fp-ts's name for `() → A`. Running it removes that layer. A throw becomes `None`, and a returned value becomes `Some`." }, defaults: { thunk: 0 },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Lazy<A>", after: "Option<A>" }, defaults: { thunk: 0 },
       build: (t) => {
         const i = choice(t, "thunk");
         return { inputs: [{ node: computationSlot(t) }], output: valueOut("Option", tryCatchOption(runComputation(i)).result),
           caption: i === 0
-            ? "The computation threw `u`. Option has nowhere to keep it, so the result is `None`."
+            ? "The computation threw `u`, and `None` holds no error, so the result is `None`."
             : i === 1
               ? "The computation returned `a`, so the result is `Some(a)`."
-              : "The computation returned `undefined`. That is still a value, so the result is `Some(undefined)`, unlike `fromNullable`." };
+              : "The computation returned `undefined`, which is still a value. The result is `Some(undefined)`." };
       } },
-    { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "(() → A) × (unknown → E) → Validation<E, A>", ribbon: { before: "LazyArg<A>", after: "Validation<E, A>", fn: "unknown → E", caption: "`LazyArg<A>` is fp-ts's name for `() → A`. A throw becomes a `Failure` through `onThrow`, and a returned value becomes `Success`." }, defaults: { thunk: 0 },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "(() → A) × (unknown → E) → Validation<E, A>", ribbon: { before: "Lazy<A>", after: "Validation<E, A>", fn: "unknown → E" }, defaults: { thunk: 0 },
       build: (t) => {
         const i = choice(t, "thunk");
         const r = tryCatchValidation(runComputation(i), () => "e");
         const onThrow = r.trace.calls.some((c) => c.fn === "onThrow");
         return { inputs: [{ node: computationSlot(t), steps: [step(onThrow, onThrow ? ball("e", "error") : undefined, "onThrow(u)")] }], output: valueOut("Validation", r.result),
           caption: onThrow
-            ? "The computation threw `u`. `onThrow` turned it into the error `e`, kept in a `Failure`."
+            ? "The computation threw `u`, typed `unknown`. `onThrow` turned it into the error `e`, so the result is `Failure([e])`."
             : i === 1
-              ? "The computation returned `a`, so the result is `Success(a)` and `onThrow` never runs."
-              : "The computation returned `undefined`. That is still a value, so the result is `Success(undefined)`." };
+              ? "The computation returned `a`, so `onThrow` didn't run. The result is `Success(a)`."
+              : "The computation returned `undefined`, which is still a value. The result is `Success(undefined)`." };
       } },
   ] },
 
@@ -350,14 +352,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const r = mapEither(eitherIn(t, "input"), () => "b");
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, called ? plain("b") : undefined, "f(a)")] }], output: eitherOut(r.result),
-          caption: called ? "`f` ran on `a`. The Either stays; its payload changes from `a` to `b`." : "The input is a `Left`, so `f` never runs. The `Left` passes through unchanged." };
+          caption: called ? "`f` ran on `a`, so the result is `Right(b)`." : "The input is a `Left`, so `f` didn't run. The `Left` comes out unchanged." };
       } },
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<B>", fn: "A → B" }, defaults: { input: false },
       build: (t) => {
         const r = mapOption(optionIn(t, "input"), () => "b");
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, called ? plain("b") : undefined, "f(a)")] }], output: optionOut(r.result),
-          caption: called ? "`f` ran on `a`. The Option stays; its payload changes from `a` to `b`." : "The input is `None`, so `f` never runs." };
+          caption: called ? "`f` ran on `a`, so the result is `Some(b)`." : "The input is `None`, so `f` didn't run. The result is `None`." };
       } },
     { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<B>", fn: "A → B" }, defaults: {},
       build: () => {
@@ -374,14 +376,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const isLeft = r.trace.calls[0]?.fn === "left";
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(true, isLeft ? ball("e₂", "error") : plain("b"), isLeft ? "f(e)" : "g(a)")] }],
           output: eitherOut(r.result as Either<string, string>),
-          caption: `Only the ${isLeft ? "left" : "right"} function ran: an Either holds one case at a time.` };
+          caption: `Only \`${isLeft ? "f" : "g"}\` ran: an Either holds one case at a time. The result is \`${isLeft ? "Left(e₂)" : "Right(b)"}\`.` };
       } },
     { id: "tuple", label: "Tuple", binds: {P: "Tuple"}, ribbon: { before: "Tuple<A, B>", after: "Tuple<C, D>", fn: "(A → C) × (B → D)" }, defaults: {},
       build: () => {
         const r = bimapTuple(["a", "b"], () => "c", () => "d");
         return { inputs: [{ node: container("tuple", "Tuple", [ball("a", "in"), ball("b", "in")]), steps: [step(true, plain("c"), "f(a)"), step(true, plain("d"), "g(b)")] }],
           output: container("tuple", "Tuple", [plain(r.result[0]), plain(r.result[1])]),
-          caption: "Both functions ran: a Tuple holds both parts at once." };
+          caption: "Both `f` and `g` ran: a Tuple holds both parts at once. The result is `(c, d)`." };
       } },
   ] },
 
@@ -392,21 +394,21 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const r = flatMapEither(eitherIn(t, "input", "a", "e₁"), () => eitherIn(t, "f", "b", "e₂"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, eitherSlot(t, "f", "b", "e₂", "out", "f(a)"))] }], output: eitherOut(r.result),
-          caption: !called ? "The input is a `Left`, so `f` never runs." : t.f ? "`f` returned a `Left`, and that `Left` is the result. No nested Either is left behind." : "`f` returned `Right b`, and its Either merges with the outer one." };
+          caption: !called ? "The input is a `Left`, so `f` didn't run. The result is `Left(e₁)`." : t.f ? "`f` returned `Left(e₂)`, so that is the result. No nested Either is left." : "`f` returned `Right(b)`, so that is the result. No nested Either is left." };
       } },
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<B>", fn: "A → Option<B>" }, defaults: { input: false, f: false },
       build: (t) => {
         const r = flatMapOption(optionIn(t, "input"), () => optionIn(t, "f", "b"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, optionSlot(t, "f", "b", "out", "f(a)"))] }], output: optionOut(r.result),
-          caption: !called ? "The input is `None`, so `f` never runs." : t.f ? "`f` returned `None`, so the result is `None`." : "`f` returned `Some b`, and the layers merge into one." };
+          caption: !called ? "The input is `None`, so `f` didn't run. The result is `None`." : t.f ? "`f` returned `None`, so the result is `None`." : "`f` returned `Some(b)`, so that is the result. No nested Option is left." };
       } },
     { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<B>", fn: "A → List<B>" }, defaults: {},
       build: () => {
         const as = ["1", "2", "3"];
         const r = flatMapList(as, (n) => Array.from({ length: Number(n) }, () => `b${n}`));
         return { inputs: [{ node: listOf(as, "in"), steps: r.trace.calls.map((c) => step(true, listOf(c.output, "out"), `f(${c.input})`)) }], output: listOf(r.result, "out"),
-          caption: `\`f\` returned a list for each element, and the lists were joined. Length changed from ${as.length} to ${r.result.length}.` };
+          caption: `\`f\` ran once per element and returned a list each time. The lists were joined, ${as.length} elements in and ${r.result.length} out.` };
       } },
   ] },
 
@@ -416,18 +418,18 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const innerE = eitherIn(t, "inner", "a", "e₂");
         const r = flattenEither(t.outer ? left("e₁") : right(innerE));
         return { inputs: [{ node: nestedSlot(t, "outer", "outer Either", "Right", eitherSlot(t, "inner", "a", "e₂", "in", "inner Either"), "Left", ball("e₁", "error")) }], output: eitherOut(r.result),
-          caption: t.outer ? "The outer `Left` becomes the result." : "One Either layer is removed; the inner value comes out as it is." };
+          caption: t.outer ? "The outer `Left` is the result." : "One Either layer was removed; the inner value comes out as it is." };
       } },
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<Option<A>>", after: "Option<A>" }, defaults: { outer: false, inner: false },
       build: (t) => {
         const r = flattenOption(t.outer ? none : some(optionIn(t, "inner")));
         return { inputs: [{ node: nestedSlot(t, "outer", "outer Option", "Some", optionSlot(t, "inner", "a", "in", "inner Option"), "None", ball("None", "empty")) }], output: optionOut(r.result),
-          caption: "One Option layer is removed." };
+          caption: t.outer ? "The outer `None` is the result." : "One Option layer was removed; the inner value comes out as it is." };
       } },
     { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<List<A>>", after: "List<A>" }, defaults: {},
       build: () => {
         const r = flattenList([["a₁", "a₂"], ["a₃"]]);
-        return { inputs: [{ node: list([listOf(["a₁", "a₂"], "in"), listOf(["a₃"], "in")]) }], output: listOf(r.result, "out"), caption: "The inner lists are joined, in order. One List layer is removed." };
+        return { inputs: [{ node: list([listOf(["a₁", "a₂"], "in"), listOf(["a₃"], "in")]) }], output: listOf(r.result, "out"), caption: "The inner lists were joined, in order. One List layer was removed." };
       } },
   ] },
 
@@ -437,14 +439,14 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const r = tapEither(eitherIn(t, "input", "a", "e₁"), () => eitherIn(t, "step", "_", "e₂"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, eitherSlot(t, "step", "_", "e₂", "out", "f(a)"))] }], output: eitherOut(r.result, "in"),
-          caption: !called ? "The input is a `Left`, so the step never runs." : t.step ? "The step failed, and its `Left` replaces the result. A tap can fail." : "The step succeeded. Its own value (`_`) is discarded, and the original value `a` is kept." };
+          caption: !called ? "The input is a `Left`, so `f` didn't run. The result is `Left(e₁)`." : t.step ? "`f` failed, so its `Left(e₂)` is the result." : "`f` succeeded. Its value `_` was dropped, and the result keeps `Right(a)`." };
       } },
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<A>", fn: "A → Option<_>" }, defaults: { input: false, step: false },
       build: (t) => {
         const r = tapOption(optionIn(t, "input"), () => optionIn(t, "step", "_"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, optionSlot(t, "step", "_", "out", "f(a)"))] }], output: optionOut(r.result, "in"),
-          caption: !called ? "The input is `None`, so the step never runs." : t.step ? "The step returned `None`, so the result is `None`." : "The step succeeded. Its value (`_`) is discarded, and `a` is kept." };
+          caption: !called ? "The input is `None`, so `f` didn't run. The result is `None`." : t.step ? "`f` returned `None`, so the result is `None`." : "`f` succeeded. Its value `_` was dropped, and the result keeps `Some(a)`." };
       } },
   ] },
 
@@ -454,13 +456,13 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const r = peek(eitherIn(t, "input"), () => undefined);
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [{ called, label: "f(a)", ...(called ? { effect: "saw a" } : {}) }] }], output: eitherOut(r.result, "in"),
-          caption: called ? "`f` saw `a` and returned nothing. Its side effect (logging, metrics) stays outside the result, so the same `Right a` comes out: peek cannot fail or replace anything." : "The input is a `Left`, so `f` never runs and nothing is observed. The `Left` passes through." };
+          caption: called ? "`f` saw `a` and returned nothing, so the same `Right(a)` comes out. It can't fail or change the value." : "The input is a `Left`, so `f` didn't run. The `Left` comes out unchanged." };
       } },
     { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<A>", fn: "A → void" }, defaults: {},
       build: () => {
         const as = elems(3, "a");
         const r = peekList(as, () => undefined);
-        return { inputs: [{ node: listOf(as, "in"), steps: r.trace.calls.map((c) => ({ called: true, label: `f(${c.input})`, effect: `saw ${c.input}` })) }], output: listOf(r.result, "in"), caption: "`f` saw each element once and returned nothing. The same list comes out, unchanged." };
+        return { inputs: [{ node: listOf(as, "in"), steps: r.trace.calls.map((c) => ({ called: true, label: `f(${c.input})`, effect: `saw ${c.input}` })) }], output: listOf(r.result, "in"), caption: "`f` saw each element once and returned nothing, so the same list comes out." };
       } },
   ] },
 
@@ -470,27 +472,27 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
       build: (t) => {
         const r = zipWithEither(eitherIn(t, "a", "a", "e₁"), eitherIn(t, "b", "b", "e₂"), () => "c");
         return { inputsAs: "tuple", inputs: [{ node: eitherSlot(t, "a", "a", "e₁", "in", "first Either") }, { node: eitherSlot(t, "b", "b", "e₂", "in", "second Either") }], output: eitherOut(r.result),
-          caption: t.a && t.b ? "Both failed. Either keeps only the first `Left`, `e₁`." : t.a || t.b ? "One side failed, so its `Left` is the result." : "Both succeeded, and `f` combined `a` and `b` into `c`." };
+          caption: t.a && t.b ? "Both failed, and Either keeps only the first error. The result is `Left(e₁)`." : t.a || t.b ? "One side failed, so `f` didn't run. That `Left` is the result." : "Both succeeded, so `f` combined `a` and `b`. The result is `Right(c)`." };
       } },
-    { id: "validation", label: "Validation", note: VALIDATION_NOTE, binds: {F: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E, C>", fn: "Validation<E, B> × ((A, B) → C)" }, defaults: { a: true, b: true },
+    { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E, C>", fn: "Validation<E, B> × ((A, B) → C)" }, defaults: { a: true, b: true },
       build: (t) => {
         const a: Validation<string, string> = t.a ? failure(["e₁"]) : success("a");
         const b: Validation<string, string> = t.b ? failure(["e₂"]) : success("b");
         const r = zipWithValidation(a, b, () => "c");
         return { inputsAs: "tuple", inputs: [{ node: validationSlot(t, "a", "a", ["e₁"], "in", "first Validation") }, { node: validationSlot(t, "b", "b", ["e₂"], "in", "second Validation") }], output: validationOut(r.result),
-          caption: t.a && t.b ? "Both failed, and Validation keeps both errors: `e₁` then `e₂`." : t.a || t.b ? "One side failed, so its error is the result." : "Both succeeded, and `f` combined `a` and `b` into `c`." };
+          caption: t.a && t.b ? "Both failed, and Validation keeps both errors. The result is `Failure([e₁, e₂])`." : t.a || t.b ? "One side failed, so `f` didn't run. That `Failure` is the result." : "Both succeeded, so `f` combined `a` and `b`. The result is `Success(c)`." };
       } },
-    { id: "list", label: "List (cartesian)", note: "Not a positional zip: every element meets every element. A `zip` pairs by position (see List (positional)).", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<C>", fn: "List<B> × ((A, B) → C)" }, defaults: {},
+    { id: "list", label: "List (cartesian)", note: "Every element meets every element. To pair by position, pick List (positional).", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<C>", fn: "List<B> × ((A, B) → C)" }, defaults: {},
       build: () => {
         const r = zipWithListCartesian(["1", "2", "3"], ["a", "b"], (x, y) => x + y);
         return { inputsAs: "tuple", inputs: [{ node: listOf(["1", "2", "3"], "in") }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
-          caption: "Every element meets every element: 3 × 2 = 6 results. This is List's applicative." };
+          caption: "`f` ran on every pair: 3 × 2 = 6 results." };
       } },
     { id: "ziplist", label: "List (positional)", binds: {F: "ZipList"}, ribbon: { before: "List<A>", after: "List<C>", fn: "List<B> × ((A, B) → C)" }, defaults: {},
       build: () => {
         const r = zipWithListPositional(["1", "2", "3"], ["a", "b"], (x, y) => x + y);
         return { inputsAs: "tuple", inputs: [{ node: listOf(["1", "2", "3"], "in"), steps: [0, 1, 2].map((i) => step(!r.trace.skipped.includes(i))) }, { node: listOf(["a", "b"], "in") }], output: listOf(r.result, "out"),
-          caption: "Elements pair up by position, and the extra `3` is dropped. This is `zipWith`, `ZipList`, and LINQ `Zip`." };
+          caption: "`f` ran on each pair by position. The extra `3` has no partner, so it was dropped." };
       } },
   ] },
 
@@ -520,71 +522,71 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const r = mapErrorEither(eitherIn(t, "input"), () => "e₂");
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, called ? ball("e₂", "error") : undefined, "f(e)")] }], output: eitherOut(r.result),
-          caption: called ? "`f` ran on the error. The Either stays; the error changes, and its type can change too." : "The input is a `Right`, so `f` never runs." };
+          caption: called ? "`f` ran on the error, so the result is `Left(e₂)`." : "The input is a `Right`, so `f` didn't run. The `Right` comes out unchanged." };
       } },
-    { id: "validation", label: "Validation", note: "This maps each error, one call per error.", binds: {P: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E₂, A>", fn: "E → E₂" }, defaults: { input: true },
+    { id: "validation", label: "Validation", binds: {P: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E₂, A>", fn: "E → E₂" }, defaults: { input: true },
       build: (t) => {
         const r = mapErrorValidation(t.input ? failure(["e₁", "e₂"]) : success("a"), (e) => e.toUpperCase());
         const n = r.trace.calls.length;
         return { inputs: [{ node: validationSlot(t, "input", "a", ["e₁", "e₂"]), steps: [step(n > 0, n ? container("effect", "errors", r.trace.calls.map((c) => ball(c.output, "error"))) : undefined, n ? r.trace.calls.map((c) => `f(${c.input})`).join(", ") : undefined)] }],
           output: validationOut(r.result),
-          caption: n ? `\`f\` ran once per error (${n}).` : "The input is a Success, so `f` never runs." };
+          caption: n ? `\`f\` ran once per error, ${n} times. The result is \`Failure([E₁, E₂])\`.` : "The input is a `Success`, so `f` didn't run. It comes out unchanged." };
       } },
   ] },
 
   recover: { receivers: [
     { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E₂, A>", fn: "E → Either<E₂, A>" }, defaults: { input: true, handler: false },
       build: (t) => {
-        const r = recoverEither(eitherIn(t, "input", "a", "e"), () => eitherIn(t, "handler", "a′", "n"));
+        const r = recoverEither(eitherIn(t, "input", "a₁", "e₁"), () => eitherIn(t, "handler", "a₂", "e₂"));
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, eitherSlot(t, "handler", "a′", "n", "out", "f(e)"))] }], output: eitherOut(r.result),
-          caption: !called ? "The input is a `Right`, so the handler never runs." : t.handler ? "The handler failed with a new error, `n`. Recovery can change the error type." : "The handler replaced the failure with a success." };
+        return { inputs: [{ node: eitherSlot(t, "input", "a₁", "e₁"), steps: [step(called, eitherSlot(t, "handler", "a₂", "e₂", "out", "f(e₁)"))] }], output: eitherOut(r.result),
+          caption: !called ? "The input is a `Right`, so `f` didn't run. The `Right` comes out unchanged." : t.handler ? "`f` failed with a new error, so the result is `Left(e₂)`. Its type can differ from `e₁`'s." : "`f` recovered, so the result is `Right(a₂)`." };
       } },
   ] },
 
   alt: { receivers: [
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<A>", fn: "() → Option<A>" }, defaults: { primary: true, fallback: false },
       build: (t) => {
-        const r = altOption(optionIn(t, "primary"), () => optionIn(t, "fallback", "b"));
+        const r = altOption(optionIn(t, "primary", "a₁"), () => optionIn(t, "fallback", "a₂"));
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: optionSlot(t, "primary", "a", "in", "first") }, { node: optionSlot(t, "fallback", "b", "in", "fallback"), steps: [step(called)] }], output: optionOut(r.result),
-          caption: called ? "The first was `None`, so the fallback was evaluated." : "The first was Some, so the fallback was never evaluated." };
+        return { inputs: [{ node: optionSlot(t, "primary", "a₁", "in", "first") }, { node: optionSlot(t, "fallback", "a₂", "in", "fallback"), steps: [step(called)] }], output: optionOut(r.result),
+          caption: called ? "The first is `None`, so the fallback ran. Its value is the result." : "The first is a `Some`, so the fallback didn't run. The first is the result." };
       } },
     { id: "either", label: "Either", binds: {F: "Either"}, ribbon: { before: "Either<E, A>", after: "Either<E, A>", fn: "() → Either<E, A>" }, defaults: { primary: true, fallback: true },
       build: (t) => {
-        const r = altEither(eitherIn(t, "primary", "a", "e₁"), () => eitherIn(t, "fallback", "b", "e₂"));
+        const r = altEither(eitherIn(t, "primary", "a₁", "e₁"), () => eitherIn(t, "fallback", "a₂", "e₂"));
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: eitherSlot(t, "primary", "a", "e₁", "in", "first") }, { node: eitherSlot(t, "fallback", "b", "e₂", "in", "fallback"), steps: [step(called)] }], output: eitherOut(r.result),
-          caption: !called ? "The first was a `Right`, so the fallback was never evaluated." : t.fallback ? "Both failed. Either keeps only the fallback's error, `e₂`." : "The fallback succeeded." };
+        return { inputs: [{ node: eitherSlot(t, "primary", "a₁", "e₁", "in", "first") }, { node: eitherSlot(t, "fallback", "a₂", "e₂", "in", "fallback"), steps: [step(called)] }], output: eitherOut(r.result),
+          caption: !called ? "The first is a `Right`, so the fallback didn't run. The first is the result." : t.fallback ? "Both failed, and Either keeps only the fallback's error. The result is `Left(e₂)`." : "The first failed, so the fallback ran. The result is `Right(a₂)`." };
       } },
     { id: "validation", label: "Validation", binds: {F: "Validation"}, ribbon: { before: "Validation<E, A>", after: "Validation<E, A>", fn: "() → Validation<E, A>" }, defaults: { primary: true, fallback: true },
       build: (t) => {
-        const r = altValidation(t.primary ? failure(["e₁"]) : success("a"), () => (t.fallback ? failure(["e₂"]) : success("b")));
+        const r = altValidation(t.primary ? failure(["e₁"]) : success("a₁"), () => (t.fallback ? failure(["e₂"]) : success("a₂")));
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: validationSlot(t, "primary", "a", ["e₁"], "in", "first") }, { node: validationSlot(t, "fallback", "b", ["e₂"], "in", "fallback"), steps: [step(called)] }], output: validationOut(r.result),
-          caption: !called ? "The first succeeded, so the fallback was never evaluated." : t.fallback ? "Both failed, and Validation keeps both errors." : "The fallback succeeded." };
+        return { inputs: [{ node: validationSlot(t, "primary", "a₁", ["e₁"], "in", "first") }, { node: validationSlot(t, "fallback", "a₂", ["e₂"], "in", "fallback"), steps: [step(called)] }], output: validationOut(r.result),
+          caption: !called ? "The first is a `Success`, so the fallback didn't run. The first is the result." : t.fallback ? "Both failed, and Validation keeps both errors. The result is `Failure([e₁, e₂])`." : "The first failed, so the fallback ran. The result is `Success(a₂)`." };
       } },
     { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<A>", fn: "() → List<A>" }, defaults: {},
       build: () => {
-        const r = altList(["a₁", "a₂"], () => ["b₁"]);
-        return { inputs: [{ node: listOf(["a₁", "a₂"], "in") }, { caption: "fallback", node: listOf(["b₁"], "in"), steps: [step(true)] }], output: listOf(r.result, "out"),
-          caption: "For List, alt concatenates, so the fallback always runs." };
+        const r = altList(["a₁", "a₂"], () => ["a₃"]);
+        return { inputs: [{ node: listOf(["a₁", "a₂"], "in") }, { caption: "fallback", node: listOf(["a₃"], "in"), steps: [step(true)] }], output: listOf(r.result, "out"),
+          caption: "The fallback always runs: the two lists are joined, first list first." };
       } },
   ] },
 
   getOrElse: { receivers: [
     { id: "either", label: "Either · computed", binds: {F: "Either"}, signature: "(E → A) → Either<E, A> → A", ribbon: { before: "Either<E, A>", after: "A", fn: "E → A" }, defaults: { input: true },
       build: (t) => {
-        const r = getOrElseEitherWith(eitherIn(t, "input", "a", "e"), () => "d");
+        const r = getOrElseEitherWith(eitherIn(t, "input", "a₁", "e"), () => "a₂");
         const called = r.trace.calls.length > 0;
-        return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(called, called ? plain("d") : undefined, "f(e)")] }], output: plain(r.result),
-          caption: called ? "The fallback was computed from the error. The Either is gone; a plain value remains." : "The input is a `Right`, so the fallback never runs. Its value comes out." };
+        return { inputs: [{ node: eitherSlot(t, "input", "a₁", "e"), steps: [step(called, called ? plain("a₂") : undefined, "f(e)")] }], output: plain(r.result),
+          caption: called ? "`f` ran on the error, and its value `a₂` is the result." : "The input is a `Right`, so `f` didn't run. Its value `a₁` is the result." };
       } },
     { id: "option", label: "Option · constant", binds: {F: "Option"}, signature: "A → Option<A> → A", ribbon: { before: "Option<A>", after: "A", fn: "A" }, defaults: { input: true },
       build: (t) => {
-        const r = getOrElseOption(optionIn(t, "input"), "d");
-        return { inputs: [{ node: optionSlot(t, "input", "a") }, { caption: "the default", node: ball("d", "in") }], output: ball(r.result, "in"),
-          caption: t.input ? "The input is `None`, so the constant default `d` comes out. No function runs." : "The input is Some, so its value comes out." };
+        const r = getOrElseOption(optionIn(t, "input", "a₁"), "a₂");
+        return { inputs: [{ node: optionSlot(t, "input", "a₁") }, { caption: "the default", node: ball("a₂", "in") }], output: ball(r.result, "in"),
+          caption: t.input ? "The input is `None`, so the default `a₂` is the result." : "The input is a `Some`, so its value `a₁` is the result." };
       } },
   ] },
 
@@ -595,65 +597,65 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const r = matchEither(eitherIn(t, "input"), () => "r", () => "r");
         const which = r.trace.calls[0]?.fn === "left" ? "onLeft" : "onRight";
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e"), steps: [step(true, plain("r"), which === "onLeft" ? "onLeft(e)" : "onRight(a)")] }], output: plain(r.result),
-          caption: `Exactly one handler ran (\`${which}\`). Both return the same type, so the Either disappears.` };
+          caption: `Only \`${which}\` ran, and its value \`r\` is the result.` };
       } },
     { id: "option", label: "Option", binds: {F: "Option"}, signature: "(() → R) × (A → R) → Option<A> → R", ribbon: { before: "Option<A>", after: "R", fn: "(() → R) × (A → R)" }, defaults: { input: false },
       build: (t) => {
         const r = matchOption(optionIn(t, "input"), () => "r", () => "r");
         const which = r.trace.calls[0]?.fn === "none" ? "onNone" : "onSome";
-        return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(true, plain("r"), which === "onNone" ? "onNone()" : "onSome(a)")] }], output: plain(r.result), caption: `Exactly one handler ran (\`${which}\`).` };
+        return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(true, plain("r"), which === "onNone" ? "onNone()" : "onSome(a)")] }], output: plain(r.result), caption: `Only \`${which}\` ran, and its value \`r\` is the result.` };
       } },
     { id: "validation", label: "Validation", binds: {F: "Validation"}, signature: "(NonEmpty<E> → R) × (A → R) → Validation<E, A> → R", ribbon: { before: "Validation<E, A>", after: "R", fn: "(NonEmpty<E> → R) × (A → R)" }, defaults: { input: true },
       build: (t) => {
         const r = matchValidation(t.input ? failure(["e₁", "e₂"]) : success("a"), () => "r", () => "r");
         const which = r.trace.calls[0]?.fn === "failure" ? "onFailure" : "onSuccess";
         return { inputs: [{ node: validationSlot(t, "input", "a", ["e₁", "e₂"]), steps: [step(true, plain("r"), which === "onFailure" ? "onFailure(e₁, e₂)" : "onSuccess(a)")] }], output: plain(r.result),
-          caption: which === "onFailure" ? "`onFailure` ran once, with the accumulated errors." : "`onSuccess` ran with the value." };
+          caption: which === "onFailure" ? "Only `onFailure` ran, once, with every error. Its value `r` is the result." : "Only `onSuccess` ran, and its value `r` is the result." };
       } },
   ] },
 
   // --- Filtering -------------------------------------------------------------
   filter: { receivers: [
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<A>", fn: "A → bool", caption: "`List` stays the same, but it may get shorter. The payload stays `A`." }, defaults: { a1: false, a2: true, a3: false, a4: true },
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<A>", fn: "A → bool" }, defaults: { a1: false, a2: true, a3: false, a4: true },
       build: (t) => {
         const r = filterList(idx, (i) => !t[key(i)]);
         const kept = r.result.map((i) => `a${sub(i)}`);
         return { inputs: [{ node: listOf(elems(4, "a"), "in"), steps: idx.map((i) => step(true, boolSlot(t, key(i), `p(a${sub(i)})`))) }], output: listOf(kept, "in"),
-          caption: `The predicate \`p\` ran once per element. ${kept.length} of 4 passed and are kept, in order.` };
+          caption: `\`p\` ran once per element. ${kept.length} of 4 passed and were kept, in order.` };
       } },
-    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<A>", fn: "A → bool", caption: "`Option` stays the same. A `Some` that fails the predicate becomes `None`." }, defaults: { input: false, predicate: true },
+    { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<A>", fn: "A → bool" }, defaults: { input: false, predicate: true },
       build: (t) => {
         const r = filterOption(optionIn(t, "input"), () => !t.predicate);
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, boolSlot(t, "predicate", "p(a)"))] }], output: optionOut(r.result),
-          caption: !called ? "The input is `None`, so the predicate never runs." : t.predicate ? "The predicate failed. Option has no error to report, so the result is `None`." : "The predicate passed, so the value is kept." };
+          caption: !called ? "The input is `None`, so `p` didn't run. The result is `None`." : t.predicate ? "`p` failed, and `None` holds no error, so the result is `None`." : "`p` passed, so the result is `Some(a)`." };
       } },
   ] },
 
   filterMap: { receivers: [
-    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<B>", fn: "A → Option<B>", caption: "`f` returns an `Option` for each element. `None`s are dropped and `Some`s unwrapped, so no `Option` layer is left. The list may get shorter, and the payload changes from `A` to `B`." }, defaults: { a1: false, a2: true, a3: false, a4: true },
+    { id: "list", label: "List", binds: {F: "List"}, ribbon: { before: "List<A>", after: "List<B>", fn: "A → Option<B>" }, defaults: { a1: false, a2: true, a3: false, a4: true },
       build: (t) => {
         const r = filterMapList(idx, (i) => (t[key(i)] ? none : some(`b${sub(i)}`)));
         return { inputs: [{ node: listOf(elems(4, "a"), "in"), steps: idx.map((i) => step(true, optionSlot(t, key(i), `b${sub(i)}`, "out", `f(a${sub(i)})`))) }], output: listOf(r.result, "out"),
-          caption: `\`f\` ran once per element. ${4 - r.result.length} returned \`None\` and were dropped; the \`Some\` values are unwrapped.` };
+          caption: `\`f\` ran once per element. ${4 - r.result.length} of 4 returned \`None\` and were dropped; the \`Some\` values were unwrapped.` };
       } },
     { id: "option", label: "Option", binds: {F: "Option"}, ribbon: { before: "Option<A>", after: "Option<B>", fn: "A → Option<B>" }, defaults: { input: false, f: true },
       build: (t) => {
         const r = filterMapOption(optionIn(t, "input"), () => optionIn(t, "f", "b"));
         const called = r.trace.calls.length > 0;
         return { inputs: [{ node: optionSlot(t, "input", "a"), steps: [step(called, optionSlot(t, "f", "b", "out", "f(a)"))] }], output: optionOut(r.result),
-          caption: !called ? "The input is `None`, so `f` never runs." : t.f ? "`f` returned `None`, so the value is dropped. For Option, filterMap is the same as flatMap." : "`f` returned `Some(b)`, so `b` is kept." };
+          caption: !called ? "The input is `None`, so `f` didn't run. The result is `None`." : t.f ? "`f` returned `None`, so the result is `None`." : "`f` returned `Some(b)`, so the result is `Some(b)`." };
       } },
   ] },
 
   partition: { receivers: [
-    { id: "list", label: "List", binds: {F: "List"}, signature: "(A → bool) → List<A> → (List<A>, List<A>)", ribbon: { before: "List<A>", after: "Tuple<List<A>, List<A>>", fn: "A → bool", caption: "One `List` becomes a `Tuple` of two: the elements that pass, then the ones that fail. The payload stays `A`." }, defaults: { a1: false, a2: true, a3: false, a4: true },
+    { id: "list", label: "List", binds: {F: "List"}, signature: "(A → bool) → List<A> → (List<A>, List<A>)", ribbon: { before: "List<A>", after: "Tuple<List<A>, List<A>>", fn: "A → bool", caption: "`List` becomes a `Tuple` of two lists: passes, then fails. The payload stays `A`." }, defaults: { a1: false, a2: true, a3: false, a4: true },
       build: (t) => {
         const r = partitionList(idx, (i) => !t[key(i)]);
         const [pass, fail] = r.result.map((side) => side.map((i) => `a${sub(i)}`));
         return { inputs: [{ node: listOf(elems(4, "a"), "in"), steps: idx.map((i) => step(true, boolSlot(t, key(i), `p(a${sub(i)})`))) }],
           output: container("tuple", "Tuple", [listOf(pass ?? [], "in"), listOf(fail ?? [], "in")]),
-          caption: `Every element lands on exactly one side, in order: ${pass?.length ?? 0} passed, ${fail?.length ?? 0} failed. Passes come first.` };
+          caption: `\`p\` ran once per element. ${pass?.length ?? 0} passed and ${fail?.length ?? 0} failed; each side keeps its order.` };
       } },
   ] },
 
@@ -664,7 +666,7 @@ export const operationScenes: Readonly<Record<string, OperationScenes>> = {
         const called = r.trace.calls.some((c) => c.fn === "predicate");
         const onFalse = r.trace.calls.some((c) => c.fn === "onFalse");
         return { inputs: [{ node: eitherSlot(t, "input", "a", "e₁"), steps: [step(called, boolSlot(t, "predicate", "p(a)")), step(onFalse, onFalse ? ball("e₂", "error") : undefined, "onFalse(a)")] }], output: eitherOut(r.result as Either<string, string>),
-          caption: !called ? "The input is a `Left`, so the predicate never runs." : t.predicate ? "The predicate failed, so the success becomes a `Left` built from the value." : "The predicate passed, so the value is kept." };
+          caption: !called ? "The input is a `Left`, so `p` didn't run. The result is `Left(e₁)`." : t.predicate ? "`p` failed, so `onFalse` built the error from `a`. The result is `Left(e₂)`." : "`p` passed, so `onFalse` didn't run. The result is `Right(a)`." };
       } },
   ] },
 };
