@@ -178,7 +178,6 @@ a { color: var(--purple-dark); }
 .github-badge:hover { color: var(--purple-dark); text-decoration: underline; text-underline-offset: 3px; }
 .github-badge svg { width: 16px; height: 16px; fill: currentColor; }
 .nav-group .eyebrow { margin: 6px 12px 4px; }
-.nav-tag { margin-left: 8px; font-size: 11px; letter-spacing: 0; text-transform: none; vertical-align: 1px; }
 .oplink { display: block; padding: 6px 12px; border-radius: 8px; color: var(--soft-ink); text-decoration: none; font-family: var(--mono); font-size: 14px; }
 .oplink:hover { background: var(--nav-hover); color: var(--ink); }
 .oplink.on { background: var(--nav-on); color: var(--purple-dark); font-weight: 500; }

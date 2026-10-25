@@ -62,7 +62,7 @@ function Sidebar() {
       <div className="nav-groups">
       {visibleGroups(preview).map((g) => (
         <div key={g.name} className="nav-group">
-          <p className="eyebrow">{g.name}{g.preview && <span className="status-preview nav-tag">preview</span>}</p>
+          <p className="eyebrow">{g.name}</p>
           {g.operations.map((o) => (
             <NavLink key={o.id} to={`/op/${o.id}`} className={({ isActive }) => `oplink${isActive ? " on" : ""}`}>{o.name}</NavLink>
           ))}
@@ -141,6 +141,12 @@ export function App() {
   );
 }
 
+// The default page is the first operation in the navigation.
+function FirstOperation() {
+  const first = visibleGroups(usePreview().on)[0]?.operations[0];
+  return <Navigate to={`/op/${first?.id ?? "map"}`} replace />;
+}
+
 function SiteRoutes() {
   if (!useSiteOpen()) {
     return (
@@ -152,7 +158,7 @@ function SiteRoutes() {
   }
   return (
         <Routes>
-          <Route path="/" element={<Navigate to="/op/traverse" replace />} />
+          <Route path="/" element={<FirstOperation />} />
           <Route path="/op/:operationId" element={<OperationRoute />} />
           <Route path="/explore" element={<Navigate to="/" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

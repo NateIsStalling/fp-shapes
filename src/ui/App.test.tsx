@@ -32,7 +32,7 @@ describe("interaction", () => {
   const pick = (group: string, option: RegExp) => fireEvent.click(within(screen.getByRole("group", { name: group })).getByRole("radio", { name: option }));
 
   it("traverse: each slot is a radio group; moving pieces recomputes the result", () => {
-    renderAt("/");
+    renderAt("/op/traverse");
     expect(caption()).toMatch(/f ran on 2 of 4 elements, stopping at the first failure\. The result is Left\(e₂\)\./);
     expect((within(screen.getByRole("group", { name: "f(a₂)" })).getByRole("radio", { name: /Left/ }) as HTMLInputElement).checked).toBe(true);
     pick("f(a₂)", /Right/);
@@ -78,9 +78,13 @@ describe("interaction", () => {
     expect(document.querySelector(".lane-caption")?.textContent).not.toContain("`");
   });
 
-  it("unknown routes fall back to traverse", () => {
+  it("the home page and unknown routes open the first operation in the navigation", () => {
+    const first = operationGroups[0]?.operations[0]?.name ?? "";
+    renderAt("/");
+    expect(screen.getByRole("heading", { level: 1, name: first })).toBeTruthy();
+    cleanup();
     renderAt("/nope");
-    expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: first })).toBeTruthy();
   });
 });
 
@@ -259,7 +263,7 @@ describe("under construction", () => {
     renderAt("/");
     fireEvent.click(start());
     fireEvent.click(screen.getByRole("button", { name: "Show preview" }));
-    expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: operationGroups[0]?.operations[0]?.name ?? "" })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toMatch(/Preview on\. Preview content is under review and may not be accurate\./);
     cleanup();
     renderAt("/op/map");
@@ -274,11 +278,11 @@ describe("under construction", () => {
 describe("preview operations", () => {
   const nav = () => screen.getByRole("navigation", { name: "Primary" });
 
-  it("Constructors is a preview group, tagged preview in the sidebar", () => {
+  it("Constructors is a preview group, listed in the sidebar without a tag", () => {
     expect(operationGroups.find((g) => g.name === "Constructors")?.preview).toBe(true);
     renderAt("/op/pure");
     expect(screen.getByRole("heading", { level: 1, name: "pure" })).toBeTruthy();
-    expect(within(nav()).getByText("Constructors").textContent).toBe("Constructorspreview");
+    expect(within(nav()).getByText("Constructors").textContent).toBe("Constructors");
     expect(within(nav()).getByRole("link", { name: "pure" })).toBeTruthy();
   });
 });
