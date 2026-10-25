@@ -1,8 +1,7 @@
 // Navigation data. Most groups follow the @category vocabulary shared by
 // fp-ts 2.16.11 and Effect 4.0.5; Constructors is the site's own grouping
 // (fp-ts files fromNullable under conversions, fromPredicate under lifting
-// and tryCatch under interop). The abstraction is shown in each
-// operation page's header, not in the navigation. How each ecosystem names
+// and tryCatch under interop). How each ecosystem names
 // an operation, and where a name means something else (Haskell's `fail`),
 // belongs in the catalog's notes, not here.
 
@@ -19,11 +18,6 @@ export type OperationId =
 export interface OperationInfo {
   readonly id: OperationId;
   readonly name: string;
-  // The type class this operation is a method of (or is derived from), named
-  // as Haskell base/mtl names it, or as fp-ts does when base has no such class
-  // (Alt, Filterable). Absent for plain functions that belong to no class:
-  // conversions, eliminators, side effects.
-  readonly abstraction?: string;
   readonly signature: string;
   // The type variable the receiver control fills in (F, or P for two-sided types).
   readonly receiverVar: string;
@@ -38,42 +32,42 @@ export interface OperationGroup {
 
 export const operationGroups: readonly OperationGroup[] = [
   { name: "Constructors", preview: true, operations: [
-    { id: "pure", name: "pure", abstraction: "Applicative", signature: "A → F<A>", receiverVar: "F" },
-    { id: "fail", name: "fail", abstraction: "MonadError", signature: "E → F<E, A>", receiverVar: "F" },
+    { id: "pure", name: "pure", signature: "A → F<A>", receiverVar: "F" },
+    { id: "fail", name: "fail", signature: "E → F<E, A>", receiverVar: "F" },
     { id: "fromNullable", name: "fromNullable", signature: "(A | null | undefined) → F<A>", receiverVar: "F" },
     { id: "fromPredicate", name: "fromPredicate", signature: "(A → bool) → A → F<A>", receiverVar: "F" },
     { id: "tryCatch", name: "tryCatch", signature: "(() → A) → F<A>", receiverVar: "F" },
   ] },
   { name: "Mapping", operations: [
-    { id: "map", name: "map", abstraction: "Functor", signature: "(A → B) → F<A> → F<B>", receiverVar: "F" },
-    { id: "bimap", name: "bimap", abstraction: "Bifunctor", signature: "(A → C) × (B → D) → P<A, B> → P<C, D>", receiverVar: "P" },
+    { id: "map", name: "map", signature: "(A → B) → F<A> → F<B>", receiverVar: "F" },
+    { id: "bimap", name: "bimap", signature: "(A → C) × (B → D) → P<A, B> → P<C, D>", receiverVar: "P" },
   ] },
   { name: "Sequencing", operations: [
-    { id: "flatMap", name: "flatMap", abstraction: "Monad", signature: "(A → F<B>) → F<A> → F<B>", receiverVar: "F" },
-    { id: "flatten", name: "flatten", abstraction: "Monad", signature: "F<F<A>> → F<A>", receiverVar: "F" },
-    { id: "tap", name: "tap", abstraction: "Monad", signature: "(A → F<_>) → F<A> → F<A>", receiverVar: "F" },
+    { id: "flatMap", name: "flatMap", signature: "(A → F<B>) → F<A> → F<B>", receiverVar: "F" },
+    { id: "flatten", name: "flatten", signature: "F<F<A>> → F<A>", receiverVar: "F" },
+    { id: "tap", name: "tap", signature: "(A → F<_>) → F<A> → F<A>", receiverVar: "F" },
     { id: "peek", name: "peek", signature: "(A → void) → F<A> → F<A>", receiverVar: "F" },
   ] },
   { name: "Zipping", operations: [
-    { id: "zip", name: "zip / map2", abstraction: "Applicative", signature: "F<A> × F<B> × ((A, B) → C) → F<C>", receiverVar: "F" },
+    { id: "zip", name: "zip / map2", signature: "F<A> × F<B> × ((A, B) → C) → F<C>", receiverVar: "F" },
   ] },
   { name: "Traversing", operations: [
-    { id: "traverse", name: "traverse", abstraction: "Traversable", signature: "(A → F<B>) → T<A> → F<T<B>>", receiverVar: "F" },
-    { id: "sequence", name: "sequence", abstraction: "Traversable", signature: "T<F<A>> → F<T<A>>", receiverVar: "F" },
+    { id: "traverse", name: "traverse", signature: "(A → F<B>) → T<A> → F<T<B>>", receiverVar: "F" },
+    { id: "sequence", name: "sequence", signature: "T<F<A>> → F<T<A>>", receiverVar: "F" },
   ] },
   { name: "Error handling", operations: [
-    { id: "mapError", name: "mapError", abstraction: "Bifunctor", signature: "(E → E₂) → P<E, A> → P<E₂, A>", receiverVar: "P" },
-    { id: "recover", name: "recover", abstraction: "MonadError", signature: "(E → F<E₂, A>) → F<E, A> → F<E₂, A>", receiverVar: "F" },
-    { id: "alt", name: "alt", abstraction: "Alt", signature: "F<A> × (() → F<A>) → F<A>", receiverVar: "F" },
+    { id: "mapError", name: "mapError", signature: "(E → E₂) → P<E, A> → P<E₂, A>", receiverVar: "P" },
+    { id: "recover", name: "recover", signature: "(E → F<E₂, A>) → F<E, A> → F<E₂, A>", receiverVar: "F" },
+    { id: "alt", name: "alt", signature: "F<A> × (() → F<A>) → F<A>", receiverVar: "F" },
     { id: "getOrElse", name: "getOrElse", signature: "A → F<A> → A", receiverVar: "F" },
   ] },
   { name: "Pattern matching", operations: [
     { id: "match", name: "match", signature: "(cases → R) → F<A> → R", receiverVar: "F" },
   ] },
   { name: "Filtering", operations: [
-    { id: "filter", name: "filter", abstraction: "Filterable", signature: "(A → bool) → F<A> → F<A>", receiverVar: "F" },
-    { id: "filterMap", name: "filterMap", abstraction: "Filterable", signature: "(A → Option<B>) → F<A> → F<B>", receiverVar: "F" },
-    { id: "partition", name: "partition", abstraction: "Filterable", signature: "(A → bool) → F<A> → (F<A>, F<A>)", receiverVar: "F" },
+    { id: "filter", name: "filter", signature: "(A → bool) → F<A> → F<A>", receiverVar: "F" },
+    { id: "filterMap", name: "filterMap", signature: "(A → Option<B>) → F<A> → F<B>", receiverVar: "F" },
+    { id: "partition", name: "partition", signature: "(A → bool) → F<A> → (F<A>, F<A>)", receiverVar: "F" },
     { id: "filterOrElse", name: "filterOrElse", signature: "(A → bool) × (A → E) → F<E, A> → F<E, A>", receiverVar: "F" },
   ] },
 ];

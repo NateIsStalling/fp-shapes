@@ -58,18 +58,19 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <p className="mono op-signature">
               {tokenize(op.signature, op.receiverVar).map((tk, i) => (tk.isVar ? <span key={i} className="type-var">{tk.text}</span> : tk.text))}
             </p>
-            {op.abstraction && <span className="abstraction-tag"><span>abstraction</span>{op.abstraction}</span>}
           </div>
-          {receivers.length > 1 && (
-            <div className="control-row receiver-row">
-              <span className="receiver-label" aria-hidden="true"><span className="type-var">{op.receiverVar}</span> =</span>
+          <div className="control-row receiver-row">
+            <span className="receiver-label" aria-hidden="true"><span className="type-var">{op.receiverVar}</span> =</span>
+            {receivers.length > 1 ? (
               <div className="seg" role="group" aria-label={`Receiver: ${op.receiverVar}`}>
                 {receivers.map((r) => (
                   <button key={r.id} type="button" className={r.id === receiver.id ? "on" : ""} aria-pressed={r.id === receiver.id} onClick={() => setReceiverId(r.id)}>{r.label}</button>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <span className="seg seg-fixed" aria-label={`Receiver: ${op.receiverVar}`}><span className="on">{receiver.label}</span></span>
+            )}
+          </div>
           <p className="mono op-signature-concrete" aria-live="polite">
             <span className="sr-only">With {receiver.label}: </span>
             {markType(receiver.signature ?? instantiate(op.signature, receiver.binds), receiver.binds[op.receiverVar] ?? "").map((p, i) => (p.isType ? <strong key={i} className="bound-type">{p.text}</strong> : p.text))}

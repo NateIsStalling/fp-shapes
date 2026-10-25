@@ -100,11 +100,17 @@ describe("section headings", () => {
 });
 
 describe("page header", () => {
-  it("has a breadcrumb, keeps the abstraction next to the signature, and puts the receiver in the title bar", () => {
+  it("has a breadcrumb and puts the receiver in the title bar", () => {
     const { container } = renderAt("/op/traverse");
     expect(screen.getByRole("navigation", { name: "Breadcrumb" }).textContent).toBe("OperationsTraversing");
-    expect(container.querySelector(".op-shape .abstraction-tag")?.textContent).toBe("abstractionTraversable");
     expect(container.querySelector('header.title-bar [aria-label="Receiver: F"]')).toBeTruthy();
+  });
+
+  it("shows what F is even when there is only one receiver", () => {
+    const { container } = renderAt("/op/recover");
+    const fixed = container.querySelector('header.title-bar .seg-fixed[aria-label="Receiver: F"]');
+    expect(fixed?.textContent).toBe("Either");
+    expect(fixed?.querySelector("button")).toBeNull();
   });
 });
 
