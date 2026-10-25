@@ -1,4 +1,4 @@
-import { Effect, Result } from "effect";
+import { Effect, Iterable, Option as EO, Result } from "effect";
 import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
 import * as RA from "fp-ts/ReadonlyArray";
@@ -15,6 +15,7 @@ import {
   success,
   sequenceEither,
   sequenceOption,
+  sequenceValidation,
   traverseEither,
   traverseOption,
   traverseValidation,
@@ -34,6 +35,23 @@ function instrument<R>(f: (n: number) => R) {
   const calls: number[] = [];
   return { calls, f: (n: number) => (calls.push(n), f(n)) };
 }
+
+// Records which indices of an array are read, in order, so sequence's
+// "calls" (the elements it inspects) can be compared with the reference.
+function watched<A>(xs: readonly A[]) {
+  const reads: number[] = [];
+  const proxy = new Proxy(xs as A[], {
+    get(target, key, receiver) {
+      if (typeof key === "string" && /^\d+$/.test(key) && !reads.includes(Number(key))) reads.push(Number(key));
+      return Reflect.get(target, key, receiver);
+    },
+  });
+  return { reads, proxy: proxy as readonly A[] };
+}
+const indices = (run: { trace: { calls: readonly { index: number }[] } }) => run.trace.calls.map((c) => c.index);
+
+const eithersSeq = [right(1), left("e2"), right(3), left("e4")] as const;
+const optionsSeq = [some(1), none, some(3), none] as const;
 
 const referenceEither = (strategy: EvaluationStrategy, xs: readonly number[]) => {
   const run = traverseEither(strategy, xs, (n) => (n < 0 ? left(`e${n}`) : right(n * 10)));
@@ -113,6 +131,34 @@ describe("fp-ts 2.16.11", () => {
     expect(E.isLeft(got) ? left(got.left) : right(got.right.map((n) => n * 10))).toEqual(ref.result);
     expect(started).toEqual(ref.calls);
   });
+  it("sequence: E.sequenceArray and O.sequenceArray stop reading at the first failure; RA.sequence reads every element", () => {
+    const toE = (e: (typeof eithersSeq)[number]) => (e.tag === "right" ? E.right(e.value) : E.left(e.error));
+    const toO = (o: (typeof optionsSeq)[number]) => (o.tag === "some" ? O.some(o.value) : O.none);
+    const fromE = <L, R>(e: E.Either<L, R>) => (E.isLeft(e) ? left(e.left) : right(e.right));
+    const fromO = <A>(o: O.Option<A>) => (O.isNone(o) ? none : some(o.value));
+    for (const [strategy, run] of [["short-circuit", E.sequenceArray], ["eager", RA.sequence(E.Applicative)]] as const) {
+      const w = watched(eithersSeq.map(toE));
+      const ref = sequenceEither(strategy, eithersSeq);
+      expect(fromE(run(w.proxy))).toEqual(ref.result);
+      expect(w.reads).toEqual(indices(ref));
+    }
+    for (const [strategy, run] of [["short-circuit", O.sequenceArray], ["eager", RA.sequence(O.Applicative)]] as const) {
+      const w = watched(optionsSeq.map(toO));
+      const ref = sequenceOption(strategy, optionsSeq);
+      expect(fromO(run(w.proxy))).toEqual(ref.result);
+      expect(w.reads).toEqual(indices(ref));
+    }
+  });
+
+  it("RA.sequence(E.getApplicativeValidation(S)) reads every element and keeps every failure", () => {
+    const V = E.getApplicativeValidation(RNEA.getSemigroup<string>());
+    const vs = [success(1), failure(["e2"]), success(3), failure(["e4"])] as const;
+    const w = watched(vs.map((v): E.Either<RNEA.ReadonlyNonEmptyArray<string>, number> => (v.tag === "success" ? E.right(v.value) : E.left(v.errors))));
+    const got = RA.sequence(V)(w.proxy);
+    const ref = sequenceValidation(vs);
+    expect(E.isLeft(got) ? failure(got.left as unknown as [string, ...string[]]) : success(got.right)).toEqual(ref.result);
+    expect(w.reads).toEqual(indices(ref));
+  });
 });
 
 describe("effect 4.0.5", () => {
@@ -134,5 +180,51 @@ describe("effect 4.0.5", () => {
     const ref = traverseValidation(inputs, (n) => (n < 0 ? failure([`e${n}`]) : success(n * 10)));
     expect(Result.isFailure(got) ? failure(got.failure as unknown as [string, ...string[]]) : success(got.success)).toEqual(ref.result);
     expect(calls).toEqual([...inputs]);
+  });
+  it("Result.all(Iterable.map(xs, f)) is short-circuit; Result.all(Array.map(xs, f)) is eager", () => {
+    const check = (n: number) => (n < 0 ? Result.fail(`e${n}`) : Result.succeed(n * 10));
+    for (const xs of [inputs, ok]) {
+      for (const [strategy, run] of [
+        ["short-circuit", (f: typeof check) => Result.all(Iterable.map(xs, f))],
+        ["eager", (f: typeof check) => Result.all(xs.map(f))],
+      ] as const) {
+        const { calls, f } = instrument(check);
+        const got = run(f);
+        const ref = referenceEither(strategy, xs);
+        expect(Result.isFailure(got) ? left(got.failure) : right(got.success)).toEqual(ref.result);
+        expect(calls).toEqual(ref.calls);
+      }
+    }
+  });
+
+  it("Option.all(Iterable.map(xs, f)) is short-circuit; Option.all(Array.map(xs, f)) is eager", () => {
+    const check = (n: number) => (n < 0 ? EO.none<number>() : EO.some(n * 10));
+    for (const xs of [inputs, ok]) {
+      for (const [strategy, run] of [
+        ["short-circuit", (f: typeof check) => EO.all(Iterable.map(xs, f))],
+        ["eager", (f: typeof check) => EO.all(xs.map(f))],
+      ] as const) {
+        const { calls, f } = instrument(check);
+        const got = run(f);
+        const ref = traverseOption(strategy, xs, (n) => (n < 0 ? none : some(n * 10)));
+        expect(EO.isNone(got) ? none : some(got.value)).toEqual(ref.result);
+        expect(calls).toEqual(ref.trace.calls.map((c) => c.input));
+      }
+    }
+  });
+
+  it("sequence: Result.all and Option.all stop reading at the first failure (short-circuit only)", () => {
+    const w = watched(eithersSeq.map((e) => (e.tag === "right" ? Result.succeed(e.value) : Result.fail(e.error))));
+    const got = Result.all(w.proxy);
+    const ref = sequenceEither("short-circuit", eithersSeq);
+    expect(Result.isFailure(got) ? left(got.failure) : right(got.success)).toEqual(ref.result);
+    expect(w.reads).toEqual(indices(ref));
+    expect(w.reads).not.toEqual(indices(sequenceEither("eager", eithersSeq)));
+    const wo = watched(optionsSeq.map((o) => (o.tag === "some" ? EO.some(o.value) : EO.none<number>())));
+    const gotO = EO.all(wo.proxy);
+    const refO = sequenceOption("short-circuit", optionsSeq);
+    expect(EO.isNone(gotO) ? none : some(gotO.value)).toEqual(refO.result);
+    expect(wo.reads).toEqual(indices(refO));
+    expect(wo.reads).not.toEqual(indices(sequenceOption("eager", optionsSeq)));
   });
 });

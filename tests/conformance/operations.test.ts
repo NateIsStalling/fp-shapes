@@ -1,4 +1,4 @@
-import { Array as Arr, Option as EO, Result, Tuple } from "effect";
+import { Array as Arr, identity, Option as EO, Result, Tuple } from "effect";
 import { sequenceT } from "fp-ts/Apply";
 import * as T from "fp-ts/Tuple";
 import * as Effect4 from "effect";
@@ -32,6 +32,10 @@ import {
   mapOption,
   matchEither,
   matchOption,
+  matchValidation,
+  mapErrorValidation,
+  peek,
+  peekList,
   none,
   recoverEither,
   right,
@@ -46,6 +50,7 @@ import {
   zipWithOption,
   zipWithValidation,
   type Either,
+  type NonEmpty,
   type Option,
 } from "../../src/semantics";
 
@@ -217,5 +222,120 @@ describe("effect 4.0.5", () => {
       expect(fromR(Result.filterOrFail(Result.succeed(n), (x) => x > 5, (x) => `small ${x}`))).toEqual(filterOrElseEither(right(n), (x) => x > 5, (x) => `small ${x}`).result);
       expect(fromEO(EO.filter(EO.some(n), (x) => x > 5))).toEqual(filterOption(some(n), (x) => x > 5).result);
     }
+  });
+});
+
+describe("fp-ts 2.16.11: the page scenarios", () => {
+  const V = E.getApplicativeValidation(RNEA.getSemigroup<string>());
+  const fromV = <A>(e: E.Either<RNEA.ReadonlyNonEmptyArray<string>, A>) => (E.isLeft(e) ? failure(e.left as unknown as NonEmpty<string>) : success(e.right));
+  const add = (x: number, y: number) => x + y;
+
+  it("zip: sequenceT then map is map2 for Either, Validation and List", () => {
+    const pairs: [Either<string, number>, Either<string, number>][] = [[left("e1"), left("e2")], [right(1), left("e2")], [right(1), right(2)]];
+    for (const [a, b] of pairs) {
+      expect(fromE(E.map(([x, y]: readonly [number, number]) => x + y)(sequenceT(E.Apply)(toE(a), toE(b))))).toEqual(zipWithEither(a, b, add).result);
+    }
+    const got = E.map(([x, y]: readonly [number, number]) => x + y)(sequenceT(V)(E.left(RNEA.of("e1")), E.left(RNEA.of("e2"))));
+    expect(fromV(got)).toEqual(zipWithValidation(failure(["e1"]), failure(["e2"]), add).result);
+    const cat = (n: number, s: string) => `${n}${s}`;
+    expect(RA.map(([n, s]: readonly [number, string]) => cat(n, s))(sequenceT(RA.Apply)([1, 2, 3], ["a", "b"]))).toEqual(zipWithListCartesian([1, 2, 3], ["a", "b"], cat).result);
+  });
+
+  it("recover: E.orElse can recover to a Right", () => {
+    expect(fromE(E.orElse((s: string) => E.right(s.length))(E.left("oops")))).toEqual(recoverEither(left("oops"), (s) => right(s.length)).result);
+  });
+
+  it("alt: O.orElse is the current name of O.alt and is lazy; E.alt keeps the second Left", () => {
+    const fb = spy(() => O.some(9));
+    expect(fromO(O.orElse(O.some(1), fb.f))).toEqual(altOption(some(1), () => some(9)).result);
+    expect(fb.calls).toEqual([]);
+    expect(fromO(O.orElse(O.none, () => O.some(9)))).toEqual(altOption(none, () => some(9)).result);
+    expect(fromE(E.alt(() => E.left("e2"))(E.left("e1")))).toEqual(altEither(left("e1"), () => left("e2")).result);
+  });
+
+  it("mapError on Validation: E.mapLeft(RNEA.map(f)) calls f on each error, in order", () => {
+    const f = spy((e: string) => e.toUpperCase());
+    const got = E.mapLeft(RNEA.map(f.f))(E.left(["e1", "e2"] as RNEA.ReadonlyNonEmptyArray<string>));
+    const ref = mapErrorValidation(failure(["e1", "e2"]), (e: string) => e.toUpperCase());
+    expect(fromV(got)).toEqual(ref.result);
+    expect(f.calls.map(([e]) => e)).toEqual(ref.trace.calls.map((c) => c.input));
+  });
+
+  it("match on Validation: E.match receives every error", () => {
+    for (const v of [failure(["e1", "e2"]), success(2)] as const) {
+      const e: E.Either<RNEA.ReadonlyNonEmptyArray<string>, number> = v.tag === "success" ? E.right(v.value) : E.left(v.errors);
+      expect(E.match((es: RNEA.ReadonlyNonEmptyArray<string>) => `${es.length} errors`, (x: number) => `value ${x}`)(e)).toBe(
+        matchValidation(v, (es) => `${es.length} errors`, (x) => `value ${x}`).result,
+      );
+    }
+  });
+
+  it("no peek: E.tap and O.tap need a step that returns the container, and ReadonlyArray has no tap", () => {
+    expect(() => E.tap(E.right(2), () => undefined as unknown as E.Either<never, void>)).toThrow();
+    expect(() => O.tap(O.some(2), () => undefined as unknown as O.Option<void>)).toThrow();
+    expect("tap" in RA).toBe(false);
+    const seen: number[] = [];
+    const ref = peekList([1, 2, 3], () => undefined);
+    expect(RA.map((x: number) => (seen.push(x), x))([1, 2, 3])).toEqual(ref.result);
+    expect(seen).toEqual(ref.trace.calls.map((c) => c.input));
+  });
+});
+
+describe("effect 4.0.5: the page scenarios", () => {
+  const add = (x: number, y: number) => x + y;
+
+  it("peek: Result.tap calls f on a success only and ignores what it returns", () => {
+    for (const e of eithers) {
+      const f = spy((_: number) => Result.fail("ignored"));
+      const ref = peek(e, () => undefined);
+      expect(fromR(Result.tap(toR(e), f.f))).toEqual(ref.result);
+      expect(f.calls.map(([x]) => x)).toEqual(ref.trace.calls.map((c) => c.input));
+    }
+  });
+
+  it("no list peek: Array has no tap, and Array.forEach returns undefined", () => {
+    expect("tap" in Arr).toBe(false);
+    expect(Arr.forEach([1, 2, 3], () => undefined)).toBeUndefined();
+  });
+
+  it("tap: Option.tap is effectful; on Result, flatMap the step and map back to the value", () => {
+    for (const o of [some(4), some(3), none] as Option<number>[]) {
+      expect(fromEO(EO.tap(toEO(o), (n) => toEO(halfO(n))))).toEqual(tapOption(o, halfO).result);
+    }
+    for (const e of [right(4), right(3), left("e")] as Either<string, number>[]) {
+      const step = spy((n: number) => toR(half(n)));
+      const got = Result.flatMap(toR(e), (a) => Result.map(step.f(a), () => a));
+      const ref = tapEither(e, half);
+      expect(fromR(got)).toEqual(ref.result);
+      expect(step.calls.map(([x]) => x)).toEqual(ref.trace.calls.map((c) => c.input));
+    }
+  });
+
+  it("flatten: Result.flatMap with identity", () => {
+    for (const ee of [right(right(1)), right(left("inner")), left("outer")] as Either<string, Either<string, number>>[]) {
+      const r = ee.tag === "right" ? Result.succeed(toR(ee.value)) : Result.fail(ee.error);
+      expect(fromR(Result.flatMap(r, identity))).toEqual(flattenEither(ee).result);
+    }
+  });
+
+  it("zip: Result.all then map keeps the first failure; Array.cartesianWith is cartesian", () => {
+    const pairs: [Either<string, number>, Either<string, number>][] = [[left("e1"), left("e2")], [right(1), left("e2")], [right(1), right(2)]];
+    for (const [a, b] of pairs) {
+      expect(fromR(Result.map(Result.all([toR(a), toR(b)]), ([x, y]) => x + y))).toEqual(zipWithEither(a, b, add).result);
+    }
+    const cat = (n: number, s: string) => `${n}${s}`;
+    expect(Arr.cartesianWith([1, 2, 3], ["a", "b"], cat)).toEqual(zipWithListCartesian([1, 2, 3], ["a", "b"], cat).result);
+  });
+
+  it("recover and alt: Result.orElse recovers to a success, and as alt keeps the second failure lazily", () => {
+    expect(fromR(Result.orElse(Result.fail("oops"), (s: string) => Result.succeed(s.length)))).toEqual(recoverEither(left("oops"), (s) => right(s.length)).result);
+    expect(fromR(Result.orElse(Result.fail("e1"), () => Result.fail("e2")))).toEqual(altEither(left("e1"), () => left("e2")).result);
+    const fb = spy(() => Result.succeed(9));
+    expect(fromR(Result.orElse(Result.succeed(1), fb.f))).toEqual(altEither(right(1), () => right(9)).result);
+    expect(fb.calls).toEqual([]);
+  });
+
+  it("alt on lists: Array.appendAll concatenates", () => {
+    expect(Arr.appendAll([1, 2], [3])).toEqual(altList([1, 2], () => [3]).result);
   });
 });
