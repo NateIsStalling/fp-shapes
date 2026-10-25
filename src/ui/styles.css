@@ -175,8 +175,9 @@ a { color: var(--purple-dark); }
 .menu-current { margin-left: auto; font: 500 14px var(--mono); color: var(--purple-dark); }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-weight: 800; font-size: 20px; letter-spacing: -.03em; }
 .nav-group { display: grid; gap: 1px; }
-.github-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 600; text-decoration: none; }
-.github-badge:hover { border-color: var(--purple); color: var(--purple-dark); }
+/* A flat link: no border or fill, so the switches above it read as the controls. */
+.github-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 4px; color: var(--soft-ink); font-size: 13px; font-weight: 600; text-decoration: none; border-radius: 6px; }
+.github-badge:hover { color: var(--purple-dark); text-decoration: underline; text-underline-offset: 3px; }
 .github-badge svg { width: 16px; height: 16px; fill: currentColor; }
 .nav-group .eyebrow { margin: 6px 12px 4px; }
 .nav-tag { margin-left: 8px; font-size: 11px; letter-spacing: 0; text-transform: none; vertical-align: 1px; }
