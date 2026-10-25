@@ -21,6 +21,10 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
     Option<int> result = Some(2);
     // </sample>
     Check("pure:option", ShowO(result) == "Some(2)", ShowO(result));
+    // v4's Some rejects null, unlike fp-ts O.of(null) and Effect Option.some(null).
+    var threw = false;
+    try { Some<string>(null!); } catch (ValueIsNullException) { threw = true; }
+    Check("pure:option null", threw, threw ? "throws" : "no throw");
 }
 {
     // <sample pure:either>
@@ -59,6 +63,45 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
     Check("fail:validation", ShowV(result) == "Failure([oops])", ShowV(result));
 }
 {
+    // <sample fail:list>
+    Seq<int> result = Seq<int>();
+    // </sample>
+    Check("fail:list", ShowS(result) == "[]", ShowS(result));
+}
+{
+    // <sample fromNullable:validation>
+    string? input = null;
+    Validation<string, string> result = Optional(input).ToValidation("missing");
+    // </sample>
+    Check("fromNullable:validation", ShowV(result) == "Failure([missing])", ShowV(result));
+}
+{
+    // <sample fromNullable:list>
+    string? input = null;
+    Seq<string> result = Optional(input).ToSeq();
+    // </sample>
+    Check("fromNullable:list", ShowS(result) == "[]", ShowS(result));
+}
+{
+    // <sample fromPredicate:validation>
+    int input = 3;
+    Validation<string, int> result = Cond<int>(x => x >= 5)(input).ToValidation($"too small: {input}");
+    // </sample>
+    Check("fromPredicate:validation", ShowV(result) == "Failure([too small: 3])", ShowV(result));
+}
+{
+    // <sample fromPredicate:list>
+    Seq<int> result = Cond<int>(x => x >= 5)(3).ToSeq();
+    // </sample>
+    Check("fromPredicate:list", ShowS(result) == "[]", ShowS(result));
+}
+{
+    // <sample tryCatch:validation>
+    Validation<string, int> result = Try(() => int.Parse("x")).ToValidation(ex => "invalid input");
+    // </sample>
+    Check("tryCatch:validation", ShowV(result) == "Failure([invalid input])", ShowV(result));
+}
+{
     // <sample fromNullable:option>
     string? input = null;
     Option<string> result = Optional(input);
@@ -74,14 +117,14 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
 }
 {
     // <sample fromPredicate:option>
-    Option<int> result = Some(3).Filter(x => x > 5);
+    Option<int> result = Cond<int>(x => x > 5)(3);
     // </sample>
     Check("fromPredicate:option", ShowO(result) == "None", ShowO(result));
 }
 {
     // <sample fromPredicate:either>
     int input = 3;
-    Either<string, int> result = Some(input).Filter(x => x > 5).ToEither($"too small: {input}");
+    Either<string, int> result = Cond<int>(x => x > 5)(input).ToEither(() => $"too small: {input}");
     // </sample>
     Check("fromPredicate:either", ShowE(result) == "Left(too small: 3)", ShowE(result));
 }
@@ -90,12 +133,14 @@ string ShowS<A>(Seq<A> s) => "[" + string.Join(", ", s) + "]";
     Option<int> result = Try(() => int.Parse("x")).ToOption();
     // </sample>
     Check("tryCatch:option", ShowO(result) == "None", ShowO(result));
+    var nullResult = Try<string>(() => null!).ToOption();
+    Check("tryCatch:option null", nullResult.IsNone, ShowO(nullResult.Map(x => 0)));
 }
 {
     // <sample tryCatch:either>
-    Either<Exception, int> result = Try(() => int.Parse("x")).ToEither();
+    Either<string, int> result = Try(() => int.Parse("x")).ToEither(ex => "invalid input");
     // </sample>
-    Check("tryCatch:either", result.IsLeft, ShowE(result));
+    Check("tryCatch:either", ShowE(result) == "Left(invalid input)", ShowE(result));
 }
 
 // --- Mapping -----------------------------------------------------------------

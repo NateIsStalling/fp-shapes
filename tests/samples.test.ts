@@ -29,8 +29,13 @@ describe("sample index", () => {
     }
   });
 
-  it("every fp-ts, Effect and LanguageExt entry shows a sample", () => {
-    for (const [key, list] of Object.entries(names)) for (const e of list) expect(e.sample, `${e.eco} ${key}`).toBeTruthy();
+  it("every fp-ts, Effect and LanguageExt entry shows a sample, except a `none` answer, which has no code", () => {
+    for (const [key, list] of Object.entries(names)) {
+      for (const e of list) {
+        if (e.status === "none") expect(e.sample, `${e.eco} ${key} is "none" but has a sample`).toBeUndefined();
+        else expect(e.sample, `${e.eco} ${key}`).toBeTruthy();
+      }
+    }
   });
 });
 
@@ -58,6 +63,12 @@ const expected: Record<string, unknown> = {
   "fail:either": { err: "oops" },
   "fail:option": "none",
   "fail:validation": { err: ["oops"] },
+  "fail:list": [],
+  "fromNullable:validation": { err: ["missing"] },
+  "fromNullable:list": [],
+  "fromPredicate:validation": { err: ["too small: 3"] },
+  "fromPredicate:list": [],
+  "tryCatch:validation": { err: ["invalid JSON"] },
   "fromNullable:option": "none",
   "fromNullable:either": { err: "missing" },
   "fromPredicate:option": "none",
@@ -68,6 +79,7 @@ const expected: Record<string, unknown> = {
   "map:option": { some: 20 },
   "map:list": [10, 20, 30],
   "bimap:either": { err: 4 },
+  "bimap:tuple": [4, 20],
   "flatMap:either": { ok: 2 },
   "flatMap:option": { some: 2 },
   "flatMap:list": [1, 1, 2, 2, 3, 3],
@@ -82,9 +94,12 @@ const expected: Record<string, unknown> = {
   "zip:ziplist": ["1a", "2b"],
   "traverse:either:short-circuit": { err: "e-2" },
   "traverse:either:eager": { err: "e-2" },
+  "traverse:option:eager": "none",
   "traverse:option:short-circuit": "none",
   "traverse:validation:eager": { err: ["e-2", "e-4"] },
   "sequence:either:short-circuit": { err: "e2" },
+  "sequence:either:eager": { err: "e2" },
+  "sequence:option:eager": "none",
   "mapError:either": { err: 4 },
   "recover:either": { err: 4 },
   "alt:option": { some: 9 },

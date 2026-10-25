@@ -13,6 +13,8 @@ import {
   right,
   some,
   success,
+  sequenceEither,
+  sequenceOption,
   traverseEither,
   traverseOption,
   traverseValidation,
@@ -47,6 +49,33 @@ describe("fp-ts 2.16.11", () => {
       expect(E.isLeft(got) ? left(got.left) : right(got.right)).toEqual(ref.result);
       expect(calls).toEqual(ref.calls);
     }
+  });
+
+  it("RA.traverse(E.Applicative) is eager: f runs on every element, the first Left wins", () => {
+    for (const xs of [inputs, ok]) {
+      const { calls, f } = instrument((n) => (n < 0 ? E.left(`e${n}`) : E.right(n * 10)));
+      const got = RA.traverse(E.Applicative)(f)(xs);
+      const ref = referenceEither("eager", xs);
+      expect(E.isLeft(got) ? left(got.left) : right(got.right)).toEqual(ref.result);
+      expect(calls).toEqual(ref.calls);
+    }
+  });
+
+  it("RA.traverse(O.Applicative) is eager: f runs on every element", () => {
+    const { calls, f } = instrument((n) => (n < 0 ? O.none : O.some(n * 10)));
+    const got = RA.traverse(O.Applicative)(f)(inputs);
+    const ref = traverseOption("eager", inputs, (n) => (n < 0 ? none : some(n * 10)));
+    expect(O.isNone(got) ? none : some(got.value)).toEqual(ref.result);
+    expect(calls).toEqual(ref.trace.calls.map((c) => c.input));
+  });
+
+  it("RA.sequence(E.Applicative) and RA.sequence(O.Applicative) match sequence's results", () => {
+    const es = [right(1), left("e2"), left("e3")] as const;
+    const got = RA.sequence(E.Applicative)(es.map((e) => (e.tag === "right" ? E.right(e.value) : E.left(e.error))));
+    expect(E.isLeft(got) ? left(got.left) : right(got.right)).toEqual(sequenceEither("eager", es).result);
+    const os = [some(1), none, some(3)] as const;
+    const gotO = RA.sequence(O.Applicative)(os.map((o) => (o.tag === "some" ? O.some(o.value) : O.none)));
+    expect(O.isNone(gotO) ? none : some(gotO.value)).toEqual(sequenceOption("eager", os).result);
   });
 
   it("O.traverseArray is short-circuit", () => {

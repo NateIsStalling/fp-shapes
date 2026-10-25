@@ -10,7 +10,12 @@ import { SceneView } from "./SceneView";
 import { ShapeRibbon } from "./ShapeRibbon";
 import { usePreview } from "./preview";
 
-const STRATEGY_LABEL: Record<EvaluationStrategy, string> = { "short-circuit": "Short-circuiting", eager: "Eager" };
+const STATUS_LABEL = { equivalent: "equivalent", library: "library", partial: "partial", analogy: "analogy", none: "no equivalent" } as const;
+
+// Which calls run after a failure. The receiver decides the result; this only
+// decides how many calls happen. ("Evaluation strategy" would mean lazy vs
+// strict to a Haskeller, so the control says what it does.)
+const STRATEGY_LABEL: Record<EvaluationStrategy, string> = { "short-circuit": "Stop", eager: "Keep calling" };
 const STRATEGY_NOTE: Record<EvaluationStrategy, string> = {
   "short-circuit": "Nothing more is evaluated after the first failure. Eager evaluation gives the same result.",
   eager: "Every element is evaluated. Only the first failure survives, so the result matches short-circuiting.",
@@ -119,7 +124,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
             <span className="mono">{n.api}</span>
             {(n.status === "partial" || n.preview) && (
               <span className="status-tags">
-                {n.status === "partial" && <span className="status-partial">partial</span>}
+                {n.status !== "equivalent" && <span className={`status-pill status-${n.status}`}>{STATUS_LABEL[n.status]}</span>}
                 {n.preview && <span className="status-preview">preview</span>}
               </span>
             )}

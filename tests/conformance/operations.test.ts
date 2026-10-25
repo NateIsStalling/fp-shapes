@@ -1,5 +1,7 @@
-import { Array as Arr, Option as EO, Result } from "effect";
+import { Array as Arr, Option as EO, Result, Tuple } from "effect";
 import { sequenceT } from "fp-ts/Apply";
+import * as T from "fp-ts/Tuple";
+import * as Effect4 from "effect";
 import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
 import * as RA from "fp-ts/ReadonlyArray";
@@ -11,6 +13,7 @@ import {
   altOption,
   altValidation,
   bimapEither,
+  bimapTuple,
   failure,
   filterOption,
   filterOrElseEither,
@@ -142,6 +145,27 @@ describe("fp-ts 2.16.11", () => {
       expect(fromE(E.filterOrElse((x: number) => x > 5, (x: number) => `small ${x}`)(E.right(n)))).toEqual(ref);
       expect(fromO(O.filter((x: number) => x > 5)(O.some(n)))).toEqual(filterOption(some(n), (x) => x > 5).result);
     }
+  });
+});
+
+describe("tuples: fp-ts reverses the slots, Effect and Haskell don't", () => {
+  const f = (e: string) => e.length;
+  const g = (x: number) => x * 10;
+  const ref = bimapTuple(["oops", 2] as const, f, g).result;
+  it("fp-ts T.bimap takes the second slot's function first", () => {
+    expect(T.bimap(g, f)(["oops", 2])).toEqual(ref);
+  });
+  it("fp-ts T.map maps the first slot", () => {
+    expect(T.map((s: string) => s.length)(["oops", 2])).toEqual([4, 2]);
+  });
+  it("Effect Tuple.evolve maps each slot in order", () => {
+    expect(Tuple.evolve(["oops", 2] as [string, number], [f, g])).toEqual(ref);
+  });
+});
+
+describe("effect 4.0.5 has no Validation type", () => {
+  it("the effect package exports no Validation module", () => {
+    expect("Validation" in Effect4).toBe(false);
   });
 });
 

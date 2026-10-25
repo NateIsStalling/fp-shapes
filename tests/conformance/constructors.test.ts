@@ -2,39 +2,73 @@ import { Array as Arr, Option as EO, Result } from "effect";
 import * as E from "fp-ts/Either";
 import * as O from "fp-ts/Option";
 import * as RA from "fp-ts/ReadonlyArray";
+import type * as RNEA from "fp-ts/ReadonlyNonEmptyArray";
 import { describe, expect, it } from "vitest";
 import {
   failEither,
+  failList,
   failOption,
+  failure,
+  failValidation,
   fromNullableEither,
+  fromNullableList,
   fromNullableOption,
+  fromNullableValidation,
   fromPredicateEither,
+  fromPredicateList,
   fromPredicateOption,
+  fromPredicateValidation,
   left,
   none,
   pureEither,
   pureList,
   pureOption,
+  pureValidation,
   right,
   some,
+  success,
   tryCatchEither,
   tryCatchOption,
+  tryCatchValidation,
   type Either,
+  type NonEmpty,
   type Option,
+  type Run,
+  type Validation,
 } from "../../src/semantics";
 
 // Constructors in fp-ts 2.16.11 and effect 4.0.5 against the reference
-// semantics: results, and which callbacks ran.
+// semantics: the results, and which callbacks ran, in order. The library's
+// callbacks are recorded by name and compared with the reference trace.
 
 const fromE = <L, R>(e: E.Either<L, R>): Either<L, R> => (E.isLeft(e) ? left(e.left) : right(e.right));
+const fromV = <L, R>(e: E.Either<RNEA.ReadonlyNonEmptyArray<L>, R>): Validation<L, R> =>
+  E.isLeft(e) ? failure(e.left as unknown as NonEmpty<L>) : success(e.right);
 const fromO = <A>(o: O.Option<A>): Option<A> => (O.isNone(o) ? none : some(o.value));
 const fromR = <A, Er>(r: Result.Result<A, Er>): Either<Er, A> => (Result.isSuccess(r) ? right(r.success) : left(r.failure));
 const fromEO = <A>(o: EO.Option<A>): Option<A> => (EO.isNone(o) ? none : some(o.value));
-const counter = () => { let n = 0; return { tick: () => { n++; }, get count() { return n; } }; };
+
+// Records each callback's name as it runs.
+function recorder() {
+  const log: string[] = [];
+  const wrap = <Args extends unknown[], R>(name: string, f: (...args: Args) => R) => (...args: Args): R => { log.push(name); return f(...args); };
+  return { log, wrap };
+}
+const callsOf = (run: Run<unknown, unknown, unknown>) => run.trace.calls.map((c) => c.fn);
 
 const nullish: readonly (number | string | boolean | null | undefined)[] = [null, undefined, 0, "", false, 7];
-const boom = (): number => { throw new Error("boom"); };
-const message = (e: unknown) => (e instanceof Error ? e.message : "?");
+const isBig = (x: number) => x > 5;
+const small = (x: number) => `small ${x}`;
+// What a computation can do: return, return undefined, throw an Error, or
+// throw something that is not an Error.
+const computations: readonly (() => unknown)[] = [
+  () => 1,
+  () => undefined,
+  () => { throw new Error("boom"); },
+  () => { throw "a string"; },
+  () => { throw undefined; },
+];
+const describeThrown = (e: unknown) => (e instanceof Error ? `Error(${e.message})` : `raw(${String(e)})`);
 
 describe("fp-ts 2.16.11 constructors", () => {
   it("of, left, none", () => {
@@ -45,6 +79,16 @@ describe("fp-ts 2.16.11 constructors", () => {
     expect(fromO(O.none)).toEqual(failOption().result);
   });
 
+  it("Validation: E.of and E.left with a non-empty error list", () => {
+    expect(fromV(E.of(1))).toEqual(pureValidation(1).result);
+    const failed: E.Either<RNEA.ReadonlyNonEmptyArray<string>, number> = E.left(["e"]);
+    expect(fromV(failed)).toEqual(failValidation("e").result);
+  });
+
+  it("pure doesn't inspect its input: O.of(null) is Some(null)", () => {
+    expect(fromO(O.of(null))).toEqual(pureOption(null).result);
+  });
+
   it("fromNullable: only null and undefined are missing", () => {
     for (const v of nullish) {
       expect(fromO(O.fromNullable(v))).toEqual(fromNullableOption(v).result);
@@ -52,25 +96,69 @@ describe("fp-ts 2.16.11 constructors", () => {
     }
   });
 
-  it("fromPredicate: onFalse runs only when the predicate fails", () => {
+  it("fromPredicate: the predicate runs once; onFalse runs only when it fails", () => {
     for (const n of [3, 8]) {
-      expect(fromO(O.fromPredicate((x: number) => x > 5)(n))).toEqual(fromPredicateOption((x: number) => x > 5, n).result);
-      const c = counter();
-      const onFalse = (x: number) => { c.tick(); return `small ${x}`; };
-      expect(fromE(E.fromPredicate((x: number) => x > 5, onFalse)(n))).toEqual(fromPredicateEither((x: number) => x > 5, (x) => `small ${x}`, n).result);
-      expect(c.count).toBe(n > 5 ? 0 : 1);
+      const o = recorder();
+      expect(fromO(O.fromPredicate(o.wrap("predicate", isBig))(n))).toEqual(fromPredicateOption(isBig, n).result);
+      expect(o.log).toEqual(callsOf(fromPredicateOption(isBig, n)));
+      const e = recorder();
+      expect(fromE(E.fromPredicate(e.wrap("predicate", isBig), e.wrap("onFalse", small))(n))).toEqual(fromPredicateEither(isBig, small, n).result);
+      expect(e.log).toEqual(callsOf(fromPredicateEither(isBig, small, n)));
     }
   });
 
-  it("tryCatch: onThrow runs only on a throw; a returned undefined is a success", () => {
-    const c = counter();
-    const onThrow = (e: unknown) => { c.tick(); return message(e); };
-    expect(fromE(E.tryCatch(() => 1, onThrow))).toEqual(tryCatchEither(() => 1, message).result);
-    expect(c.count).toBe(0);
-    expect(fromE(E.tryCatch(boom, onThrow))).toEqual(tryCatchEither(boom, message).result);
-    expect(c.count).toBe(1);
-    expect(fromO(O.tryCatch(boom))).toEqual(tryCatchOption(boom).result);
-    expect(fromO(O.tryCatch(() => undefined))).toEqual(tryCatchOption(() => undefined).result);
+  it("tryCatch: the computation runs once; onThrow gets exactly what was thrown, and only then", () => {
+    for (const f of computations) {
+      const e = recorder();
+      expect(fromE(E.tryCatch(e.wrap("thunk", f), e.wrap("onThrow", describeThrown)))).toEqual(tryCatchEither(f, describeThrown).result);
+      expect(e.log).toEqual(callsOf(tryCatchEither(f, describeThrown)));
+      const o = recorder();
+      expect(fromO(O.tryCatch(o.wrap("thunk", f)))).toEqual(tryCatchOption(f).result);
+      expect(o.log).toEqual(callsOf(tryCatchOption(f)));
+    }
+  });
+});
+
+describe("fp-ts 2.16.11 constructors for Validation and List", () => {
+  it("RA.empty is fail for List", () => {
+    expect(RA.empty).toEqual(failList().result);
+  });
+
+  it("Validation reuses Either's constructors with a wrapped error", () => {
+    for (const v of nullish) expect(fromV(E.fromNullable<RNEA.ReadonlyNonEmptyArray<string>>(["missing"])(v))).toEqual(fromNullableValidation("missing", v).result);
+    for (const n of [3, 8]) {
+      const e = recorder();
+      const got = E.fromPredicate(e.wrap("predicate", isBig), e.wrap("onFalse", (x: number): RNEA.ReadonlyNonEmptyArray<string> => [small(x)]))(n);
+      expect(fromV(got)).toEqual(fromPredicateValidation(isBig, small, n).result);
+      expect(e.log).toEqual(callsOf(fromPredicateValidation(isBig, small, n)));
+    }
+    for (const f of computations) {
+      const e = recorder();
+      const got = E.tryCatch(e.wrap("thunk", f), e.wrap("onThrow", (u: unknown): RNEA.ReadonlyNonEmptyArray<string> => [describeThrown(u)]));
+      expect(fromV(got)).toEqual(tryCatchValidation(f, describeThrown).result);
+      expect(e.log).toEqual(callsOf(tryCatchValidation(f, describeThrown)));
+    }
+  });
+
+  it("RA.fromPredicate and RA.fromOption(O.fromNullable(a)) build an empty or one-element list", () => {
+    for (const n of [3, 8]) {
+      const o = recorder();
+      expect(RA.fromPredicate(o.wrap("predicate", isBig))(n)).toEqual(fromPredicateList(isBig, n).result);
+      expect(o.log).toEqual(callsOf(fromPredicateList(isBig, n)));
+    }
+    for (const v of nullish) expect(RA.fromOption(O.fromNullable(v))).toEqual(fromNullableList(v).result);
+  });
+});
+
+describe("effect 4.0.5 constructors for List", () => {
+  it("Array.empty, Array.liftPredicate and Array.fromNullishOr", () => {
+    expect(Arr.empty()).toEqual(failList().result);
+    for (const n of [3, 8]) {
+      const o = recorder();
+      expect(Arr.liftPredicate(o.wrap("predicate", isBig))(n)).toEqual(fromPredicateList(isBig, n).result);
+      expect(o.log).toEqual(callsOf(fromPredicateList(isBig, n)));
+    }
+    for (const v of nullish) expect(Arr.fromNullishOr(v)).toEqual(fromNullableList(v).result);
   });
 });
 
@@ -83,31 +171,39 @@ describe("effect 4.0.5 constructors", () => {
     expect(fromEO(EO.none())).toEqual(failOption().result);
   });
 
-  it("fromNullishOr: only null and undefined are missing", () => {
+  it("pure doesn't inspect its input: Option.some(null) is Some(null)", () => {
+    expect(fromEO(EO.some(null))).toEqual(pureOption(null).result);
+  });
+
+  it("fromNullishOr: only null and undefined are missing; onNullish runs only then, with the original value", () => {
     for (const v of nullish) {
       expect(fromEO(EO.fromNullishOr(v))).toEqual(fromNullableOption(v).result);
-      expect(fromR(Result.fromNullishOr(v, () => "missing"))).toEqual(fromNullableEither("missing", v).result);
+      const seen: unknown[] = [];
+      const onNullish = (x: unknown) => { seen.push(x); return "missing"; };
+      expect(fromR(Result.fromNullishOr(v, onNullish))).toEqual(fromNullableEither("missing", v).result);
+      expect(seen).toEqual(v === null || v === undefined ? [v] : []);
     }
   });
 
-  it("liftPredicate: orFailWith runs only when the predicate fails", () => {
+  it("liftPredicate: the predicate runs once; orFailWith runs only when it fails", () => {
     for (const n of [3, 8]) {
-      expect(fromEO(EO.liftPredicate((x: number) => x > 5)(n))).toEqual(fromPredicateOption((x: number) => x > 5, n).result);
-      const c = counter();
-      const onFalse = (x: number) => { c.tick(); return `small ${x}`; };
-      expect(fromR(Result.liftPredicate((x: number) => x > 5, onFalse)(n))).toEqual(fromPredicateEither((x: number) => x > 5, (x) => `small ${x}`, n).result);
-      expect(c.count).toBe(n > 5 ? 0 : 1);
+      const o = recorder();
+      expect(fromEO(EO.liftPredicate(o.wrap("predicate", isBig))(n))).toEqual(fromPredicateOption(isBig, n).result);
+      expect(o.log).toEqual(callsOf(fromPredicateOption(isBig, n)));
+      const e = recorder();
+      expect(fromR(Result.liftPredicate(e.wrap("predicate", isBig), e.wrap("onFalse", small))(n))).toEqual(fromPredicateEither(isBig, small, n).result);
+      expect(e.log).toEqual(callsOf(fromPredicateEither(isBig, small, n)));
     }
   });
 
-  it("Result.try and Option.liftThrowable: catch runs only on a throw", () => {
-    const c = counter();
-    const onThrow = (e: unknown) => { c.tick(); return message(e); };
-    expect(fromR(Result.try({ try: () => 1, catch: onThrow }))).toEqual(tryCatchEither(() => 1, message).result);
-    expect(c.count).toBe(0);
-    expect(fromR(Result.try({ try: boom, catch: onThrow }))).toEqual(tryCatchEither(boom, message).result);
-    expect(c.count).toBe(1);
-    expect(fromEO(EO.liftThrowable(boom)())).toEqual(tryCatchOption(boom).result);
-    expect(fromEO(EO.liftThrowable(() => undefined)())).toEqual(tryCatchOption(() => undefined).result);
+  it("Result.try and Option.liftThrowable: the computation runs once; catch gets exactly what was thrown, and only then", () => {
+    for (const f of computations) {
+      const e = recorder();
+      expect(fromR(Result.try({ try: e.wrap("thunk", f), catch: e.wrap("onThrow", describeThrown) }))).toEqual(tryCatchEither(f, describeThrown).result);
+      expect(e.log).toEqual(callsOf(tryCatchEither(f, describeThrown)));
+      const o = recorder();
+      expect(fromEO(EO.liftThrowable(o.wrap("thunk", f))())).toEqual(tryCatchOption(f).result);
+      expect(o.log).toEqual(callsOf(tryCatchOption(f)));
+    }
   });
 });

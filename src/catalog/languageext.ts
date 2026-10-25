@@ -4,7 +4,7 @@
 
 export interface LanguageExtEntry {
   readonly api: string;
-  readonly status: "equivalent" | "partial";
+  readonly status: "equivalent" | "library" | "partial" | "analogy" | "none";
   readonly note?: string;
   // Under review: shown only when Preview is on.
   readonly preview?: true;
@@ -13,19 +13,25 @@ export interface LanguageExtEntry {
 export const LANGUAGEEXT_VERSION = "4.4.9";
 
 export const languageExt: Readonly<Record<string, LanguageExtEntry>> = {
-  "pure:option": { api: "Some(a)", status: "equivalent" },
-  "pure:either": { api: "Right(a)", status: "equivalent" },
-  "pure:validation": { api: "Success<E, A>(a)", status: "equivalent" },
+  "pure:option": { api: "Some(a)", status: "partial", note: "Throws `ValueIsNullException` on `null`, where fp-ts and Effect give `Some(null)`. Use `Optional` for nullable input." },
+  "pure:either": { api: "Right(a)", status: "equivalent", note: "Throws on `null`." },
+  "pure:validation": { api: "Success<E, A>(a)", status: "equivalent", note: "Throws on `null`." },
   "pure:list": { api: "Seq1(a)", status: "equivalent" },
   "fail:either": { api: "Left<E, A>(e)", status: "equivalent" },
   "fail:option": { api: "None", status: "equivalent" },
   "fail:validation": { api: "Fail<E, A>(e)", status: "equivalent" },
+  "fail:list": { api: "Seq<A>()", status: "equivalent" },
+  "fromNullable:validation": { api: "Optional(a).ToValidation(e)", status: "partial", note: "No direct constructor; go through Option." },
+  "fromNullable:list": { api: "Optional(a).ToSeq()", status: "partial", note: "No direct constructor; go through Option." },
+  "fromPredicate:validation": { api: "Cond<A>(p)(a).ToValidation(e)", status: "partial", note: "No Validation version of `Cond`; convert its Option." },
+  "fromPredicate:list": { api: "Cond<A>(p)(a).ToSeq()", status: "partial", note: "No Seq version of `Cond`; convert its Option." },
+  "tryCatch:validation": { api: "Try(f).ToValidation(ex => e)", status: "partial", note: "The mapper plays `onThrow`. Only `Exception`s are caught." },
   "fromNullable:option": { api: "Optional(a)", status: "equivalent" },
   "fromNullable:either": { api: "Optional(a).ToEither(e)", status: "partial", note: "No direct constructor; go through Option." },
-  "fromPredicate:option": { api: "Some(a).Filter(p)", status: "partial", note: "No direct constructor; filter a `Some`." },
-  "fromPredicate:either": { api: "Some(a).Filter(p).ToEither(e)", status: "partial", note: "No direct constructor; filter a `Some`, then convert." },
-  "tryCatch:option": { api: "Try(f).ToOption()", status: "partial", note: "`Try` is lazy; `ToOption` runs it." },
-  "tryCatch:either": { api: "Try(f).ToEither()", status: "partial", note: "`Try` is lazy; `ToEither` runs it and gives `Either<Exception, A>`." },
+  "fromPredicate:option": { api: "Cond<A>(p)(a)", status: "equivalent", note: "`Cond` builds an Option-returning function. A `null` input gives `None` even when `p` passes." },
+  "fromPredicate:either": { api: "Cond<A>(p)(a).ToEither(() => e)", status: "partial", note: "No Either version of `Cond`; convert its Option. The function form builds the error only when needed." },
+  "tryCatch:option": { api: "Try(f).ToOption()", status: "partial", note: "`Try` is lazy; `ToOption` runs it. A returned `null` becomes `None`, where fp-ts and Effect give `Some`." },
+  "tryCatch:either": { api: "Try(f).ToEither(ex => e)", status: "partial", note: "The mapper plays `onThrow`. Only `Exception`s are caught, and Either can't hold a returned `null`." },
   "map:either": { api: "Map", status: "equivalent", },
   "map:option": { api: "Map", status: "equivalent", },
   "map:list": { api: "Seq.Map", status: "equivalent", },

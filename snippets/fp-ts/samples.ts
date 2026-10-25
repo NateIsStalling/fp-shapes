@@ -7,7 +7,7 @@ import { pipe } from "fp-ts/function";
 import * as O from "fp-ts/Option";
 import * as RA from "fp-ts/ReadonlyArray";
 import * as RNEA from "fp-ts/ReadonlyNonEmptyArray";
-import * as TE from "fp-ts/TaskEither";
+import * as T from "fp-ts/Tuple";
 
 export const fpts: Record<string, () => unknown> = {
   "pure:option": () => {
@@ -51,6 +51,48 @@ export const fpts: Record<string, () => unknown> = {
   "fail:validation": () => {
     // <sample fail:validation>
     const result: E.Either<RNEA.ReadonlyNonEmptyArray<string>, number> = E.left(["oops"]);
+    // </sample>
+    return result;
+  },
+  "fail:list": () => {
+    // <sample fail:list>
+    const result: ReadonlyArray<number> = RA.empty;
+    // </sample>
+    return result;
+  },
+  "fromNullable:validation": () => {
+    // <sample fromNullable:validation>
+    const ages: Record<string, number | undefined> = { ada: 36 };
+    const result = E.fromNullable<RNEA.ReadonlyNonEmptyArray<string>>(["missing"])(ages["bob"]);
+    // </sample>
+    return result;
+  },
+  "fromNullable:list": () => {
+    // <sample fromNullable:list>
+    const ages: Record<string, number | undefined> = { ada: 36 };
+    const result = RA.fromOption(O.fromNullable(ages["bob"]));
+    // </sample>
+    return result;
+  },
+  "fromPredicate:validation": () => {
+    // <sample fromPredicate:validation>
+    const atLeast5 = E.fromPredicate((x: number) => x >= 5, (x): RNEA.ReadonlyNonEmptyArray<string> => [`too small: ${x}`]);
+    const result = atLeast5(3);
+    // </sample>
+    return result;
+  },
+  "fromPredicate:list": () => {
+    // <sample fromPredicate:list>
+    const result = RA.fromPredicate((x: number) => x >= 5)(3);
+    // </sample>
+    return result;
+  },
+  "tryCatch:validation": () => {
+    // <sample tryCatch:validation>
+    const result = E.tryCatch(
+      () => JSON.parse("{"),
+      (): RNEA.ReadonlyNonEmptyArray<string> => ["invalid JSON"],
+    );
     // </sample>
     return result;
   },
@@ -201,10 +243,17 @@ export const fpts: Record<string, () => unknown> = {
     // </sample>
     return result;
   },
-  "traverse:either:eager": async () => {
+  "traverse:either:eager": () => {
     // <sample traverse:either:eager>
-    const load = (x: number): TE.TaskEither<string, number> => (x < 0 ? TE.left(`e${x}`) : TE.right(x * 10));
-    const result = await pipe([1, -2, 3, -4], TE.traverseArray(load))();
+    const check = (x: number): E.Either<string, number> => (x < 0 ? E.left(`e${x}`) : E.right(x * 10));
+    const result = pipe([1, -2, 3, -4], RA.traverse(E.Applicative)(check));
+    // </sample>
+    return result;
+  },
+  "traverse:option:eager": () => {
+    // <sample traverse:option:eager>
+    const check = (x: number): O.Option<number> => (x < 0 ? O.none : O.some(x * 10));
+    const result = pipe([1, -2, 3], RA.traverse(O.Applicative)(check));
     // </sample>
     return result;
   },
@@ -220,6 +269,25 @@ export const fpts: Record<string, () => unknown> = {
     const V = E.getApplicativeValidation(RNEA.getSemigroup<string>());
     const check = (x: number): E.Either<RNEA.ReadonlyNonEmptyArray<string>, number> => (x < 0 ? E.left([`e${x}`]) : E.right(x * 10));
     const result = pipe([1, -2, 3, -4], RA.traverse(V)(check));
+    // </sample>
+    return result;
+  },
+  "sequence:either:eager": () => {
+    // <sample sequence:either:eager>
+    const result = RA.sequence(E.Applicative)([E.right(1), E.left("e2"), E.left("e3")]);
+    // </sample>
+    return result;
+  },
+  "sequence:option:eager": () => {
+    // <sample sequence:option:eager>
+    const result = RA.sequence(O.Applicative)([O.some(1), O.none, O.some(3)]);
+    // </sample>
+    return result;
+  },
+  "bimap:tuple": () => {
+    // <sample bimap:tuple>
+    // fp-ts tuples take the second slot's function first.
+    const result = pipe(["oops", 2] as [string, number], T.bimap((x: number) => x * 10, (e: string) => e.length));
     // </sample>
     return result;
   },

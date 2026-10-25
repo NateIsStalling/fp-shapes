@@ -1,7 +1,7 @@
 // effect 4.0.5 samples shown on FP Shapes. Code between "// <sample KEY>"
 // and "// </sample>" is shown on the site verbatim. Each sample ends with a
 // `result`, which tests/samples.test.ts checks.
-import { Array as Arr, Effect, Filter, Option, Result } from "effect";
+import { Array as Arr, Effect, Filter, Option, Result, Tuple } from "effect";
 
 export const effect: Record<string, () => unknown> = {
   "pure:option": () => {
@@ -31,6 +31,25 @@ export const effect: Record<string, () => unknown> = {
   "fail:option": () => {
     // <sample fail:option>
     const result = Option.none<number>();
+    // </sample>
+    return result;
+  },
+  "fail:list": () => {
+    // <sample fail:list>
+    const result = Arr.empty<number>();
+    // </sample>
+    return result;
+  },
+  "fromNullable:list": () => {
+    // <sample fromNullable:list>
+    const ages: Record<string, number | undefined> = { ada: 36 };
+    const result = Arr.fromNullishOr(ages["bob"]);
+    // </sample>
+    return result;
+  },
+  "fromPredicate:list": () => {
+    // <sample fromPredicate:list>
+    const result = Arr.liftPredicate((x: number) => x >= 5)(3);
     // </sample>
     return result;
   },
@@ -91,6 +110,12 @@ export const effect: Record<string, () => unknown> = {
   "map:list": () => {
     // <sample map:list>
     const result = Arr.map([1, 2, 3], (x) => x * 10);
+    // </sample>
+    return result;
+  },
+  "bimap:tuple": () => {
+    // <sample bimap:tuple>
+    const result = Tuple.evolve(["oops", 2] as [string, number], [(e: string) => e.length, (x: number) => x * 10]);
     // </sample>
     return result;
   },
