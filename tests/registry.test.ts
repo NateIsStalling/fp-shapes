@@ -252,6 +252,25 @@ describe("LanguageExt coverage", () => {
   });
 });
 
+describe("Haskell coverage", () => {
+  it("every receiver of every operation has a Haskell entry, and every strategy of a strategy receiver", async () => {
+    const { haskell } = await import("../src/catalog/haskell");
+    const keys = new Set(Object.keys(haskell));
+    for (const op of allOps) {
+      for (const r of operationScenes[op.id]?.receivers ?? []) {
+        const strategies = (r.strategies?.length ?? 0) > 1 ? r.strategies ?? [] : [];
+        const wanted = strategies.length ? strategies.map((s) => `${op.id}:${r.id}:${s}`) : [`${op.id}:${r.id}`];
+        for (const k of wanted) expect(keys.has(k) || keys.has(`${op.id}:${r.id}`), k).toBe(true);
+      }
+    }
+  });
+
+  it("stays in Preview until the samples have run on the pinned GHC", async () => {
+    const { haskell } = await import("../src/catalog/haskell");
+    for (const [k, e] of Object.entries(haskell)) expect(e.preview, k).toBe(true);
+  });
+});
+
 // Regression: the ribbon and the behavior slots once listed cases in
 // different orders (Left | Right vs Right | Left).
 import { casesOf, parseType } from "../src/scenes/types";

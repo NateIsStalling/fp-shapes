@@ -1,4 +1,5 @@
-// Extract the code between "// <sample KEY>" and "// </sample>" from each
+// Extract the code between "// <sample KEY>" and "// </sample>" ("--" in
+// Haskell) from each
 // ecosystem's compiled sample file into src/catalog/samples.generated.ts.
 // Run after editing a sample: `npm run samples:extract`.
 // tests/samples.test.ts fails if the generated file is out of date.
@@ -12,11 +13,12 @@ export const SOURCES = {
   LanguageExt: "snippets/languageext/v4/Program.cs",
   "fp-ts": "snippets/fp-ts/samples.ts",
   Effect: "snippets/effect/samples.ts",
+  Haskell: "snippets/haskell/Main.hs",
 };
 
 export function extract(source) {
   const out = {};
-  for (const m of source.matchAll(/^([ \t]*)\/\/ <sample ([^>]+)>\n([\s\S]*?)^[ \t]*\/\/ <\/sample>/gm)) {
+  for (const m of source.matchAll(/^([ \t]*)(?:\/\/|--) <sample ([^>]+)>\n([\s\S]*?)^[ \t]*(?:\/\/|--) <\/sample>/gm)) {
     const indent = m[1];
     out[m[2]] = m[3].split("\n").map((l) => (l.startsWith(indent) ? l.slice(indent.length) : l)).join("\n").replace(/\n$/, "");
   }

@@ -10,6 +10,7 @@ import { SceneView } from "./SceneView";
 import { ShapeRibbon } from "./ShapeRibbon";
 import { usePreview } from "./preview";
 
+const LANGUAGE = { LanguageExt: "C#", "fp-ts": "TypeScript", Effect: "TypeScript", Haskell: "Haskell" } as const;
 const STATUS_LABEL = { equivalent: "equivalent", library: "library", partial: "partial", analogy: "analogy", none: "no equivalent" } as const;
 
 // Which calls run after a failure. The receiver decides the result; this only
@@ -129,7 +130,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
               </span>
             )}
             {n.note && <span className="muted"><RichText text={n.note} /></span>}
-            {n.sample && <SampleBlock code={n.sample} language={n.eco === "LanguageExt" ? "C#" : "TypeScript"} />}
+            {n.sample && <SampleBlock code={n.sample} language={LANGUAGE[n.eco]} />}
           </div>
         ))}
         </div>

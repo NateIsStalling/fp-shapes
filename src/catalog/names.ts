@@ -5,11 +5,12 @@
 // turns on Preview. Keys are "operation:receiver" or
 // "operation:receiver:strategy".
 
+import { HASKELL_PACKAGES, haskell } from "./haskell";
 import { LANGUAGEEXT_VERSION, languageExt } from "./languageext";
 import { samples } from "./samples.generated";
 
 export interface NameEntry {
-  readonly eco: "fp-ts" | "Effect" | "LanguageExt";
+  readonly eco: "fp-ts" | "Effect" | "LanguageExt" | "Haskell";
   readonly version: string;
   readonly api: string;
   // CLAUDE.md's vocabulary. `none` is a real answer: the library has no counterpart.
@@ -98,6 +99,10 @@ export const names: Readonly<Record<string, readonly NameEntry[]>> = (() => {
     (all[key] ??= []).push({ eco: "LanguageExt", version: LANGUAGEEXT_VERSION, api: e.api, status: e.status, ...(e.note ? { note: e.note } : {}), ...(e.preview ? { preview: true } : {}) });
   }
   for (const [key, list] of Object.entries(jsNames)) (all[key] ??= []).push(...list);
+  // Haskell last; its version names the package the entry comes from.
+  for (const [key, e] of Object.entries(haskell)) {
+    (all[key] ??= []).push({ eco: "Haskell", version: `${e.pkg} ${HASKELL_PACKAGES[e.pkg]}`, api: e.api, status: e.status, preview: true, ...(e.note ? { note: e.note } : {}) });
+  }
   // Attach each entry's compiled sample: by full key, else by operation:receiver.
   for (const [key, list] of Object.entries(all)) {
     all[key] = list.map((e) => {

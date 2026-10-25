@@ -1,0 +1,20 @@
+cabal-version:      3.0
+name:               fp-shapes-samples
+version:            0.1.0
+synopsis:           Haskell samples shown on FP Shapes
+description:
+  Each sample runs and checks its result; the executable exits non-zero if
+  any check fails. Versions match the pins in CLAUDE.md.
+build-type:         Simple
+
+executable fp-shapes-samples
+  main-is:          Main.hs
+  default-language: GHC2021
+  ghc-options:      -Wno-name-shadowing
+  build-depends:
+    -- base 4.22.0.0 ships with GHC 9.14.
+    , base ==4.22.0.0
+    , mtl ==2.3.2
+    , either ==5.0.3
+    -- Data.Functor.Alt (<!>); either 5.0.3 already depends on it.
+    , semigroupoids ==6.0.1

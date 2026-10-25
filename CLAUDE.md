@@ -19,6 +19,7 @@ npm run typecheck                          # tsc (strict, noEmit)
 npm run dev                                # Vite dev server at http://localhost:5173/ (base / in dev)
 npm run build                              # typecheck + static build to dist/ (base /fp-shapes/)
 npm run samples:languageext                # compile and check the LanguageExt 4.4.9 samples (needs the .NET SDK)
+npm run samples:haskell                    # build and check the Haskell samples (needs GHC 9.14 for base 4.22.0.0, and cabal)
 npm run samples:extract                    # regenerate src/catalog/samples.generated.ts after editing any sample
 ```
 
@@ -45,6 +46,7 @@ Every operation page is rendered by one generic `src/ui/OperationPage.tsx` and `
    - fp-ts: `snippets/fp-ts/samples.ts`
    - Effect: `snippets/effect/samples.ts`
    - LanguageExt: `snippets/languageext/v4/Program.cs`
+   - Haskell: `snippets/haskell/Main.hs` (markers use `--`); entries in `src/catalog/haskell.ts`. Haskell entries stay `preview` until `npm run samples:haskell` passes on the pinned GHC.
 
    Put the shown code between `// <sample op:receiver[:strategy]>` and `// </sample>`. Add an expected result: in `tests/samples.test.ts` for TypeScript, or a `Check` in Program.cs. Keep test instrumentation outside the markers. Then run `npm run samples:extract`, which regenerates `src/catalog/samples.generated.ts`. Tests fail if that file is stale, if a sample has no catalog entry, or if an entry has no sample.
 
@@ -55,7 +57,7 @@ Every operation page is rendered by one generic `src/ui/OperationPage.tsx` and `
 - Effect 4.0.5. v3 names are indexed only as legacy aliases.
 - fp-ts 2.16.11 (in maintenance).
 - F#: FSharp.Core 10.1.402, FsToolkit.ErrorHandling 5.2.0, FSharpPlus 1.9.1. Tag each entry with its library.
-- Haskell: base 4.22.0.0, mtl 2.3.2, `either` 5.0.3 (`Data.Either.Validation`), async 2.2.6.
+- Haskell: base 4.22.0.0 (GHC 9.14), mtl 2.3.2, `either` 5.0.3 (`Data.Either.Validation`), semigroupoids 6.0.1 (`Data.Functor.Alt`, already a dependency of `either`), async 2.2.6. Each entry names its package.
 - C# BCL/LINQ for .NET 10.
 - LanguageExt: **v4 (4.4.9) only in the initial scope.** v5 (5.0.0-beta-78) is deferred, but the model supports several version tracks per ecosystem.
 
