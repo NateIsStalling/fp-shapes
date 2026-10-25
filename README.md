@@ -46,6 +46,8 @@ npm run samples:extract      # regenerate the sample index after editing a sampl
 
 Stack: Vite, React and TypeScript, built as a static site for GitHub Pages. There is no backend.
 
+GitHub Actions runs the typecheck, tests, build and both sample suites on every push and pull request (`.github/workflows/ci.yml`). Each push to `main` that passes the tests is published to GitHub Pages (`.github/workflows/pages.yml`).
+
 ## Docs
 
 - `AGENT_HANDOFF.md`: the spec, with decisions, architecture, versioning model and test plan.

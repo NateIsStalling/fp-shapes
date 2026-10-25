@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, tests and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Includes the fp-ts and Effect conformance tests, and fails if
+      # src/catalog/samples.generated.ts is stale.
+      - run: npm test
+      - run: npm run build
+
+  languageext:
+    name: LanguageExt 4.4.9 samples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: npm run samples:languageext
+
+  haskell:
+    name: Haskell samples (GHC 9.14.1)
+    runs-on: ubuntu-latest
+    # Haskell entries stay in Preview until this passes on the pinned GHC, so
+    # a failure here is reported but doesn't fail the run.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: 9.14.1
+          cabal-version: latest
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            snippets/haskell/dist-newstyle
+          key: haskell-${{ runner.os }}-ghc-9.14.1-${{ hashFiles('snippets/haskell/*.cabal', 'snippets/haskell/cabal.project') }}
+      - run: cabal update
+      - run: npm run samples:haskell
