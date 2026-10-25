@@ -4,16 +4,15 @@
 
 Build FP Shapes as a static Vite, React and TypeScript site deployed to GitHub Pages.
 
-The spirit of the project is **RxMarbles plus a reverse Hoogle**: a Rosetta stone for functional programming.
+The project shows functional programming operations as interactive diagrams, alongside what each operation is called in each ecosystem.
 
-- **RxMarbles:**
-  - One operation per page.
-  - Inputs that you can manipulate.
-  - A diagram **computed** by running a reference implementation of the operation on those inputs.
-- **Reverse Hoogle:**
-  - Find an operation from a name in any ecosystem (`SelectMany`, `>>=`, `traverseResultA`, `Effect.validate`).
-  - Or find it from a type signature or shape (`List<Option<A>> -> Option<List<A>>` finds `sequence`).
-  - Then see how every target ecosystem spells it, including explicit "no equivalent" answers.
+- One operation per page.
+- Inputs that you can manipulate.
+- A diagram **computed** by running a reference implementation of the operation on those inputs.
+- How every target ecosystem spells the operation, including explicit "no equivalent" answers.
+- Find an operation from its name in any ecosystem (`SelectMany`, `>>=`, `traverseResultA`, `Effect.validate`).
+
+Signature search was cut on 2026-10-25.
 
 ## Product thesis
 
@@ -172,7 +171,6 @@ src/
 ├── scenes/      pure (operation, receiver, evaluation strategy, inputs) → Scene builders, plus text summaries; imports semantics only
 ├── catalog/     ecosystems, libraries, versions, entries, aliases, abstractions, glossary definitions, snippet refs
 ├── search/      name search (alias index derived from the catalog; ambiguous queries return several candidates)
-│                and signature search (TypeExpression matching, Hoogle-style)
 └── ui/          React: ShapeDiagram, InputEditor, NamesPanel, MatrixIndex, routes; imports scenes, catalog, search
 snippets/        real source files for each ecosystem, compiled in CI against the pinned versions
 ```
@@ -264,19 +262,6 @@ type TypeExpression =
 
 "No equivalent" is an explicit `status: "none"` record, never a missing key. A missing entry renders as "not yet researched", never as another ecosystem's example.
 
-### Signature search (reverse Hoogle)
-
-The query is a signature in a neutral notation, for example `List<Option<A>> -> Option<List<A>>`, `(A -> F<B>) -> F<A> -> F<B>` or `F<F<A>> -> F<A>`. Matching works as follows:
-
-- **Equivalences.** Matching is up to:
-  - renaming type variables (alpha-equivalence)
-  - currying and uncurrying
-  - argument order, including receiver-first vs receiver-last (pipe) styles
-- **Concrete types.** A concrete receiver in the query (`List`, `Option`, `Either<E, _>`, `Validation`, `Task`) unifies with abstract constructor variables (`F`, `T`) when that receiver is a known instance of the required abstraction.
-- **Ranking.** Exact matches rank first, then matches that needed argument reordering or currying, then matches that only fit once the query is generalized (e.g. `Either<E, A>` read as `P<E, A>`).
-- **Results.** The operation, the abstraction it belongs to, and the matching ecosystem entries, so a query can land directly on "fp-ts `RA.traverse(E.getApplicativeValidation(S))`".
-- **Scope.** Keep it small: a few hundred catalog signatures, no general type checker, no type classes beyond the catalog's abstraction table. The input syntax should accept common ecosystem spellings (`a -> m b`, `Func<A, B>`, `'a -> 'b`) and normalize them.
-
 ## Versioning
 
 An ecosystem can document **several version tracks** side by side. Version tags are required at four levels.
@@ -358,7 +343,7 @@ Accessibility requirements:
   - every `strategy` exists in semantics
   - stale-version report
   - no alias resolves ambiguously without returning several candidates
-- **Search:** exact beats prefix, prefix beats substring. For signatures: alpha-equivalence, currying, argument reordering and concrete-to-abstract unification each have tests, plus a golden query list. `SelectMany`, `fold` and `join` return several qualified candidates.
+- **Search:** exact beats prefix, prefix beats substring. `SelectMany`, `fold` and `join` return several qualified candidates.
 - **Snippets:** compiled in CI against the pinned versions. LanguageExt 4.4.9 samples live in `snippets/languageext/v4` (a .NET console project). Every sample carries a runtime check, and `npm run samples:languageext` must pass. This is also how ecosystem facts without a JavaScript runtime get verified: for example, v4's `Seq.Sequence(f)` (traverse) is eager.
 - **In-browser C# (later, optional):** to let visitors run samples, precompile them to WebAssembly (the .NET `wasmbrowser` target, exported with `[JSExport]`) and lazy-load them on demand. Avoid shipping Roslyn for editable C#. It adds tens of MB and edges into pasted-code analysis, which is a non-goal.
 - **Routes:** every route renders, old hashes redirect, and URL state restores the selection.
@@ -390,7 +375,7 @@ Grant only the permissions Pages needs. No secrets are required.
 5. **Rendering and input editing.** `ShapeDiagram`, `InputEditor`, ghosted skipped calls, reduced motion. *Exit:* switching traverse's evaluation strategy visibly changes which calls happened, and the result stays the same.
 6. **Catalog, versioning and search.** Fill entries from the research with their verification records, derive the alias index and the glossary, and add catalog validation and the stale report. *Exit:* every matrix cell is a typed entry, including `none`.
 7. **Pages and the index.** Operation pages in the order Shape Ribbon → behavior → names panel, the navigation in fp-ts/Effect category groups, an abstraction tag in each page header, abstraction pages that lead with how each ecosystem represents the abstraction and show laws as pairs of equal diagrams, the matrix index with glossary terms and versioned snippets, and the snippet CI.
-8. **Signature search.** Parse queries in the neutral notation and the common ecosystem spellings, normalize them, and match and rank them against catalog signatures. *Exit:* `List<Option<A>> -> Option<List<A>>`, `a -> m b` style bind, `F<F<A>> -> F<A>`, and `(A -> B) -> List<A> -> List<B>` each return the expected operation as the top result, together with its ecosystem entries.
+8. **Cut: signature search.** Dropped on 2026-10-25. Operations are found by name only.
 9. **Deferred: async marbles.** A timeline renderer for concurrent vs sequential traverse, cancellation, and async `zip`. Not in the initial scope.
 10. **Optional.** Static HTML pages for each operation, generated at build time for search-engine discoverability.
 
@@ -401,7 +386,7 @@ Grant only the permissions Pages needs. No secrets are required.
 - Every matrix cell exists as a typed entry with its version, its verification record, and either a status or an explicit `none`.
 - Pinned versions appear in the UI, and catalog validation reports no stale entries.
 - Snippets shown on the site compile in CI, or are labeled "unchecked".
-- Ambiguous aliases return several qualified candidates, and signature search finds every Tier 1 operation from its canonical signature and from at least one concrete instantiation.
+- Ambiguous aliases return several qualified candidates.
 - The static build deploys to GitHub Pages and needs no account. No backend or secrets.
 
 ## Agent working rules

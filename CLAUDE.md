@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The app is a static Vite, React and TypeScript site in `src/`. `AGENT_HANDOFF.md` is the spec. It covers the decisions, architecture, catalog and versioning model, routes, test plan, milestones and definition of done. Read it before starting any build work.
 
-- **Product direction: RxMarbles + reverse Hoogle, as an FP Rosetta stone.** **Shape is the organizing principle:** every operation page, search result, matrix cell detail and abstraction example shows the same **Shape Ribbon**. It is derived from the canonical `TypeExpression` and shows which layers moved, stayed, appeared or disappeared. Operation pages run shape → behavior → ecosystems, the navigation uses fp-ts/Effect `@category` groups (Constructors, Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering), and each operation page shows its canonical abstraction (Functor, Monad, …) as a tag in its header. The tag names a type class, as Haskell base/mtl names it, or as fp-ts does when base has none (Alt, Filterable); plain functions that belong to no class (conversions, eliminators, side effects) get no tag. Ecosystem-specific remarks (a Haskell name that means something else, an argument-order trap) go in that ecosystem's catalog note, never in page headers or captions. The navigation shows names only. Concurrent traverse is deferred. Each page covers one operation. Inputs are interactive, and the diagram is **computed** by running a reference implementation, never hand-written. You can find an operation by its name in any ecosystem *or* by a type signature (`List<Option<A>> -> Option<List<A>>` → `sequence`). That makes signatures structured `TypeExpression`s, never display strings. A matrix index shows the API name in each target ecosystem, along with versioned snippets and glossary terms. "No equivalent" counts as a real answer. Learn paths, concept essays and example labs are out of scope.
+- **Product direction: interactive, computed diagrams of FP operations, with each operation's name in every target ecosystem.** Signature search is out of scope. **Shape is the organizing principle:** every operation page, search result, matrix cell detail and abstraction example shows the same **Shape Ribbon**. It is derived from the canonical `TypeExpression` and shows which layers moved, stayed, appeared or disappeared. Operation pages run shape → behavior → ecosystems, the navigation uses fp-ts/Effect `@category` groups (Constructors, Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering). The page header shows the name, the generic signature, an `F =` row naming the receiver (a picker when there are several, a fixed chip when there is one) and the concrete signature. It shows no type-class tag: the site is a cheat sheet for readers coming from C# and TypeScript, so class names (Functor, Monad, …) belong in the Haskell catalog notes until they can be taught properly. Ecosystem-specific remarks (a Haskell name that means something else, an argument-order trap) go in that ecosystem's catalog note, never in page headers or captions. The navigation shows names only. Concurrent traverse is deferred. Each page covers one operation. Inputs are interactive, and the diagram is **computed** by running a reference implementation, never hand-written. You can find an operation by its name in any ecosystem. A matrix index shows the API name in each target ecosystem, along with versioned snippets and glossary terms. "No equivalent" counts as a real answer. Learn paths, concept essays and example labs are out of scope.
 - **Semantics come from primary docs.** Verify every semantic claim against the primary docs for the pinned library version (see "Semantic authority" in `AGENT_HANDOFF.md`).
 
 ## Commands
@@ -51,6 +51,26 @@ Every operation page is rendered by one generic `src/ui/OperationPage.tsx` and `
    Put the shown code between `// <sample op:receiver[:strategy]>` and `// </sample>`. Add an expected result: in `tests/samples.test.ts` for TypeScript, or a `Check` in Program.cs. Keep test instrumentation outside the markers. Then run `npm run samples:extract`, which regenerates `src/catalog/samples.generated.ts`. Tests fail if that file is stale, if a sample has no catalog entry, or if an entry has no sample.
 
 `tests/registry.test.ts` checks that the navigation, registry and names agree, that every receiver builds for every strategy, and that every toggle can be clicked in the default state.
+
+## Page copy and examples
+
+The site is a cheat sheet for C# and TypeScript developers, so every line must be short and consistent from page to page. It also has to hold up for readers who know Haskell.
+
+- **Shape caption:** use the generated one from `describeTypes`. Write a custom `ribbon.caption` only when the generated one would be wrong, as for `fail` and `partition`, and match its voice.
+- **Behavior caption:** at most two sentences.
+  - First what ran ("`f` ran on `a`", "`p` failed", "so `f` didn't run"), then "The result is `X`."
+  - Use past tense, and put constructor names in code (`Some`, `Left`).
+  - Don't name the operation, other operations or ecosystems.
+- **Value names in diagrams:**
+  - Name each value after its type's letter in lowercase: `a` for `A`, `e` for `E`, `b` for `B`, `r` for `R`.
+  - Give a second value of the same type a subscript, such as `e₁` and `e₂`, or `a₁` for the input and `a₂` for the fallback. This matches `E₂` in the types.
+  - Never use primes or unrelated letters.
+- **Behavior note** (`receiver.note`): one sentence, only for a receiver-specific trap the diagram can't show.
+- **Examples:**
+  - Each page key shows one entry per ecosystem, in the order LanguageExt, fp-ts, Effect, Haskell. Use a `none` entry when there is nothing.
+  - The api field is one qualified name: `E.map`, `Result.map`, `Either.Map`, `fmap`.
+  - Notes are at most one sentence and only when they add something: argument order or shape, a legacy name ("Legacy name: `chain`."), a trap, or the Haskell module ("From `Data.Bifunctor`.").
+  - Samples run the same scenario, with the same values, in every ecosystem: an optional helper, then `input`, then `result`, with no comments.
 
 ## Pinned ecosystems
 
