@@ -50,5 +50,13 @@ GitHub Actions runs the typecheck, tests, build and both sample suites on every 
 
 ## Docs
 
-- `AGENT_HANDOFF.md`: the spec, with decisions, architecture, versioning model and test plan.
-- `CLAUDE.md`: working notes for the codebase, including how to add an operation.
+- [`docs/design.md`](docs/design.md): principles, architecture, how each ecosystem is checked, non-goals and roadmap.
+- [`CLAUDE.md`](CLAUDE.md): working notes for contributors (human or AI), including how to add an operation and the conventions for page copy and examples.
+
+## Contributing
+
+Issues and pull requests are welcome. The site is still under construction, so open an issue before starting anything large. Every claim about a library must be checked at its pinned version: fp-ts and Effect claims need a conformance test, and every sample has to run (`npm test`, `npm run samples:languageext`, `npm run samples:haskell`).
+
+## License
+
+[BSD 3-Clause](LICENSE).

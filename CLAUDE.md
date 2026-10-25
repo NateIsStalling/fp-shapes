@@ -4,10 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-The app is a static Vite, React and TypeScript site in `src/`. `AGENT_HANDOFF.md` is the spec. It covers the decisions, architecture, catalog and versioning model, routes, test plan, milestones and definition of done. Read it before starting any build work.
+The app is a static Vite, React and TypeScript site in `src/`. `docs/design.md` describes the design: principles, architecture, verification, non-goals and roadmap. Read it before starting build work.
 
-- **Product direction: interactive, computed diagrams of FP operations, with each operation's name in every target ecosystem.** Signature search is out of scope. **Shape is the organizing principle:** every operation page, search result, matrix cell detail and abstraction example shows the same **Shape Ribbon**. It is derived from the canonical `TypeExpression` and shows which layers moved, stayed, appeared or disappeared. Operation pages run shape → behavior → ecosystems, the navigation uses fp-ts/Effect `@category` groups (Constructors, Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering). The page header shows the name, the generic signature, an `F =` row naming the receiver (a picker when there are several, a fixed chip when there is one) and the concrete signature. It shows no type-class tag: the site is a cheat sheet for readers coming from C# and TypeScript, so class names (Functor, Monad, …) belong in the Haskell catalog notes until they can be taught properly. Ecosystem-specific remarks (a Haskell name that means something else, an argument-order trap) go in that ecosystem's catalog note, never in page headers or captions. The navigation shows names only. Concurrent traverse is deferred. Each page covers one operation. Inputs are interactive, and the diagram is **computed** by running a reference implementation, never hand-written. You can find an operation by its name in any ecosystem. A matrix index shows the API name in each target ecosystem, along with versioned snippets and glossary terms. "No equivalent" counts as a real answer. Learn paths, concept essays and example labs are out of scope.
-- **Semantics come from primary docs.** Verify every semantic claim against the primary docs for the pinned library version (see "Semantic authority" in `AGENT_HANDOFF.md`).
+- **Product direction: interactive, computed diagrams of FP operations, with each operation's name in every target ecosystem.** Signature search is out of scope. **Shape is the organizing principle:** every operation page shows the same **Shape Ribbon** (and any future index or abstraction page should reuse it). It is derived from the canonical `TypeExpression` and shows which layers moved, stayed, appeared or disappeared. Operation pages run shape → behavior → examples, the navigation uses fp-ts/Effect `@category` groups (Constructors, Mapping, Sequencing, Zipping, Traversing, Error handling, Pattern matching, Filtering). The page header shows the name, the generic signature, an `F =` row naming the receiver (a picker when there are several, a fixed chip when there is one) and the concrete signature. It shows no type-class tag: the site is a cheat sheet for readers coming from C# and TypeScript, so class names (Functor, Monad, …) belong in the Haskell catalog notes until they can be taught properly. Ecosystem-specific remarks (a Haskell name that means something else, an argument-order trap) go in that ecosystem's catalog note, never in page headers or captions. The navigation shows names only. Concurrent traverse is deferred. Each page covers one operation. Inputs are interactive, and the diagram is **computed** by running a reference implementation, never hand-written. "No equivalent" counts as a real answer. Name lookup and a matrix index are on the roadmap in `docs/design.md`, not built. Learn paths, concept essays and example labs are out of scope.
+- **Semantics come from primary docs.** Verify every semantic claim against the primary docs for the pinned library version (see "Principles" in `docs/design.md`).
 
 ## Commands
 
@@ -29,12 +29,12 @@ Stack: Vite 8, React 19, TypeScript 7 (strict, `noUncheckedIndexedAccess`, `exac
 
 `tests/architecture.test.ts` enforces the layer boundaries described below. Pure layers (`semantics`, `scenes`, `catalog`, `search`) can't import npm packages, except test files, which may use `vitest` and `fast-check`.
 
-## Planned architecture (layers depend only downward; enforce with a lint rule)
+## Architecture (layers depend only downward)
 
-- `src/semantics/` contains receivers (Option, Either, Validation; later List, ZipList, Tuple) and reference operations. Each run returns its result plus a trace of the calls made and skipped. **The receiver decides the result; evaluation strategy (`short-circuit` | `eager`) decides only which calls run.** Validation accumulates because of its applicative, not because of a traverse "mode". This layer must never import React or any other layer.
-- `src/scenes/` holds pure builders that map (operation, receiver, evaluation strategy, inputs) to a `Scene` plus a text summary. `ShapeDiagram` renders Scenes and never branches on operation names.
-- `src/catalog/` holds `EcosystemEntry` records: API name, the ecosystem's own signature order, `status` (`equivalent` | `library` | `partial` | `analogy` | `none`), a `strategy` link, version and verification data, aliases with name history, and optional snippet refs. It also holds abstraction records describing how each ecosystem represents Functor, Monad and so on: first-class, encoded, library-only or absent. Syntax that resolves by method name (LINQ query syntax, F# CE builders) counts as "absent (syntax only)".
-- Derived, never hand-maintained: the alias index, the glossary and navigation. An ambiguous alias (`SelectMany`, `fold`, `join`, `Do`) returns several qualified candidates.
+- `src/semantics/` contains receivers (Option, Either, Validation, List, ZipList, Tuple) and reference operations. Each run returns its result plus a trace of the calls made and skipped. **The receiver decides the result; evaluation strategy (`short-circuit` | `eager`) decides only which calls run.** Validation accumulates because of its applicative, not because of a traverse "mode". This layer must never import React or any other layer.
+- `src/scenes/` holds pure builders that map (operation, receiver, evaluation strategy, inputs) to a `Scene` plus a text summary. `SceneView` renders Scenes and never branches on operation names.
+- `src/catalog/` holds the navigation (`operations.ts`) and the ecosystem entries: API name, `status` (`equivalent` | `library` | `partial` | `analogy` | `none`), an optional note, and a sample from `samples.generated.ts`. Entries are keyed `op:receiver` or `op:receiver:strategy`.
+- Planned, not built: a `search/` layer for name lookup (the architecture test already reserves it) and abstraction records. Keep anything derived (aliases, glossary, navigation) derived from the catalog, never hand-maintained.
 
 ## Adding or changing an operation (no per-operation React)
 
@@ -74,14 +74,13 @@ The site is a cheat sheet for C# and TypeScript developers, so every line must b
 
 ## Pinned ecosystems
 
-- Effect 4.0.5. v3 names are indexed only as legacy aliases.
+- Effect 4.0.5. Indexing v3 names as legacy aliases is planned, not built.
 - fp-ts 2.16.11 (in maintenance).
-- F#: FSharp.Core 10.1.402, FsToolkit.ErrorHandling 5.2.0, FSharpPlus 1.9.1. Tag each entry with its library.
-- Haskell: base 4.22.0.0 (GHC 9.14), mtl 2.3.2, `either` 5.0.3 (`Data.Either.Validation`), semigroupoids 6.0.1 (`Data.Functor.Alt`, already a dependency of `either`), async 2.2.6. Each entry names its package.
-- C# BCL/LINQ for .NET 10.
+- Planned, not yet in the catalog: F# (FSharp.Core 10.1.402, FsToolkit.ErrorHandling 5.2.0, FSharpPlus 1.9.1; tag each entry with its library) and C# BCL/LINQ for .NET 10.
+- Haskell: base 4.22.0.0 (GHC 9.14), mtl 2.3.2, `either` 5.0.3 (`Data.Either.Validation`), semigroupoids 6.0.1 (`Data.Functor.Alt`, already a dependency of `either`). Each entry names its package.
 - LanguageExt: **v4 (4.4.9) only in the initial scope.** v5 (5.0.0-beta-78) is deferred, but the model supports several version tracks per ecosystem.
 
-An ecosystem can have several version tracks. Entries list the tracks they apply to. APIs that differ between tracks get one entry per track, linked by a `crossTrack` note (argument-order, renamed, semantics or removed). Snippets are compiled once per track, and the UI shows a version switcher whose choice is kept in the URL. Catalog validation flags any entry whose verified version differs from its track's pin.
+Version tracks (several pins per ecosystem, such as LanguageExt v4 and v5) are on the roadmap. Until then each ecosystem has one pin, and the catalog, samples and conformance tests must all agree on it.
 
 ## Rules that are easy to violate
 

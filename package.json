@@ -2,6 +2,13 @@
   "name": "fp-shapes",
   "private": true,
   "version": "0.0.0",
+  "description": "Interactive diagrams of functional programming operations, with what each one is called in LanguageExt, fp-ts, Effect and Haskell.",
+  "license": "BSD-3-Clause",
+  "homepage": "https://nateisstalling.github.io/fp-shapes/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NateIsStalling/fp-shapes.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
