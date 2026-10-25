@@ -164,8 +164,7 @@ function traverseScene(k: Kind3, t: Toggles, strategy: EvaluationStrategy, isSeq
     : k === "validation" ? `${reached(4)}, and every failure was kept.`
     : strategy === "short-circuit" ? `${reached(called.size)}, stopping at the first failure.`
     : `${reached(4)}, and only the first failure was kept.`;
-  const other = n && k !== "validation" ? (strategy === "short-circuit" ? " Keep going gives the same result." : " Stop gives the same result.") : "";
-  const caption = `${what} The result is \`${resultText}\`.${other}`;
+  const caption = `${what} The result is \`${resultText}\`.`;
   return { inputs: [{ node: input, steps }], output, caption };
 }
 
@@ -211,9 +210,9 @@ function valueOut(label: "Either" | "Option" | "Validation", r: Either<unknown, 
 }
 
 const VALIDATION_NOTE = "Validation keeps every failure, so it always goes through every element.";
-// Sequence's elements are already values, so whether the rest are looked at
-// is only observable when they are effects.
-const SEQUENCE_NOTE = "The elements are already computed, so stopping early saves work only when they are effects that haven't run yet.";
+// In a strict language sequence's elements already exist, so stopping early
+// saves no work. (Haskell's elements are lazy; its catalog note says so.)
+const SEQUENCE_NOTE = "In C# and TypeScript the elements already exist, so stopping early saves no work.";
 
 export const operationScenes: Readonly<Record<string, OperationScenes>> = {
   // --- Constructors ----------------------------------------------------------

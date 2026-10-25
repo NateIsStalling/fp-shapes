@@ -391,18 +391,46 @@ string ShowV<E, A>(Validation<E, A> v) => v.Match(Succ: a => $"Success({a})", Fa
     Expect("traverse:validation:eager calls", called.SequenceEqual(new[] { 1, -2, 3, -4 }), $"called on {ShowS(called)}");
 }
 {
-    // <sample sequence:either>
+    // <sample sequence:either:short-circuit>
+    IEnumerable<Either<string, int>> input = new[] { Right<string, int>(1), Left<string, int>("e2"), Right<string, int>(3), Left<string, int>("e4") };
+    Either<string, IEnumerable<int>> result = input.Sequence();
+    // </sample>
+    Expect("sequence:either:short-circuit", ShowE(result.Map(xs => ShowS(xs))) == "Left(e2)", ShowE(result.Map(xs => ShowS(xs))));
+    var read = new List<int>();
+    IEnumerable<Either<string, int>> Tracked() { var i = 0; foreach (var e in input) { read.Add(i++); yield return e; } }
+    Tracked().Sequence();
+    Expect("sequence:either:short-circuit reads", read.SequenceEqual(new[] { 0, 1 }), $"read {ShowS(read)}");
+    read.Clear();
+    toSeq(Tracked()).Sequence();
+    Expect("sequence:either:eager reads (Seq)", read.SequenceEqual(new[] { 0, 1, 2, 3 }), $"read {ShowS(read)}");
+}
+{
+    // <sample sequence:either:eager>
     Seq<Either<string, int>> input = Seq(Right<string, int>(1), Left<string, int>("e2"), Right<string, int>(3), Left<string, int>("e4"));
     Either<string, Seq<int>> result = input.Sequence();
     // </sample>
-    Expect("sequence:either", ShowE(result.Map(xs => ShowS(xs))) == "Left(e2)", ShowE(result.Map(xs => ShowS(xs))));
+    Expect("sequence:either:eager", ShowE(result.Map(xs => ShowS(xs))) == "Left(e2)", ShowE(result.Map(xs => ShowS(xs))));
 }
 {
-    // <sample sequence:option>
+    // <sample sequence:option:short-circuit>
+    IEnumerable<Option<int>> input = new[] { Some(1), None, Some(3), None };
+    Option<IEnumerable<int>> result = input.Sequence();
+    // </sample>
+    Expect("sequence:option:short-circuit", ShowO(result.Map(xs => ShowS(xs))) == "None", ShowO(result.Map(xs => ShowS(xs))));
+    var read = new List<int>();
+    IEnumerable<Option<int>> Tracked() { var i = 0; foreach (var o in input) { read.Add(i++); yield return o; } }
+    Tracked().Sequence();
+    Expect("sequence:option:short-circuit reads", read.SequenceEqual(new[] { 0, 1 }), $"read {ShowS(read)}");
+    read.Clear();
+    toSeq(Tracked()).Sequence();
+    Expect("sequence:option:eager reads (Seq)", read.SequenceEqual(new[] { 0, 1, 2, 3 }), $"read {ShowS(read)}");
+}
+{
+    // <sample sequence:option:eager>
     Seq<Option<int>> input = Seq(Some(1), None, Some(3), None);
     Option<Seq<int>> result = input.Sequence();
     // </sample>
-    Expect("sequence:option", ShowO(result.Map(xs => ShowS(xs))) == "None", ShowO(result.Map(xs => ShowS(xs))));
+    Expect("sequence:option:eager", ShowO(result.Map(xs => ShowS(xs))) == "None", ShowO(result.Map(xs => ShowS(xs))));
 }
 {
     // <sample sequence:validation>
@@ -449,11 +477,16 @@ string ShowV<E, A>(Validation<E, A> v) => v.Match(Succ: a => $"Success({a})", Fa
     Expect("alt:either", ShowE(result) == "Left(e2)", ShowE(result));
 }
 {
-    // <sample alt:validation>
-    Validation<string, int> first = Fail<string, int>("e1");
-    Validation<string, int> result = first | Fail<string, int>("e2");
-    // </sample>
-    Expect("alt:validation", ShowV(result) == "Failure([e1, e2])", ShowV(result));
+    // alt:validation is `none`: v4's `|` and `||` on Validation are not alt.
+    // A first Success still loses to a failing fallback, and `|` always runs it.
+    Validation<string, int> ok = Success<string, int>(1);
+    Validation<string, int> bad = Fail<string, int>("e2");
+    Expect("alt:validation none: Success | Fail", ShowV(ok | bad) == "Failure([e2])", ShowV(ok | bad));
+    Expect("alt:validation none: Fail | Success", ShowV(bad | Success<string, int>(7)) == "Failure([e2])", ShowV(bad | Success<string, int>(7)));
+    var calls = 0;
+    Validation<string, int> Fallback() { calls++; return bad; }
+    var _ = ok | Fallback();
+    Expect("alt:validation none: | runs the fallback", calls == 1, $"{calls} calls");
 }
 {
     // <sample alt:list>

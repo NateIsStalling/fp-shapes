@@ -24,8 +24,8 @@ const STATUS_CHIP: Partial<Record<NameEntry["status"], { label: string; title: s
 // strict to a Haskeller, so the control says what it does.)
 const STRATEGY_LABEL: Record<EvaluationStrategy, string> = { "short-circuit": "Stop", eager: "Keep going" };
 const STRATEGY_NOTE: Record<EvaluationStrategy, string> = {
-  "short-circuit": "Elements after the first failure are skipped. For a finite input, going through every element gives the same result.",
-  eager: "Every element is reached. Only the first failure survives, so for a finite input the result matches stopping.",
+  "short-circuit": "Elements after the first failure are skipped. When every call returns, both settings give the same result.",
+  eager: "Every element is reached, and only the first failure survives. When every call returns, both settings give the same result.",
 };
 
 // One page for every operation: header, Shape Ribbon, behavior lane, names.
