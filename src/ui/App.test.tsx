@@ -95,7 +95,7 @@ describe("section headings", () => {
     renderAt("/op/traverse");
     expect(screen.getByRole("heading", { level: 2, name: "Shape" })).toBeTruthy();
     expect(screen.getByRole("heading", { level: 2, name: "Behavior" })).toBeTruthy();
-    expect(screen.getByRole("heading", { level: 2, name: "Ecosystems" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 2, name: "Examples" })).toBeTruthy();
   });
 });
 

@@ -26,10 +26,10 @@ signature / shape    ──┘
         ↓
 1. Shape      which structural layers move, change, appear or disappear   (Shape Ribbon)
 2. Behavior   which calls execute and which failures survive              (computed trace)
-3. Ecosystems what each ecosystem calls it, version, caveats              (names panel)
+3. Examples   what each ecosystem calls it, version, caveats, samples     (names panel)
 ```
 
-Every operation page follows that order: shape, then behavior, then ecosystems.
+Every operation page follows that order: shape, then behavior, then examples.
 
 Keep these three levels separate in the data model and the UI:
 

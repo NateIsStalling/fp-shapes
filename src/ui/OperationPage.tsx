@@ -106,7 +106,7 @@ export function OperationPage({ op }: { op: OperationInfo & { group: string } })
 
       <aside className="aside" aria-labelledby="eco-h">
         <div className="aside-head">
-          <h2 id="eco-h" className="aside-title">Ecosystems</h2>
+          <h2 id="eco-h" className="aside-title">Examples</h2>
           <p className="aside-context">
             For <span className="bound-type">{receiver.label}</span>{strategies.length > 1 ? `, ${STRATEGY_LABEL[activeStrategy].toLowerCase()}` : ""}
           </p>
