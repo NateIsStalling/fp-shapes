@@ -6,7 +6,7 @@ import { errorsOf, parseType, spine } from "./types";
 export type LayerKind = "collection" | "effect" | "tuple";
 
 const PRODUCTS = new Set(["Tuple"]);
-const COLLECTIONS = new Set(["List", "T", "Seq", "Lst", "Array", "IEnumerable", "ZipList"]);
+const COLLECTIONS = new Set(["List", "T", "Seq", "Lst", "Array", "IEnumerable", "ZipList", "NonEmpty"]);
 export const layerKind = (name: string): LayerKind => (PRODUCTS.has(name) ? "tuple" : COLLECTIONS.has(name) ? "collection" : "effect");
 
 export interface RibbonDiff {

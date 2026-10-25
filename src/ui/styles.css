@@ -317,7 +317,11 @@ a { color: var(--purple-dark); }
 .ribbon-grid { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; grid-auto-columns: max-content; column-gap: 14px; row-gap: 10px; align-items: center; max-width: 100%; overflow-x: auto; }
 .ribbon-col { display: grid; grid-row: span 2; grid-template-rows: subgrid; justify-items: center; align-items: center; }
 .ribbon-type { align-self: end; font: 500 14px var(--mono); color: var(--soft-ink); white-space: nowrap; min-height: 1.2em; }
-.ribbon-fn { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 18px; border: 1.5px dashed var(--effect-bd); background: var(--fn-bg); font-size: 20px; }
+.ribbon-fn { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; padding: 12px; border-radius: 18px; border: 1.5px dashed var(--effect-bd); background: var(--fn-bg); font-size: 20px; }
+.fn-call { display: inline-flex; align-items: center; gap: 8px; }
+.fn-atom { font: 500 15px var(--mono); color: var(--soft-ink); padding: 4px 9px; border-radius: 8px; background: var(--plain-bg); }
+.fn-atom-error { color: var(--red); background: var(--red-soft); }
+.fn-times { width: 12px; height: 12px; fill: none; stroke: var(--faint-2); stroke-width: 1.6; stroke-linecap: round; }
 /* Too wide for the card: stack the columns top to bottom, arrows pointing down. */
 .ribbon-stacked { display: flex; flex-direction: column; align-items: center; row-gap: 6px; }
 .ribbon-stacked .ribbon-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
@@ -365,6 +369,11 @@ a { color: var(--purple-dark); }
 .ball-ghost.ball-error { box-shadow: inset 0 0 0 1.5px var(--error-ghost); }
 .layer-ghost { opacity: .45; }
 .ghost-box { font: 500 12px var(--mono); color: var(--faint-2); border: 1.5px dashed var(--tuple-bd); border-radius: 10px; padding: 6px 8px; }
+/* A word-length label ("undefined", "nullish") as a pill instead of a circle. */
+.ball.ball-word { width: auto; min-width: var(--ball); padding: 0 10px; border-radius: 999px; font-size: 12px; }
+/* A free type variable in the Shape Ribbon: the type exists, no value does. */
+.ball.ball-free { background: transparent; color: var(--muted); box-shadow: none; border: 1.5px dashed var(--faint-2); }
+.ball.ball-free.ball-error { border-color: var(--error-ghost); color: var(--red); }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Shape-sorter slots: a sum type is one of its cases. */

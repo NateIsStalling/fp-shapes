@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { describeTypes } from "./ribbon";
-import { errorsOf, parseType, showType, spine } from "./types";
+import { errorsOf, parseFn, parseType, showType, spine } from "./types";
 
 describe("type expressions", () => {
   it("parse and print", () => {
@@ -22,5 +22,27 @@ describe("ribbon descriptions from types", () => {
   });
   it("mapError: only the error side changes", () => {
     expect(describeTypes("Either<E, A>", "Either<E₂, A>").caption).toBe("`Either` stays the same. The error changes from `E` to `E₂`. The payload stays `A`.");
+  });
+});
+
+describe("parseFn", () => {
+  const v = (name: string) => ({ kind: "var", name });
+  it("reads a plain function", () => {
+    expect(parseFn("A → bool")).toEqual([{ kind: "fn", args: [v("A")], out: v("bool") }]);
+  });
+  it("reads a thunk as a function of no arguments", () => {
+    expect(parseFn("() → Option<A>")).toEqual([{ kind: "fn", args: [], out: { kind: "app", ctor: "Option", args: [v("A")] } }]);
+  });
+  it("reads two functions", () => {
+    expect(parseFn("(E → E₂) × (A → B)")).toEqual([{ kind: "fn", args: [v("E")], out: v("E₂") }, { kind: "fn", args: [v("A")], out: v("B") }]);
+  });
+  it("reads a value and a function of two arguments, filling in the error side", () => {
+    expect(parseFn("Either<B> × ((A, B) → C)")).toEqual([
+      { kind: "value", type: { kind: "app", ctor: "Either", args: [v("E"), v("B")] } },
+      { kind: "fn", args: [v("A"), v("B")], out: v("C") },
+    ]);
+  });
+  it("keeps an error side that is already written", () => {
+    expect(parseFn("E → Either<E₂, A>")).toEqual([{ kind: "fn", args: [v("E")], out: { kind: "app", ctor: "Either", args: [v("E₂"), v("A")] } }]);
   });
 });

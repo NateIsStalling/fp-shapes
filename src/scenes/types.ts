@@ -47,7 +47,7 @@ export function casesOf(t: TypeExpr): readonly Case[] | undefined {
   switch (t.ctor) {
     case "Option": return [{ name: "None", role: "empty" }, { name: "Some", arg: first as TypeExpr, role: "value" }];
     case "Either": return [{ name: "Left", arg: first as TypeExpr, role: "error" }, { name: "Right", arg: second as TypeExpr, role: "value" }];
-    case "Nullable": return [{ name: "null", role: "empty" }, { name: "value", arg: first as TypeExpr, role: "value" }];
+    case "Nullable": return [{ name: "nullish", role: "empty" }, { name: "value", arg: first as TypeExpr, role: "value" }];
     case "Validation": return [{ name: "Failure", arg: first as TypeExpr, role: "error" }, { name: "Success", arg: second as TypeExpr, role: "value" }];
     default: return undefined;
   }
@@ -68,4 +68,67 @@ export function errorsOf(t: TypeExpr): string[] {
   const own = t.ctor === "Either" || t.ctor === "Validation" ? [showType(t.args[0] as TypeExpr)] : [];
   const last = t.args[t.args.length - 1];
   return [...own, ...(last && t.ctor !== "Tuple" ? errorsOf(last) : [])];
+}
+
+// A function argument as the signature writes it, drawn in the Shape Ribbon:
+// "A → bool", "() → Option<A>", "(E → E₂) × (A → B)" (two functions),
+// "Either<B> × ((A, B) → C)" (a value and a function). Each part joined by ×
+// is a function or a plain value.
+export type FnPart =
+  | { readonly kind: "fn"; readonly args: readonly TypeExpr[]; readonly out: TypeExpr }
+  | { readonly kind: "value"; readonly type: TypeExpr };
+export type FnShape = readonly FnPart[];
+
+// Split on a separator at the top level only (outside <> and ()).
+function splitTop(s: string, sep: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "<" || c === "(") depth++;
+    else if (c === ">" || c === ")") depth--;
+    else if (depth === 0 && s.startsWith(sep, i)) {
+      parts.push(s.slice(start, i));
+      start = i + sep.length;
+      i += sep.length - 1;
+    }
+  }
+  parts.push(s.slice(start));
+  return parts.map((p) => p.trim());
+}
+
+// "(A → B)" → "A → B" when the parentheses wrap the whole piece.
+function unwrap(s: string): string {
+  if (!s.startsWith("(") || !s.endsWith(")")) return s;
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === "(") depth++;
+    else if (s[i] === ")") depth--;
+    if (depth === 0 && i < s.length - 1) return s;
+  }
+  return s.slice(1, -1).trim();
+}
+
+// Signatures abbreviate the error side ("Either<B>"); the drawing needs both cases.
+function withError(t: TypeExpr): TypeExpr {
+  if (t.kind === "var") return t;
+  const args = t.args.map(withError);
+  return (t.ctor === "Either" || t.ctor === "Validation") && args.length === 1
+    ? { kind: "app", ctor: t.ctor, args: [{ kind: "var", name: "E" }, ...args] }
+    : { kind: "app", ctor: t.ctor, args };
+}
+
+function parsePart(source: string): FnPart {
+  const s = unwrap(source);
+  const arrow = splitTop(s, " → ");
+  if (arrow.length === 1) return { kind: "value", type: withError(parseType(s)) };
+  const [params = "", ...rest] = arrow;
+  const p = unwrap(params);
+  const args = params === "()" ? [] : splitTop(p, ",").map((a) => withError(parseType(a)));
+  return { kind: "fn", args, out: withError(parseType(rest.join(" → "))) };
+}
+
+export function parseFn(source: string): FnShape {
+  return splitTop(unwrap(source.trim()), " × ").map(parsePart);
 }
