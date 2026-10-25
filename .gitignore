@@ -39,3 +39,4 @@ playwright-report
 # .NET snippet builds
 snippets/**/bin
 snippets/**/obj
+snippets/haskell/dist-newstyle/
