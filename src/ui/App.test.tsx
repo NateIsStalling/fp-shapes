@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { operationGroups, operationsById } from "../catalog/operations";
 import { App } from "./App";
 
 afterEach(cleanup);
+// The site is under construction: its pages show only with Preview on, so
+// tests start with it on. The landing tests below turn it off.
+beforeEach(() => localStorage.setItem("fp-shapes-preview", "on"));
 
 const renderAt = (path: string) => render(<MemoryRouter initialEntries={[path]}><App /></MemoryRouter>);
 
@@ -165,15 +168,23 @@ describe("title bar and theme", () => {
 });
 
 describe("app chrome", () => {
-  it("has a full-width app bar with the name and tagline, and puts the theme toggle beside GitHub", () => {
+  it("has a full-width app bar with the name, tagline and GitHub link, and a footer with the theme switch", () => {
     const { container } = renderAt("/op/map");
     const bar = container.querySelector("header.app-bar");
     expect(bar?.textContent).toContain("FP Shapes");
     expect(bar?.textContent).toContain("Interactive diagrams of functional programming operations");
     expect(bar?.closest("nav")).toBeNull();
-    const foot = container.querySelector(".sidebar-foot");
-    expect(foot?.querySelector(".github-badge")).toBeTruthy();
-    expect(foot?.querySelector(".theme-switch")).toBeTruthy();
+    expect(bar?.querySelector(".github-badge")).toBeTruthy();
+    const footer = container.querySelector("footer.site-footer");
+    expect([...(footer?.children ?? [])].map((c) => c.className.split(" ")[0])).toEqual(["preview-switch", "theme-switch"]);
+    expect(container.querySelector("nav .github-badge, nav .theme-switch, nav .preview-switch")).toBeNull();
+  });
+
+  it("keeps the GitHub link and theme switch on the landing page", () => {
+    localStorage.clear();
+    const { container } = renderAt("/");
+    expect(container.querySelector("header.app-bar .github-badge")).toBeTruthy();
+    expect(container.querySelector("footer.site-footer .theme-switch")).toBeTruthy();
   });
 });
 
@@ -215,77 +226,60 @@ describe("shape ribbon draws sum types as their cases", () => {
   });
 });
 
-describe("preview", () => {
+describe("under construction", () => {
+  beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
-  const toggle = () => screen.getByRole("switch", { name: "Preview" });
+  const start = () => screen.getByRole("button", { name: "Turn on Preview" });
 
-  it("is off by default, with no banner", () => {
-    renderAt("/");
-    expect(toggle().getAttribute("aria-checked")).toBe("false");
-    expect(screen.queryByText(/under review and may not be accurate/)).toBeNull();
+  it("with Preview off, every route shows the landing page and no navigation", () => {
+    for (const path of ["/", "/op/traverse", "/op/pure", "/nope"]) {
+      renderAt(path);
+      expect(screen.getByRole("heading", { level: 1, name: "This site is still being built" })).toBeTruthy();
+      expect(screen.getByText("Under construction")).toBeTruthy();
+      expect(screen.queryByRole("navigation", { name: "Primary" })).toBeNull();
+      expect(screen.queryByText(/under review and may not be accurate/)).toBeNull();
+      cleanup();
+    }
   });
 
-  it("asks for confirmation; cancel leaves it off", () => {
+  it("asks for confirmation; cancel and Escape leave the landing page", () => {
     renderAt("/");
-    fireEvent.click(toggle());
+    fireEvent.click(start());
     const dialog = screen.getByRole("alertdialog", { name: "Show preview content?" });
     expect(dialog.textContent).toMatch(/under review and may not be accurate/);
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(toggle().getAttribute("aria-checked")).toBe("false");
-  });
-
-  it("Escape cancels the confirmation", () => {
-    renderAt("/");
-    fireEvent.click(toggle());
+    fireEvent.click(start());
     fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
     expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(toggle().getAttribute("aria-checked")).toBe("false");
+    expect(start()).toBeTruthy();
   });
 
-  it("confirming turns it on, shows the banner and remembers the choice; turning off needs no confirmation", () => {
+  it("confirming opens the site with the banner and remembers the choice; turning off returns to the landing page", () => {
     renderAt("/");
-    fireEvent.click(toggle());
+    fireEvent.click(start());
     fireEvent.click(screen.getByRole("button", { name: "Show preview" }));
-    expect(toggle().getAttribute("aria-checked")).toBe("true");
+    expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toMatch(/Preview on\. Preview content is under review and may not be accurate\./);
     cleanup();
-    renderAt("/");
-    expect(toggle().getAttribute("aria-checked")).toBe("true");
-    fireEvent.click(toggle());
+    renderAt("/op/map");
+    const toggle = screen.getByRole("switch", { name: "Preview" });
+    expect(toggle.getAttribute("aria-checked")).toBe("true");
+    fireEvent.click(toggle);
     expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(start()).toBeTruthy();
   });
 });
 
 describe("preview operations", () => {
-  afterEach(() => localStorage.clear());
   const nav = () => screen.getByRole("navigation", { name: "Primary" });
 
-  it("Constructors is a preview group", () => {
+  it("Constructors is a preview group, tagged preview in the sidebar", () => {
     expect(operationGroups.find((g) => g.name === "Constructors")?.preview).toBe(true);
-  });
-
-  it("are hidden from the sidebar and their routes fall back to the default when Preview is off", () => {
-    renderAt("/op/pure");
-    expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
-    expect(within(nav()).queryByText("Constructors")).toBeNull();
-    expect(within(nav()).queryByRole("link", { name: "pure" })).toBeNull();
-  });
-
-  it("appear in the sidebar, tagged preview, and render when Preview is on", () => {
-    localStorage.setItem("fp-shapes-preview", "on");
     renderAt("/op/pure");
     expect(screen.getByRole("heading", { level: 1, name: "pure" })).toBeTruthy();
     expect(within(nav()).getByText("Constructors").textContent).toBe("Constructorspreview");
     expect(within(nav()).getByRole("link", { name: "pure" })).toBeTruthy();
-  });
-
-  it("turning Preview off on a preview page falls back to the default", () => {
-    localStorage.setItem("fp-shapes-preview", "on");
-    renderAt("/op/pure");
-    fireEvent.click(screen.getByRole("switch", { name: "Preview" }));
-    expect(screen.getByRole("heading", { level: 1, name: "traverse" })).toBeTruthy();
   });
 });
 

@@ -56,6 +56,20 @@ export function PreviewToggle() {
   );
 }
 
+// The landing page's call to action: the same confirmation as the switch.
+export function PreviewStartButton() {
+  const { set } = usePreview();
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <>
+      <button type="button" className="modal-button primary landing-button" onClick={() => setConfirming(true)}>Turn on Preview</button>
+      {confirming && (
+        <ConfirmPreview onCancel={() => setConfirming(false)} onConfirm={() => { set(true); setConfirming(false); }} />
+      )}
+    </>
+  );
+}
+
 function ConfirmPreview({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
   const titleId = useId();
   const bodyId = useId();

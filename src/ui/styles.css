@@ -158,15 +158,13 @@ a { color: var(--purple-dark); }
 @media (min-width: 761px) {
   .app-top { position: sticky; top: 0; z-index: 5; }
   .sidebar { position: sticky; top: var(--top-h); align-self: flex-start; height: calc(100dvh - var(--top-h)); overflow-y: auto; overscroll-behavior: contain; }
-  .app-body .sidebar { padding-bottom: 0; }
   /* The controls stay pinned at the bottom while the operation list scrolls. */
-  .sidebar .sidebar-foot { position: sticky; bottom: 0; padding: 12px 8px 16px; background: var(--sidebar); box-shadow: 0 -10px 12px -10px var(--shadow); }
 }
-.app-bar { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); align-items: center; background: var(--sidebar); border-bottom: 1px solid var(--line); }
-.app-bar .brand { padding: 16px 24px; }
-.app-bar .tagline { margin: 0; padding: 16px var(--content-pad); color: var(--muted); font-size: 14px; }
+.app-bar { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr) auto; grid-template-areas: "brand tagline end"; align-items: center; background: var(--sidebar); border-bottom: 1px solid var(--line); }
+.app-bar .brand { grid-area: brand; padding: 16px 24px; }
+.app-bar-end { grid-area: end; padding: 0 20px; }
+.app-bar .tagline { grid-area: tagline; margin: 0; padding: 16px var(--content-pad); color: var(--muted); font-size: 14px; }
 .app-body { flex: 1; display: flex; flex-wrap: wrap; min-width: 0; }
-.sidebar-foot { margin-top: auto; padding: 0 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .sidebar { flex: 0 0 var(--sidebar-w); width: var(--sidebar-w); padding: 28px 16px; background: var(--sidebar); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
 .sidebar-menu { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 .nav-groups { display: flex; flex-direction: column; gap: 14px; }
@@ -219,7 +217,8 @@ a { color: var(--purple-dark); }
 @media (prefers-reduced-motion: reduce) { .preview-track, .preview-thumb { transition: none; } }
 /* Narrow screens: the sidebar stacks above the content, so the app bar stacks too. */
 @media (max-width: 760px) {
-  .app-bar { grid-template-columns: 1fr; }
+  .app-bar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "brand end" "tagline tagline"; }
+  .app-bar-end { padding: 10px 16px 0; }
   .app-bar .brand { padding-bottom: 4px; }
   .app-bar .tagline { padding: 0 24px 14px; }
   .sidebar { flex: 1 1 100%; width: auto; padding: 10px 16px; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -228,7 +227,6 @@ a { color: var(--purple-dark); }
   .sidebar-menu { padding: 14px 0 6px; }
   /* Open on a small screen: groups flow into columns so the menu stays short. */
   .nav-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); align-items: start; gap: 10px 8px; }
-  .sidebar-foot { margin-top: 4px; }
 }
 .main { flex: 999 1 560px; min-width: 0; padding: 28px var(--content-pad) 64px; display: flex; flex-direction: column; gap: 26px; }
 .aside { flex: 1 1 300px; max-width: 380px; padding: 28px 24px; background: var(--surface); border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
@@ -444,3 +442,11 @@ a { color: var(--purple-dark); }
 .lane-caption { max-width: 64ch; text-align: center; font-size: 15px; }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Under construction: with Preview off, the site is this one page. */
+.landing { flex: 1 1 100%; max-width: 640px; margin: 0 auto; padding: 72px 16px 64px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.landing h1 { margin: 0; font-size: clamp(30px, 6vw, 44px); font-weight: 800; letter-spacing: -.03em; line-height: 1.1; }
+.landing-body { margin: 0; color: var(--soft-ink); font-size: 16px; line-height: 1.55; }
+.landing-button { min-height: 44px; margin-top: 8px; padding: 10px 20px; font-size: 15px; }
+/* The page footer holds the theme switch. */
+.site-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding: 14px 24px; background: var(--sidebar); border-top: 1px solid var(--line); }
